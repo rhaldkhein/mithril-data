@@ -1,0 +1,13 @@
+
+# === IGNORE ALL ===
+/*
+
+# === EXCEPT ===
+# Common Files
+!/.gitignore
+!/*.json
+!/*.txt
+!/*.md
+!/*.js
+
+!/test

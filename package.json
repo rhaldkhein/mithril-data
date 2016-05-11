@@ -1,0 +1,33 @@
+{
+  "name": "mithril-data",
+  "version": "0.1.0",
+  "description": "A model framework for your Mithril application.",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "keywords": [
+    "model",
+    "mithril",
+    "database",
+    "data"
+  ],
+  "author": "Kevin <undyingmind@gmail.com> (https://github.com/rhaldkhein)",
+  "authorName": "Kevin Villanueva",
+  "license": "MIT",
+  "devDependencies": {
+    "body-parser": "^1.15.1",
+    "chai": "^3.5.0",
+    "express": "^4.13.4",
+    "gulp-header": "^1.8.2",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^1.5.3",
+    "mocha": "^2.4.5",
+    "shortid": "^2.2.6",
+    "webpack-stream": "^3.2.0"
+  },
+  "dependencies": {
+    "lodash": "^4.12.0",
+    "mithril": "^0.2.4"
+  }
+}

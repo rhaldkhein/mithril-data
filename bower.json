@@ -1,0 +1,28 @@
+{
+  "name": "mithril-data",
+  "description": "A model framework for your Mithril application.",
+  "main": "index.js",
+  "authors": [
+    "Kevin <undyingmind@gmail.com> (https://github.com/rhaldkhein)"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "model",
+    "mithril",
+    "database",
+    "data"
+  ],
+  "moduleType": [
+    "amd",
+    "globals",
+    "node"
+  ],
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
