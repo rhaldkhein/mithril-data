@@ -16,15 +16,6 @@ Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
 	return obj;
 };
 
-function configure() {
-	if (config.methods) {
-		strictExtend(BaseModel.prototype, config.methods);
-	}
-	if (config.controllerMethods) {
-		strictExtend(ModelController.prototype, config.controllerMethods);
-	}
-}
-
 function _prop(store, context, key, callback) {
 	var prop = m.prop(store);
 	// store, callback
@@ -59,6 +50,24 @@ function _prop(store, context, key, callback) {
 	};
 }
 
+function configure() {
+	if (config.methods) {
+		strictExtend(BaseModel.prototype, config.methods);
+	}
+	if (config.controllerMethods) {
+		strictExtend(ModelController.prototype, config.controllerMethods);
+	}
+}
+
+function generateId() {
+	// Credit to http://stackoverflow.com/a/2117523/1324558
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+		var r = Math.random() * 16 | 0,
+			v = c == 'x' ? r : (r & 0x3 | 0x8);
+		return v.toString(16);
+	});
+}
+
 function isConflictExtend(objSource, objInject, callback) {
 	var conflict = false,
 		value;
@@ -84,7 +93,7 @@ function strictExtend(objSource, objInject) {
 function remapToProperty(obj, property) {
 	if (_.isArray(obj)) {
 		_.each(obj, function(value, key) {
-			if (value[property])
+			if (value && value[property])
 				obj[key] = value[property];
 		});
 		return obj;
@@ -113,6 +122,8 @@ function addMethods(dist, src, methods, distProp, retProp) {
 					dist[method] = function(valueA) {
 						if (_.isFunction(valueA))
 							valueA = remapToPropertyWrapper(valueA, retProp);
+						if (valueA instanceof BaseModel)
+							valueA = valueA.__json;
 						var result = src[method](this[distProp], valueA);
 						return result !== this[distProp] ? remapToProperty(result, retProp) : result;
 					};
@@ -120,7 +131,9 @@ function addMethods(dist, src, methods, distProp, retProp) {
 				case 3:
 					dist[method] = function(valueA, valueB) {
 						if (_.isFunction(valueB))
-							valueA = remapToPropertyWrapper(valueB, retProp);
+							valueB = remapToPropertyWrapper(valueB, retProp);
+						if (valueA instanceof BaseModel)
+							valueA = valueA.__json;
 						var result = src[method](this[distProp], valueA, valueB);
 						return result !== this[distProp] ? remapToProperty(result, retProp) : result;
 					};
@@ -206,10 +219,9 @@ Collection.prototype = {
 		else
 			this.__options[key] = value || true;
 	},
-	changed: function(models) {
+	changed: function() {
 		if (this.__options.redraw || config.redraw) {
 			m.redraw();
-			console.log('Redrawn', this.name);
 		}
 	},
 	get: function(mixed) {
@@ -252,7 +264,7 @@ Collection.prototype = {
 			}
 		});
 		if (added)
-			this.changed(models);
+			this.changed();
 		return this.size();
 	},
 	remove: function(mixed) {
@@ -263,10 +275,8 @@ Collection.prototype = {
 			lastLength = this.size(),
 			removedModels = [],
 			matchMix;
-
 		if (!lastLength)
 			return;
-		
 		_.each(mixed, function(mix) {
 			if (!mix)
 				throw new Error('Can\'t remove from collection. Argument must be set.');
@@ -290,7 +300,7 @@ Collection.prototype = {
 			model.__model.removeCollection(self);
 		});
 		if (lastLength !== this.size())
-			this.changed(mixed);
+			this.changed();
 		return this.size();
 	},
 	push: function(models) {
@@ -304,6 +314,9 @@ Collection.prototype = {
 	},
 	pop: function() {
 		return this.remove(this.last());
+	},
+	clear: function() {
+		this.remove(this.toArray());
 	}
 };
 
@@ -312,7 +325,7 @@ var collectionMethods = [
 	'forEach', 'map', 'find', 'findIndex', 'findLastIndex', 'filter', 'reject',
 	'every', 'some', 'invoke', 'maxBy', 'minBy', 'sortBy', 'groupBy', 'shuffle',
 	'size', 'initial', 'without', 'indexOf', 'lastIndexOf', 'difference', 'sample',
-	'reverse', 'nth', 'first', 'last', 'toArray'
+	'reverse', 'nth', 'first', 'last', 'toArray', 'slice', 'orderBy'
 ];
 addMethods(Collection.prototype, _, collectionMethods, 'collection', '__model');
 
@@ -322,11 +335,28 @@ addMethods(Collection.prototype, _, collectionMethods, 'collection', '__model');
 function ModelController() {}
 
 ModelController.prototype = _.create(Collection.prototype, {
-	loadById: function(id, callback) {
-		console.log('Loading by id...', id);
+	url: function() {
+		return config.baseUrl + (this.options.url || '/' + this.options.name.toLowerCase());
 	},
-	getById: function(id, callback) {
-		console.log('Getting by id...', id);
+	loadById: function(ids, callback) {
+		console.log('Loading by ids...', ids);
+		// 1. Make sure that models (by ids) are in this collection.
+		// 2. If not, load those are not in.
+		var self = this,
+			d = m.deferred(),
+			existing = this.filter(function(model) {
+				console.log(model);
+			});
+		console.log(existing);
+		request.get(this.url(), ids).then(function(data) {
+
+		}, function(err) {
+
+		});
+		return d.promise;
+	},
+	getById: function(ids, callback) {
+		console.log('Getting by ids...', ids);
 	}
 });
 
@@ -339,12 +369,16 @@ function BaseModel() {
 		redraw: false
 	};
 	this.__collections = [];
+	this.__cid = generateId();
 }
 
 BaseModel.prototype = {
 	// Get or set id of model.
 	id: function(id) {
 		return id ? this[config.keyId](id) : this[config.keyId]();
+	},
+	cid: function() {
+		return this.__cid;
 	},
 	// Get the full url for request.
 	url: function() {
@@ -489,7 +523,6 @@ BaseModel.prototype = {
 			d = m.deferred(),
 			req = this.id() ? request.put : request.post;
 		req.call(request, this.url(), this).then(function(data) {
-			console.log('save', data);
 			self.set(data);
 			d.resolve(self);
 			if (callback)
@@ -506,7 +539,6 @@ BaseModel.prototype = {
 			d = m.deferred(),
 			id = this.id();
 		request.get(this.url() + (id ? '/' + id : '')).then(function(data) {
-			console.log('fetch', data);
 			self.set(data);
 			d.resolve(self);
 			if (callback)
@@ -536,11 +568,14 @@ BaseModel.prototype = {
 				callback(err);
 		});
 		return d.promise;
+	},
+	isNew: function() {
+		return this.id() ? false : true;
 	}
 };
 
 // Add lodash methods.
-var objectMethods = ['has', 'keys', 'values', 'invert', 'pick', 'omit', 'toArray'];
+var objectMethods = ['has', 'keys', 'values', 'invert', 'pick', 'omit'];
 addMethods(BaseModel.prototype, _, objectMethods, '__json');
 
 /**
@@ -608,6 +643,8 @@ function createModel(options) {
 	if (conflict) {
 		throw new Error('`' + conflict + '` method is not allowed.');
 	}
+	// Attach the options to model constructor.
+	Model.options = options;
 	// Extend from base model prototype.
 	Model.prototype = _.create(BaseModel.prototype, _.extend(options.methods || {}, {
 		options: options,

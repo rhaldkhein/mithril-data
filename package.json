@@ -1,7 +1,7 @@
 {
   "name": "mithril-data",
   "version": "0.1.0",
-  "description": "A model framework for your Mithril application.",
+  "description": "A rich model framework for your Mithril application.",
   "main": "index.js",
   "scripts": {
     "test": "test"

@@ -6,7 +6,7 @@
 
 	Model.User = md.model({
 		name: 'User',
-		props: ['name', 'age']
+		props: ['name', 'profile']
 	});
 
 	Model.Note = md.model({
@@ -23,6 +23,10 @@
 		}
 	});
 
+	console.dir(Model.User);
+	console.dir(Model.Note);
+
+
 	var Demo = {
 
 		// Controller
@@ -30,6 +34,8 @@
 
 			// Create notes collection
 			var notes = new md.Collection();
+
+			console.log(notes);
 
 			// Create user for notes
 			var user = new Model.User();
@@ -48,9 +54,19 @@
 				author: user
 			});
 
+			// Create second note
+			var noteC = new Model.Note({
+				title: 'Third Note',
+				body: 'My third note.',
+				author: user
+			});
+			
+			Model.Note.loadById([1, 2, 3]);
+
 			// Add all notes to collection
 			notes.add(noteA);
 			notes.add(noteB);
+			notes.add(noteC);
 
 			// Export notes to view
 			return {
