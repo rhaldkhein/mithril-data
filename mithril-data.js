@@ -1,6 +1,6 @@
 /*!
- * mithril-data v0.1.0
- * A model framework for your Mithril application.
+ * mithril-data v0.0.1
+ * A rich model framework for Mithril application.
  * 
  * (c) 2016 Kevin Villanueva
  * License: MIT
@@ -112,13 +112,8 @@
 		}
 	}
 
-	function generateId() {
-		// Credit to http://stackoverflow.com/a/2117523/1324558
-		return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-			var r = Math.random() * 16 | 0,
-				v = c == 'x' ? r : (r & 0x3 | 0x8);
-			return v.toString(16);
-		});
+	function generateShortId() {
+		return ("000000" + (Math.random() * Math.pow(36, 6) << 0).toString(36)).slice(-6);
 	}
 
 	function isConflictExtend(objSource, objInject, callback) {
@@ -156,8 +151,8 @@
 	}
 
 	function remapToPropertyWrapper(func, property) {
-		return function(obj) {
-			return func(obj ? (obj[property] || obj) : obj);
+		return function(argA, argB, argC, argD) {
+			return func(argA ? (argA[property] || argA) : argA, argB ? (argB[property] || argB) : argB, argC, argD);
 		};
 	}
 
@@ -183,10 +178,14 @@
 						break;
 					case 3:
 						dist[method] = function(valueA, valueB) {
+							if (_.isFunction(valueA))
+								valueA = remapToPropertyWrapper(valueA, retProp);
+							else if (valueA instanceof BaseModel)
+								valueA = valueA.__json;
 							if (_.isFunction(valueB))
 								valueB = remapToPropertyWrapper(valueB, retProp);
-							if (valueA instanceof BaseModel)
-								valueA = valueA.__json;
+							else if (valueB instanceof BaseModel)
+								valueB = valueB.__json;
 							var result = src[method](this[distProp], valueA, valueB);
 							return result !== this[distProp] ? remapToProperty(result, retProp) : result;
 						};
@@ -215,8 +214,7 @@
 				data: data || {},
 				serialize: this.serializer,
 				deserialize: this.deserializer,
-				config: this.config,
-				background: true
+				config: this.config
 			};
 			if (opt)
 				_.assign(options, opt);
@@ -277,6 +275,33 @@
 				m.redraw();
 			}
 		},
+		add: function(models, unshift) {
+			if (!_.isArray(models))
+				models = [models];
+			var self = this,
+				added = false,
+				existingModel;
+			_.each(models, function(model) {
+				if (self.__options.model && !(model instanceof self.__options.model))
+					throw new Error('Can\'t add to collection. Argument must be instance of model set.');
+				if (!(model instanceof BaseModel))
+					throw new Error('Can\'t add to collection. Argument must be a model.');
+				existingModel = self.get(model);
+				if (existingModel) {
+					existingModel.set(model);
+				} else {
+					if (unshift)
+						self.collection.unshift(model.getJson());
+					else
+						self.collection.push(model.getJson());
+					model.addCollection(self);
+					added = true;
+				}
+			});
+			if (added)
+				this.changed();
+			return this.size();
+		},
 		get: function(mixed) {
 			// mixed can be id-number, id-string, plain-object or model.
 			// NOTE: check if model/object contains id and use it instead.
@@ -294,31 +319,20 @@
 			jsonModel = this.find([config.keyId, mixed]);
 			return jsonModel || null;
 		},
-		add: function(models, unshift) {
-			if (!_.isArray(models))
-				models = [models];
+		getAll: function(mixed, falsy) {
+			if (!_.isArray(mixed))
+				mixed = [mixed];
 			var self = this,
-				added = false;
-			_.each(models, function(model) {
-				if (self.__options.model && !(model instanceof self.__options.model))
-					throw new Error('Can\'t add to collection. Argument must be instance of model set.');
-				if (!(model instanceof BaseModel))
-					throw new Error('Can\'t add to collection. Argument must be a model.');
-				var existingModel = self.get(model);
-				if (existingModel) {
-					existingModel.set(model);
-				} else {
-					if (unshift)
-						self.collection.unshift(model.getJson());
-					else
-						self.collection.push(model.getJson());
-					model.addCollection(self);
-					added = true;
+				models = [],
+				exist;
+			_.transform(mixed, function(res, id) {
+				console.log('aaa', id);
+				exist = self.get(id);
+				if (exist || falsy) {
+					res.push(exist);
 				}
-			});
-			if (added)
-				this.changed();
-			return this.size();
+			}, models);
+			return models;
 		},
 		remove: function(mixed) {
 			// mixed can be array of id-number, id-string, plain-object or model.
@@ -378,7 +392,7 @@
 		'forEach', 'map', 'find', 'findIndex', 'findLastIndex', 'filter', 'reject',
 		'every', 'some', 'invoke', 'maxBy', 'minBy', 'sortBy', 'groupBy', 'shuffle',
 		'size', 'initial', 'without', 'indexOf', 'lastIndexOf', 'difference', 'sample',
-		'reverse', 'nth', 'first', 'last', 'toArray', 'slice', 'orderBy'
+		'reverse', 'nth', 'first', 'last', 'toArray', 'slice', 'orderBy', 'transform'
 	];
 	addMethods(Collection.prototype, _, collectionMethods, 'collection', '__model');
 
@@ -391,25 +405,63 @@
 		url: function() {
 			return config.baseUrl + (this.options.url || '/' + this.options.name.toLowerCase());
 		},
-		loadById: function(ids, callback) {
+		create: function(data) {
+			if (!_.isArray(data))
+				data = [data];
+			var self = this,
+				existingModel;
+			_.each(data, function(modelData) {
+				if (!_.isPlainObject(modelData))
+					throw new Error('Can\'t create model to collection. Argument must be a plain object.');
+				existingModel = self.get(modelData);
+				if (existingModel) {
+					existingModel.set(modelData);
+				} else {
+					// Will create and automatically add to this collection.
+					// No need to reference.
+					new self.__options.model(modelData);
+				}
+			});
+		},
+		fetchById: function(ids, callback) {
 			console.log('Loading by ids...', ids);
 			// 1. Make sure that models (by ids) are in this collection.
 			// 2. If not, load those are not in.
+			if (!ids)
+				throw new Error('Collection can\'t fetch. Id must be set.');
 			var self = this,
 				d = m.deferred(),
-				existing = this.filter(function(model) {
-					console.log(model);
+				existing = [];
+			if (!_.isArray(ids))
+				ids = [ids];
+			// Fill up existing models.
+			this.transform(function(result, model) {
+				if (model.id()) {
+					result.push(model.id());
+				}
+			}, existing);
+			// Start loading and resolving.
+			var toLoad = _.pullAll(ids, existing);
+			if (!_.isEmpty(toLoad)) {
+				request.get(this.url(), toLoad).then(function(data) {
+					self.create(data)
+					d.resolve();
+					if (_.isFunction(callback))
+						callback(null);
+				}, function(err) {
+					d.resolve(err);
+					if (_.isFunction(callback))
+						callback(err);
 				});
-			console.log(existing);
-			request.get(this.url(), ids).then(function(data) {
-
-			}, function(err) {
-
-			});
+			} else {
+				d.resolve();
+				if (_.isFunction(callback))
+					callback(null);
+			}
 			return d.promise;
 		},
-		getById: function(ids, callback) {
-			console.log('Getting by ids...', ids);
+		fetchWhere: function(predicate) {
+
 		}
 	});
 
@@ -422,7 +474,7 @@
 			redraw: false
 		};
 		this.__collections = [];
-		this.__cid = generateId();
+		this.__cid = generateShortId();
 	}
 
 	BaseModel.prototype = {
@@ -578,11 +630,11 @@
 			req.call(request, this.url(), this).then(function(data) {
 				self.set(data);
 				d.resolve(self);
-				if (callback)
+				if (_.isFunction(callback))
 					callback(null, self);
 			}, function(err) {
 				d.reject(err);
-				if (callback)
+				if (_.isFunction(callback))
 					callback(err);
 			});
 			return d.promise;
@@ -594,11 +646,11 @@
 			request.get(this.url() + (id ? '/' + id : '')).then(function(data) {
 				self.set(data);
 				d.resolve(self);
-				if (callback)
+				if (_.isFunction(callback))
 					callback(null, self);
 			}, function(err) {
 				d.reject(err);
-				if (callback)
+				if (_.isFunction(callback))
 					callback(err);
 			});
 			return d.promise;
@@ -613,11 +665,11 @@
 					collection.remove(self);
 				});
 				d.resolve();
-				if (callback)
+				if (_.isFunction(callback))
 					callback(null);
 			}, function(err) {
 				d.reject(err);
-				if (callback)
+				if (_.isFunction(callback))
 					callback(err);
 			});
 			return d.promise;

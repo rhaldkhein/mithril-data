@@ -60,8 +60,6 @@
 				body: 'My third note.',
 				author: user
 			});
-			
-			Model.Note.loadById([1, 2, 3]);
 
 			// Add all notes to collection
 			notes.add(noteA);
@@ -77,6 +75,13 @@
 					},
 					remove: function() {
 						notes.pop();
+					},
+					addExisitng: function(e) {
+						e.preventDefault();
+						Model.Note.fetchById(e.target.firstChild.value).then(function() {
+							console.log(Model.Note.getAll(e.target.firstChild.value));
+							// notes.add();
+						});
 					}
 				}
 			};
@@ -84,20 +89,35 @@
 
 		// View
 		view: function(ctrl) {
+			console.log('View');
 			return m('div', [
 				ctrl.notes.map(function(note) {
 					return m('div', [
 						m('h3', note.title()),
 						m('p', note.body()),
-						m('p', 'By ' + note.author().name())
+						m('p', 'By ' + note.author().name()),
+						m('button', {
+							onclick: note.save.bind(note)
+						}, 'Save'),
+						m('span', !note.isNew() ? ' Saved' : ' Click save to save.')
 					]);;
 				}),
-				m("button", {
+				m('hr'),
+				m('form', {
+					onsubmit: ctrl.actions.addExisitng
+				}, [
+					m('input'),
+					m('button', {
+						type: 'submit'
+					}, 'Add Existing')
+				]),
+				m('hr'),
+				m('button', {
 					onclick: ctrl.actions.add
-				}, "Add"),
-				m("button", {
+				}, 'Add'),
+				m('button', {
 					onclick: ctrl.actions.remove
-				}, "Remove")
+				}, 'Remove')
 			]);
 		}
 	};

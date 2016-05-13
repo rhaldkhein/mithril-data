@@ -1,6 +1,6 @@
 {
   "name": "mithril-data",
-  "description": "A rich model framework for your Mithril application.",
+  "description": "A rich model framework for Mithril application.",
   "main": "index.js",
   "authors": [
     "Kevin <undyingmind@gmail.com> (https://github.com/rhaldkhein)"

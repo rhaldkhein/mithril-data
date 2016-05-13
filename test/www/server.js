@@ -23,7 +23,7 @@ app.post('/note', function(req, res) {
 	}, req.body);
 	notes[data.id] = data;
 	res.json(data);
-	console.log(_.size(notes));
+	console.log(_.keys(notes));
 });
 
 app.put('/note', function(req, res) {
@@ -43,22 +43,30 @@ app.put('/note', function(req, res) {
 			});
 		}
 	}
-	console.log(_.size(notes));
+	console.log(_.keys(notes));
 });
 
 app.get('/note/:id?', function(req, res) {
-	if (req.params.id) {
-		let existing = notes[req.params.id];
-		if (existing)
-			res.json(existing);
-		else
-			res.status(400).json({
-				error: 'Model does not exist!'
-			});
+	let query = _.values(req.query);
+	if (query) {
+		res.json(_.transform(query, function(result, id) {
+			if (notes[id])
+				result.push(notes[id]);
+		}, []));
 	} else {
-		res.status(400).json({
-			error: "ID is required!"
-		});
+		if (req.params.id) {
+			let existing = notes[req.params.id];
+			if (existing)
+				res.json(existing);
+			else
+				res.status(400).json({
+					error: 'Model does not exist!'
+				});
+		} else {
+			res.status(400).json({
+				error: "ID is required!"
+			});
+		}
 	}
 });
 
@@ -73,7 +81,7 @@ app.delete('/note/:id?', function(req, res) {
 			error: 'ID is required!'
 		});
 	}
-	console.log(_.size(notes));
+	console.log(_.keys(notes));
 });
 
 app.listen(3002, 'localhost', function() {
