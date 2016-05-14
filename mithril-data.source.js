@@ -85,22 +85,40 @@ function strictExtend(objSource, objInject) {
 		_.extend(objSource, objInject);
 }
 
-function remapToProperty(obj, property) {
-	if (_.isArray(obj)) {
-		_.each(obj, function(value, key) {
-			if (value && value[property])
-				obj[key] = value[property];
-		});
-		return obj;
-	} else {
-		return obj ? (obj[property] || obj) : obj;
-	}
-}
-
-function remapToPropertyWrapper(func, property) {
+function resolveWrapper(func, property) {
 	return function(argA, argB, argC, argD) {
 		return func(argA ? (argA[property] || argA) : argA, argB ? (argB[property] || argB) : argB, argC, argD);
 	};
+}
+
+function resolveArguments(args, property) {
+	var arg, i = args.length - 1;
+	for (; i >= 0; i--) {
+		arg = args[i];
+		if (_.isFunction(arg))
+			args[i] = resolveWrapper(arg, property);
+		else if (arg instanceof BaseModel)
+			args[i] = arg.__json;
+	}
+	return args;
+}
+
+function resolveResult(result, collection, property) {
+	if (result === collection) {
+		return result;
+	} else {
+		if (_.isArray(result)) {
+			var value, i = result.length - 1;
+			for (; i >= 0; i--) {
+				value = result[i];
+				if (value && value[property])
+					result[i] = value[property];
+			}
+			return result;
+		} else {
+			return result ? (result[property] || result) : result;
+		}
+	}
 }
 
 function addMethods(dist, src, methods, distProp, retProp) {
@@ -109,40 +127,36 @@ function addMethods(dist, src, methods, distProp, retProp) {
 			switch (src[method].length) {
 				case 1:
 					dist[method] = function() {
-						var result = src[method](this[distProp]);
-						return result !== this[distProp] ? remapToProperty(result, retProp) : result;
+						return resolveResult(src[method](this[distProp]), this[distProp], retProp);
 					};
 					break;
 				case 2:
 					dist[method] = function(valueA) {
 						if (_.isFunction(valueA))
-							valueA = remapToPropertyWrapper(valueA, retProp);
-						if (valueA instanceof BaseModel)
+							valueA = resolveWrapper(valueA, retProp);
+						else if (valueA instanceof BaseModel)
 							valueA = valueA.__json;
-						var result = src[method](this[distProp], valueA);
-						return result !== this[distProp] ? remapToProperty(result, retProp) : result;
+						return resolveResult(src[method](this[distProp], valueA), this[distProp], retProp);
 					};
 					break;
 				case 3:
 					dist[method] = function(valueA, valueB) {
 						if (_.isFunction(valueA))
-							valueA = remapToPropertyWrapper(valueA, retProp);
+							valueA = resolveWrapper(valueA, retProp);
 						else if (valueA instanceof BaseModel)
 							valueA = valueA.__json;
 						if (_.isFunction(valueB))
-							valueB = remapToPropertyWrapper(valueB, retProp);
+							valueB = resolveWrapper(valueB, retProp);
 						else if (valueB instanceof BaseModel)
 							valueB = valueB.__json;
-						var result = src[method](this[distProp], valueA, valueB);
-						return result !== this[distProp] ? remapToProperty(result, retProp) : result;
+						return resolveResult(src[method](this[distProp], valueA, valueB), this[distProp], retProp);
 					};
 					break;
 				default:
 					dist[method] = function() {
-						var result, args = slice.call(arguments);
+						var args = resolveArguments(slice.call(arguments), retProp);
 						args.unshift(this[distProp]);
-						result = src[method].apply(src, args);
-						return result !== this[distProp] ? remapToProperty(result, retProp) : result;
+						return resolveResult(src[method].apply(src, args), this[distProp], retProp);
 					};
 			}
 		}
@@ -324,10 +338,14 @@ Collection.prototype = {
 		return this.add(models, true);
 	},
 	shift: function() {
-		return this.remove(this.first());
+		var model = this.first();
+		this.remove(model);
+		return model;
 	},
 	pop: function() {
-		return this.remove(this.last());
+		var model = this.last();
+		this.remove(model);
+		return model;
 	},
 	clear: function() {
 		this.remove(this.toArray());
@@ -602,23 +620,29 @@ BaseModel.prototype = {
 		});
 		return d.promise;
 	},
-	remove: function(callback) {
+	remove: function(local, callback) {
 		var self = this,
 			d = m.deferred(),
-			id = this.id();
-		request.delete(this.url() + (id ? '/' + id : '')).then(function(data) {
-			// Remove this model to all collections.
-			_.each(self.__collections, function(collection) {
-				collection.remove(self);
+			id = this.id(),
+			resolveCallback = function(data) {
+				// Remove this model to all collections.
+				_.each(self.__collections, function(collection) {
+					collection.remove(self);
+				});
+				d.resolve();
+				if (_.isFunction(callback))
+					callback(null);
+			};
+		if (local === true) {
+			resolveCallback();
+		} else {
+			callback = local;
+			request.delete(this.url() + (id ? '/' + id : '')).then(resolveCallback, function(err) {
+				d.reject(err);
+				if (_.isFunction(callback))
+					callback(err);
 			});
-			d.resolve();
-			if (_.isFunction(callback))
-				callback(null);
-		}, function(err) {
-			d.reject(err);
-			if (_.isFunction(callback))
-				callback(err);
-		});
+		}
 		return d.promise;
 	},
 	isNew: function() {
