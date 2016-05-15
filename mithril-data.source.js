@@ -33,7 +33,7 @@ function _prop(store, context, key, callback) {
 		var ret, refs = context.options.refs,
 			args = slice.call(arguments);
 		// Check if this key is a reference to another model.
-		if (_.isObject(value) && _.has(refs, key)) {
+		if (_.isObjectLike(value) && _.has(refs, key)) {
 			// This is a reference key
 			var existing = modelCollection[refs[key]].get(value);
 			if (existing) {
@@ -210,6 +210,7 @@ var request = _.create({
 
 function Collection(options) {
 	this._init(options);
+	_.bindAll(this, collectionBindMethods);
 }
 
 Collection.prototype = {
@@ -236,32 +237,37 @@ Collection.prototype = {
 			m.redraw();
 		}
 	},
-	add: function(models, unshift) {
+	add: function(model, unshift, silent) {
+		if (!(model instanceof BaseModel) || (this.__options.model && !(model instanceof this.__options.model)))
+			throw new Error('Can\'t add to collection. Argument must be a model or an instance of set model.');
+		var added = false,
+			existingModel = this.get(model);
+		if (existingModel) {
+			existingModel.set(model);
+		} else {
+			if (unshift)
+				this.collection.unshift(model.getJson());
+			else
+				this.collection.push(model.getJson());
+			model.addCollection(this);
+			added = true;
+		}
+		if (added && !silent)
+			this.changed();
+		return added;
+	},
+	addAll: function(models, unshift, silent) {
 		if (!_.isArray(models))
 			models = [models];
 		var self = this,
-			added = false,
-			existingModel;
+			added = false;
 		_.each(models, function(model) {
-			if (self.__options.model && !(model instanceof self.__options.model))
-				throw new Error('Can\'t add to collection. Argument must be instance of model set.');
-			if (!(model instanceof BaseModel))
-				throw new Error('Can\'t add to collection. Argument must be a model.');
-			existingModel = self.get(model);
-			if (existingModel) {
-				existingModel.set(model);
-			} else {
-				if (unshift)
-					self.collection.unshift(model.getJson());
-				else
-					self.collection.push(model.getJson());
-				model.addCollection(self);
+			if (self.add(model, unshift, true))
 				added = true;
-			}
 		});
-		if (added)
+		if (added && !silent)
 			this.changed();
-		return this.size();
+		return added;
 	},
 	get: function(mixed) {
 		// mixed can be id-number, id-string, plain-object or model.
@@ -271,7 +277,7 @@ Collection.prototype = {
 		if (mixed instanceof BaseModel) {
 			// mixed is a model and is in this collection.
 			return (this.indexOf(mixed.getJson()) > -1) ? mixed : null;
-		} else if (_.isObject(mixed)) {
+		} else if (_.isObjectLike(mixed)) {
 			if (mixed[config.keyId])
 				mixed = mixed[config.keyId];
 			else
@@ -287,7 +293,6 @@ Collection.prototype = {
 			models = [],
 			exist;
 		_.transform(mixed, function(res, id) {
-			console.log('aaa', id);
 			exist = self.get(id);
 			if (exist || falsy) {
 				res.push(exist);
@@ -295,7 +300,7 @@ Collection.prototype = {
 		}, models);
 		return models;
 	},
-	remove: function(mixed) {
+	remove: function(mixed, silent) {
 		// mixed can be array of id-number, id-string, plain-object or model.
 		if (!_.isArray(mixed))
 			mixed = [mixed];
@@ -312,7 +317,7 @@ Collection.prototype = {
 				removedModels.push.apply(removedModels, _.remove(self.collection, function(value) {
 					return _.eq(value, mix.getJson());
 				}));
-			} else if (_.isObject(mix)) {
+			} else if (_.isObjectLike(mix)) {
 				removedModels.push.apply(removedModels, _.remove(self.collection, function(value) {
 					return _.isMatch(value, mix);
 				}));
@@ -327,30 +332,32 @@ Collection.prototype = {
 		_.each(removedModels, function(model) {
 			model.__model.removeCollection(self);
 		});
-		if (lastLength !== this.size())
+		if (lastLength !== this.size() && !silent)
 			this.changed();
 		return this.size();
 	},
-	push: function(models) {
-		return this.add(models);
+	push: function(models, silent) {
+		return this.addAll(models, silent);
 	},
-	unshift: function(models) {
-		return this.add(models, true);
+	unshift: function(models, silent) {
+		return this.addAll(models, true, silent);
 	},
-	shift: function() {
+	shift: function(silent) {
 		var model = this.first();
-		this.remove(model);
+		this.remove(model, silent);
 		return model;
 	},
-	pop: function() {
+	pop: function(silent) {
 		var model = this.last();
-		this.remove(model);
+		this.remove(model, silent);
 		return model;
 	},
-	clear: function() {
-		this.remove(this.toArray());
+	clear: function(silent) {
+		this.remove(this.toArray(), silent);
 	}
 };
+
+var collectionBindMethods = ['addAll'];
 
 // Add lodash methods.
 var collectionMethods = [
@@ -389,7 +396,8 @@ ModelController.prototype = _.create(Collection.prototype, {
 		});
 	},
 	fetchById: function(ids, callback) {
-		console.log('Loading by ids...', ids);
+		console.log('Fetching by ids...', ids);
+		// Only download the from server. Without returning the model.
 		// 1. Make sure that models (by ids) are in this collection.
 		// 2. If not, load those are not in.
 		if (!ids)
@@ -409,12 +417,12 @@ ModelController.prototype = _.create(Collection.prototype, {
 		var toLoad = _.pullAll(ids, existing);
 		if (!_.isEmpty(toLoad)) {
 			request.get(this.url(), toLoad).then(function(data) {
-				self.create(data)
+				self.create(data);
 				d.resolve();
 				if (_.isFunction(callback))
 					callback(null);
 			}, function(err) {
-				d.resolve(err);
+				d.reject(err);
 				if (_.isFunction(callback))
 					callback(err);
 			});
@@ -423,6 +431,26 @@ ModelController.prototype = _.create(Collection.prototype, {
 			if (_.isFunction(callback))
 				callback(null);
 		}
+		return d.promise;
+	},
+	pullById: function(ids, callback) {
+		// Fetch from server and return the models.
+		var self = this,
+			d = m.deferred();
+		if (!_.isArray(ids))
+			ids = [ids];
+		this.fetchById(ids)
+			.then(function() {
+				// Every model are in collection. Safe to get all.
+				var models = self.getAll(ids);
+				d.resolve(models);
+				if (_.isFunction(callback))
+					callback(null, models);
+			}, function(err) {
+				d.reject(err);
+				if (_.isFunction(callback))
+					callback(err);
+			});
 		return d.promise;
 	},
 	fetchWhere: function(predicate) {
@@ -440,6 +468,7 @@ function BaseModel() {
 	};
 	this.__collections = [];
 	this.__cid = generateShortId();
+	_.bindAll(this, modelBindMethods);
 }
 
 BaseModel.prototype = {
@@ -499,9 +528,9 @@ BaseModel.prototype = {
 			existing;
 		if (isModel || _.isPlainObject(key)) {
 			_.each(key, function(oValue, oKey) {
-				if (_.startsWith(oKey, '__') || !_.isFunction(self[oKey]))
+				if (!self.isProp(oKey) || !_.isFunction(self[oKey]))
 					return;
-				if (_.isObject(oValue) && _.has(refs, oKey)) {
+				if (_.isObjectLike(oValue) && _.has(refs, oKey)) {
 					// Check first if we have the document in collection.
 					// If so, reference it to that model.
 					existing = modelCollection[refs[oKey]].get(oValue);
@@ -527,7 +556,7 @@ BaseModel.prototype = {
 			this[key](value || null);
 		}
 	},
-	// Create or update json representation of this model.
+	// Create or update json representation of this model. Must use this method to update the json.
 	updateJson: function(key) {
 		// Loop through props and update the json.
 		// Create new json object if not exist.
@@ -536,9 +565,10 @@ BaseModel.prototype = {
 			this.__json = {};
 			this.__json.__model = this;
 		}
+		// console.log('updateJson', key, config.keyId);
 		if (key) {
 			// Update single prop.
-			if (_.startsWith(key, '__'))
+			if (!this.isProp(key))
 				return;
 			var value = this[key]();
 			this.__json[key] = value instanceof BaseModel ? value.getJson() : value;
@@ -547,7 +577,7 @@ BaseModel.prototype = {
 			_.each(this, function(jValue, jKey) {
 				// Note that jValue is _prop function.
 				// And must be a function _prop.
-				if (!_.isFunction(jValue) || _.startsWith(jKey, '__'))
+				if (!self.isProp(jKey) || !_.isFunction(jValue))
 					return;
 				jValue = jValue();
 				if (jValue && !_.isNull(jValue)) {
@@ -571,9 +601,10 @@ BaseModel.prototype = {
 	},
 	// Get a copy of json representation. Removing private properties.
 	getCopy: function() {
-		var obj = {};
+		var self = this,
+			obj = {};
 		_.each(this.getJson(), function(value, key) {
-			if (_.startsWith(key, '__'))
+			if (!self.isProp(key))
 				return;
 			if (value.__model && value.__model instanceof BaseModel)
 				obj[key] = value.__model.get();
@@ -583,7 +614,7 @@ BaseModel.prototype = {
 		return obj;
 	},
 	opt: function(key, value) {
-		if (_.isObject(key))
+		if (_.isPlainObject(key))
 			_.assign(this.__options, key);
 		else
 			this.__options[key] = value || true;
@@ -647,8 +678,13 @@ BaseModel.prototype = {
 	},
 	isNew: function() {
 		return this.id() ? false : true;
+	},
+	isProp: function(key) {
+		return _.indexOf(this.options.props, key) > -1 ? true : false;
 	}
 };
+
+var modelBindMethods = ['save', 'remove'];
 
 // Add lodash methods.
 var objectMethods = ['has', 'keys', 'values', 'invert', 'pick', 'omit'];
@@ -658,22 +694,20 @@ addMethods(BaseModel.prototype, _, objectMethods, '__json');
  * Model class.
  */
 function createModel(options) {
-	function Model(dataValues) {
+	// Resolve model options. Mutates the object.
+	resolveModelOptions(options);
+	// The model constructor.
+	function Model(propValues) {
 		var self = this,
-			data = dataValues || {},
+			data = propValues || {},
 			refs = options.refs || {},
-			propDefs = options.props || {},
+			props = options.props || [],
+			defs = options.defaults || {},
 			existing;
-
-		if (_.isPlainObject(propDefs)) {
-			props = _.keys(propDefs);
-		} else if (_.isArray(propDefs)) {
-			props = propDefs;
-			propDefs = {};
-		} else {
-			throw new Error('`props` must be a plain object or array.');
+		// Make user id is in prop;
+		if (_.indexOf(props, config.keyId) === -1) {
+			props.push(config.keyId);
 		}
-
 		// Calling parent class.
 		BaseModel.call(this);
 		// Create model properties. Values can be null and set later.
@@ -682,12 +716,12 @@ function createModel(options) {
 			_.each(props, function(value) {
 				// 1. Must not starts  with '__'.
 				// 2. Omit id in data if you configure different id field.
-				if (_.startsWith(value, '__') || ('id' === value && value !== config.keyId))
+				if (!self.isProp(value) || ('id' === value && value !== config.keyId))
 					return;
 				// Make sure that it does not create conflict with
 				// internal reserved keywords.
 				if (!_.hasIn(self, value) || 'id' === value) {
-					if (_.isObject(data[value]) && _.has(refs, value)) {
+					if (_.isObjectLike(data[value]) && _.has(refs, value)) {
 						// This field is reference to another model.
 						// Create the another model and link to this model.
 						existing = modelCollection[refs[value]].get(data[value]);
@@ -699,19 +733,19 @@ function createModel(options) {
 						}
 					} else {
 						// Use default if data is not available.
-						self[value] = _prop(data[value] || propDefs[value] || null, self, value, self.changed);
+						self[value] = _prop(data[value] || defs[value] || null, self, value, self.changed);
 					}
 				} else {
 					throw new Error('`' + value + '` property field is not allowed.');
 				}
 			});
-			// Check if it contains user defined id.
-			if (!_.has(this, config.keyId)) {
-				this[config.keyId] = _prop();
-			}
-			// Successfully created a model. Add to collection.
-			modelCollection[this.options.name].add(this);
 		}
+		// Check if it contains user defined id. (This might not be necessary, as we pushed the keyId already.)
+		if (!_.has(this, config.keyId)) {
+			this[config.keyId] = _prop();
+		}
+		// Successfully created a model. Add to collection.
+		modelCollection[this.options.name].add(this);
 	}
 	// Make sure that it options.methods does not create
 	// conflict with internal methods.
@@ -729,6 +763,11 @@ function createModel(options) {
 	Object.setPrototypeOf(Model, ModelController.prototype);
 	// Return the model.
 	return Model;
+}
+
+function resolveModelOptions(options) {
+	// Combine props with defaults keys.
+	options.props = _.union(options.props, _.keys(options.defaults));
 }
 
 /**

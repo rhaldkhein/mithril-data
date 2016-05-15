@@ -11,7 +11,7 @@
 
 	Model.Note = md.model({
 		name: 'Note',
-		props: {
+		defaults: {
 			title: 'Default Title',
 			body: 'Default Note Body',
 			author: new Model.User({
@@ -26,6 +26,7 @@
 	console.dir(Model.User);
 	console.dir(Model.Note);
 
+	window.Model = Model;
 
 	var Demo = {
 
@@ -35,11 +36,10 @@
 			// Create notes collection
 			var notes = new md.Collection();
 
-			console.log(notes);
-
 			// Create user for notes
 			var user = new Model.User();
 			user.name('User Foo');
+			user.isProp('name');
 
 			// Create first note
 			var noteA = new Model.Note();
@@ -78,10 +78,11 @@
 					},
 					addExisitng: function(e) {
 						e.preventDefault();
-						Model.Note.fetchById(e.target.firstChild.value).then(function() {
-							console.log(Model.Note.getAll(e.target.firstChild.value));
-							// notes.add();
-						});
+						Model.Note.pullById(['Skj5MAHM', 'HkA7xeUG'])
+							.then(notes.addAll)
+							.catch(function(e) {
+								console.log(e);
+							});
 					}
 				}
 			};
@@ -97,7 +98,7 @@
 						m('p', note.body()),
 						m('p', 'By ' + note.author().name()),
 						m('button', {
-							onclick: note.save.bind(note)
+							onclick: note.save
 						}, 'Save'),
 						m('span', !note.isNew() ? ' Saved' : ' Click save to save.')
 					]);;
