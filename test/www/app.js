@@ -39,7 +39,6 @@
 			// Create user for notes
 			var user = new Model.User();
 			user.name('User Foo');
-			user.isProp('name');
 
 			// Create first note
 			var noteA = new Model.Note();
@@ -78,11 +77,21 @@
 					},
 					addExisitng: function(e) {
 						e.preventDefault();
-						Model.Note.pullById(['Skj5MAHM', 'HkA7xeUG'])
+						Model.Note.pullById(['ByiRmxvM', 'Hk2AXlwG'])
 							.then(notes.addAll)
 							.catch(function(e) {
 								console.log(e);
 							});
+					},
+					regex: function() {
+						// Model.Note.findOne({title: new RegExp('x')});
+						Model.Note.pull({
+							title: /.*note.*/i,
+							body: /.*any.*/i
+						});
+						// console.log(Model.Note.pull({
+						// 	title: 'Second Note',
+						// }));
 					}
 				}
 			};
@@ -101,7 +110,7 @@
 							onclick: note.save
 						}, 'Save'),
 						m('span', !note.isNew() ? ' Saved' : ' Click save to save.')
-					]);;
+					]);
 				}),
 				m('hr'),
 				m('form', {
@@ -118,7 +127,10 @@
 				}, 'Add'),
 				m('button', {
 					onclick: ctrl.actions.remove
-				}, 'Remove')
+				}, 'Remove'),
+				m('button', {
+					onclick: ctrl.actions.regex
+				}, 'RegEx')
 			]);
 		}
 	};
