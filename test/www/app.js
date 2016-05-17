@@ -33,7 +33,12 @@
 		// Controller
 		controller: function() {
 
-			// Create notes collection
+			// var notes = Model.Note.Collection();
+			// notes.fetch({title: 'Hello'});
+
+			// Model.Note.fetch({title: 'Hello'});
+
+			// Create notes collection. This collection can't fetch.
 			var notes = new md.Collection();
 
 			// Create user for notes
@@ -77,18 +82,19 @@
 					},
 					addExisitng: function(e) {
 						e.preventDefault();
-						Model.Note.pullById(['ByiRmxvM', 'Hk2AXlwG'])
+						Model.Note.fetchById(['rJbyar_G', 'Hy9SpHOG'])
 							.then(notes.addAll)
 							.catch(function(e) {
 								console.log(e);
 							});
 					},
 					regex: function() {
+						notes.fetch();
 						// Model.Note.findOne({title: new RegExp('x')});
-						Model.Note.pull({
-							title: /.*note.*/i,
-							body: /.*any.*/i
-						});
+						// Model.Note.pull({
+						// 	title: /.*note.*/i,
+						// 	body: /.*any.*/i
+						// });
 						// console.log(Model.Note.pull({
 						// 	title: 'Second Note',
 						// }));

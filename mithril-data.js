@@ -242,20 +242,39 @@
 				data: data || {},
 				serialize: this.serializer,
 				deserialize: this.deserializer,
-				config: this.config
+				config: this.config,
+				extract: this.extract
 			};
 			if (opt)
 				_.assign(options, opt);
 			return config.store(options);
 		},
-		config: function(xhr) {
+		config: function(xhr, xhrOptions) {
+			if (config.storeConfig)
+				config.storeConfig(xhr, xhrOptions);
 			xhr.setRequestHeader('Content-Type', 'application/json');
 		},
+		extract: function(xhr, xhrOptions) {
+			if (config.storeExtract) {
+				return config.storeExtract(xhr, xhrOptions);
+			} else if (xhr.responseText.length) {
+				return xhr.responseText
+			} else {
+				return null
+			}
+		},
 		serializer: function(data) {
-			return JSON.stringify(data instanceof BaseModel ? data.getCopy() : data);
+			data = data instanceof BaseModel ? data.getCopy() : data;
+			if (config.storeSerializer)
+				return config.storeSerializer(data);
+			else
+				return JSON.stringify(data);
 		},
 		deserializer: function(data) {
-			return JSON.parse(data);
+			if (config.storeDeserializer)
+				return config.storeDeserializer(data);
+			else
+				return JSON.parse(data);
 		},
 		get: function(url, data, opt) {
 			return this.request('GET', url, data, opt);
@@ -298,6 +317,10 @@
 				_.assign(this.__options, key);
 			else
 				this.__options[key] = value || true;
+		},
+		fetch: function() {
+			var url = this.url();
+			console.log(url);
 		},
 		changed: function() {
 			if (this.__options.redraw || config.redraw) {
@@ -461,7 +484,7 @@
 
 	ModelController.prototype = _.create(Collection.prototype, {
 		url: function() {
-			return config.baseUrl + (this.options.url || '/' + this.options.name.toLowerCase());
+			return config.baseUrl + (this.modelOptions.url || '/' + this.modelOptions.name.toLowerCase());
 		},
 		create: function(data) {
 			if (!_.isArray(data))
@@ -519,7 +542,7 @@
 			}
 			return d.promise;
 		},
-		pullById: function(ids, callback) {
+		fetchById: function(ids, callback) {
 			// Fetch from server and return the models.
 			var self = this;
 			var d = m.deferred();
@@ -856,7 +879,7 @@
 			throw new Error('`' + conflict + '` method is not allowed.');
 		}
 		// Attach the options to model constructor.
-		Model.options = options;
+		Model.modelOptions = options;
 		// Extend from base model prototype.
 		Model.prototype = _.create(BaseModel.prototype, _.assign(options.methods || {}, {
 			options: options,
