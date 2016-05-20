@@ -47,27 +47,26 @@ app.put('/note', function(req, res) {
 });
 
 app.get('/note/:id?', function(req, res) {
-	let query = _.values(req.query);
-	if (query) {
-		// Model query, result array of documents.
-		res.json(_.transform(query, function(result, id) {
-			if (notes[id])
-				result.push(notes[id]);
-		}, []));
-	} else {
-		// Model fetch, result single document.
-		if (req.params.id) {
-			let existing = notes[req.params.id];
-			if (existing)
-				res.json(existing);
-			else
-				res.status(400).json({
-					error: 'Model does not exist!'
-				});
-		} else {
+	// Model fetch, result single document.
+	if (req.params.id) {
+		let existing = notes[req.params.id];
+		if (existing)
+			res.json(existing);
+		else
 			res.status(400).json({
-				error: "ID is required!"
+				error: 'Model does not exist!'
 			});
+	} else {
+		let query = _.values(req.query);
+		if (!_.isEmpty(query)) {
+			// Model query, result array of documents.
+			res.json(_.transform(query, function(result, id) {
+				if (notes[id])
+					result.push(notes[id]);
+			}, []));
+		} else {
+			// Return all notes
+			res.json(_.values(notes));
 		}
 	}
 });

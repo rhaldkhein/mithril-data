@@ -1,5 +1,11 @@
 (function() {
 
+	md.config({
+		storeConfigOptions: function(options) {
+			console.log('storeConfigOptions', options);
+			// options.url = '/xxx';
+		}
+	})
 
 	// Model
 	var Model = {};
@@ -39,7 +45,9 @@
 			// Model.Note.fetch({title: 'Hello'});
 
 			// Create notes collection. This collection can't fetch.
-			var notes = new md.Collection();
+			var notes = new md.Collection({
+				model: Model.Note
+			});
 
 			// Create user for notes
 			var user = new Model.User();
@@ -82,22 +90,20 @@
 					},
 					addExisitng: function(e) {
 						e.preventDefault();
-						Model.Note.fetchById(['rJbyar_G', 'Hy9SpHOG'])
-							.then(notes.addAll)
-							.catch(function(e) {
-								console.log(e);
-							});
+
+						// Model.Note.pull({title: 'note'})
+						// 	.then(notes.addAll);
+
+						notes.fetch();
+
+						// Model.Note.pullById(['rJbyar_G', 'Hy9SpHOG'])
+						// 	.then(notes.addAll)
+						// 	.catch(function(e) {
+						// 		console.log(e);
+						// 	});
 					},
 					regex: function() {
-						notes.fetch();
-						// Model.Note.findOne({title: new RegExp('x')});
-						// Model.Note.pull({
-						// 	title: /.*note.*/i,
-						// 	body: /.*any.*/i
-						// });
-						// console.log(Model.Note.pull({
-						// 	title: 'Second Note',
-						// }));
+						noteA.fetch();
 					}
 				}
 			};

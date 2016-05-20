@@ -90,7 +90,7 @@
 			// Check if this key is a reference to another model.
 			if (_.isObjectLike(value) && _.has(refs, key)) {
 				// This is a reference key
-				var existing = modelCollection[refs[key]].get(value);
+				var existing = modelCollection[refs[key]].collection.get(value);
 				if (existing) {
 					existing.set(value);
 				} else {
@@ -247,11 +247,13 @@
 			};
 			if (opt)
 				_.assign(options, opt);
+			if (config.storeConfigOptions)
+				config.storeConfigOptions(options);
 			return config.store(options);
 		},
 		config: function(xhr, xhrOptions) {
-			if (config.storeConfig)
-				config.storeConfig(xhr, xhrOptions);
+			if (config.storeConfigXHR)
+				config.storeConfigXHR(xhr, xhrOptions);
 			xhr.setRequestHeader('Content-Type', 'application/json');
 		},
 		extract: function(xhr, xhrOptions) {
@@ -295,32 +297,21 @@
 	 */
 
 	function Collection(options) {
-		this._init(options);
+		this.models = [];
+		this.__options = {
+			redraw: false
+		};
+		if (options)
+			this.opt(options);
 		_.bindAll(this, collectionBindMethods);
 	}
 
 	Collection.prototype = {
-		_init: function(options) {
-			if (!this.collection)
-				this.collection = [];
-			if (!this.__options)
-				this.__options = {
-					redraw: false
-				};
-			if (options)
-				this.opt(options);
-		},
 		opt: function(key, value) {
-			if (!this.__options)
-				this._init();
 			if (_.isPlainObject(key))
 				_.assign(this.__options, key);
 			else
 				this.__options[key] = value || true;
-		},
-		fetch: function() {
-			var url = this.url();
-			console.log(url);
 		},
 		changed: function() {
 			if (this.__options.redraw || config.redraw) {
@@ -336,9 +327,9 @@
 				existingModel.set(model);
 			} else {
 				if (unshift)
-					this.collection.unshift(model.getJson());
+					this.models.unshift(model.getJson());
 				else
-					this.collection.push(model.getJson());
+					this.models.push(model.getJson());
 				model.addCollection(this);
 				added = true;
 			}
@@ -404,15 +395,15 @@
 				if (!mix)
 					throw new Error('Can\'t remove from collection. Argument must be set.');
 				if (mix instanceof BaseModel) {
-					removedModels.push.apply(removedModels, _.remove(self.collection, function(value) {
+					removedModels.push.apply(removedModels, _.remove(self.models, function(value) {
 						return _.eq(value, mix.getJson());
 					}));
 				} else if (_.isObjectLike(mix)) {
-					removedModels.push.apply(removedModels, _.remove(self.collection, function(value) {
+					removedModels.push.apply(removedModels, _.remove(self.models, function(value) {
 						return _.isMatch(value, mix);
 					}));
 				} else {
-					removedModels.push.apply(removedModels, _.remove(self.collection, function(value) {
+					removedModels.push.apply(removedModels, _.remove(self.models, function(value) {
 						matchMix = {};
 						matchMix[config.keyId] = mix;
 						return _.isMatch(value, matchMix);
@@ -459,9 +450,47 @@
 		dispose: function() {
 			var keys = _.keys(this);
 			var i = 0;
+			if (this.__options.model)
+				this.__options.model = null;
 			for (; i < keys.length; i++) {
 				this[keys[i]] = null;
 			}
+		},
+		hasModel: function() {
+			return this.__options.model ? true : false;
+		},
+		model: function() {
+			return this.__options.model;
+		},
+		url: function(noBase) {
+			var url = noBase ? '' : config.baseUrl;
+			if (this.__options.url)
+				url += this.__options.url;
+			else if (this.hasModel())
+				url += this.model().modelOptions.url || '/' + this.model().modelOptions.name.toLowerCase();
+			return url;
+		},
+		fetch: function(query, options, callback) {
+			if (_.isFunction(options)) {
+				callback = options
+				options = null
+			}
+			var d = m.deferred();
+			if (this.hasModel) {
+				var thisCollection = this;
+				this.model().pull(this.url(), query, options).then(function(models) {
+					thisCollection.addAll(models);
+					d.resolve(models);
+					if (_.isFunction(callback)) callback(null, models);
+				}, function(err) {
+					d.reject(err);
+					if (_.isFunction(callback)) callback(err);
+				});
+			} else {
+				d.reject(true);
+				if (_.isFunction(callback)) callback(true);
+			}
+			d.promise;
 		}
 	};
 
@@ -475,98 +504,74 @@
 		'size', 'initial', 'without', 'indexOf', 'lastIndexOf', 'difference', 'sample',
 		'reverse', 'nth', 'first', 'last', 'toArray', 'slice', 'orderBy', 'transform'
 	];
-	addMethods(Collection.prototype, _, collectionMethods, 'collection', '__model');
+	addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
 
 	/**
 	 * Model collection controller.
 	 */
 	function ModelController() {}
 
-	ModelController.prototype = _.create(Collection.prototype, {
-		url: function() {
-			return config.baseUrl + (this.modelOptions.url || '/' + this.modelOptions.name.toLowerCase());
+	ModelController.prototype = {
+		_init: function(options) {
+			if (this.__options)
+				return;
+			this.__options = {
+				redraw: false
+			};
+			if (options)
+				this.opt(options);
+		},
+		opt: function(key, value) {
+			if (!this.__options)
+				this._init();
+			if (_.isPlainObject(key))
+				_.assign(this.__options, key);
+			else
+				this.__options[key] = value || true;
 		},
 		create: function(data) {
 			if (!_.isArray(data))
 				data = [data];
 			var self = this;
 			var existingModel;
-			_.each(data, function(modelData) {
+			var models = [];
+			_.transform(data, function(result, modelData) {
 				if (!_.isPlainObject(modelData))
 					throw new Error('Can\'t create model to collection. Argument must be a plain object.');
-				existingModel = self.get(modelData);
+				existingModel = self.collection.get(modelData);
 				if (existingModel) {
 					existingModel.set(modelData);
+					result.push(existingModel);
 				} else {
 					// Will create and automatically add to this collection.
 					// No need to reference.
-					new self.__options.model(modelData);
+					result.push(new self.collection.__options.model(modelData));
 				}
-			});
+			}, models);
+			return models;
 		},
-		loadById: function(ids, callback) {
-			console.log('Fetching by ids...', ids);
-			// Only download the from server. Without returning the model.
-			// 1. Make sure that models (by ids) are in this collection.
-			// 2. If not, load those are not in.
-			if (!ids)
-				throw new Error('Collection can\'t fetch. Id must be set.');
-			var self = this;
-			var d = m.deferred();
-			var existing = [];
-			if (!_.isArray(ids))
-				ids = [ids];
-			// Fill up existing models.
-			this.transform(function(result, model) {
-				if (model.id()) {
-					result.push(model.id());
-				}
-			}, existing);
-			// Start loading and resolving.
-			var toLoad = _.pullAll(ids, existing);
-			if (!_.isEmpty(toLoad)) {
-				request.get(this.url(), toLoad).then(function(data) {
-					self.create(data);
-					d.resolve();
-					if (_.isFunction(callback))
-						callback(null);
-				}, function(err) {
-					d.reject(err);
-					if (_.isFunction(callback))
-						callback(err);
-				});
-			} else {
-				d.resolve();
-				if (_.isFunction(callback))
-					callback(null);
+		pull: function(url, data, options, callback) {
+			if (_.isFunction(data)) {
+				callback = data;
+				data = null;
+			} else if (_.isFunction(options)) {
+				callback = options;
+				options = null;
 			}
-			return d.promise;
-		},
-		fetchById: function(ids, callback) {
-			// Fetch from server and return the models.
 			var self = this;
 			var d = m.deferred();
-			if (!_.isArray(ids))
-				ids = [ids];
-			this.loadById(ids)
-				.then(function() {
-					// Every model are in collection. Safe to get all.
-					var models = self.getAll(ids);
-					d.resolve(models);
-					if (_.isFunction(callback))
-						callback(null, models);
-				}, function(err) {
-					d.reject(err);
-					if (_.isFunction(callback))
-						callback(err);
-				});
+			request.get(url, data, options).then(function(data) {
+				// data = complete list of models.
+				var models = self.create(data);
+				d.resolve(models);
+				if (_.isFunction(callback)) callback(null, models);
+			}, function(err) {
+				d.reject(err);
+				if (_.isFunction(callback)) callback(err);
+			});
 			return d.promise;
-		},
-		pull: function(predicate, callback) {
-			console.log('predicate', predicate);
-
 		}
-	});
+	};
 
 
 	/**
@@ -643,7 +648,7 @@
 					if (_.isObjectLike(oValue) && _.has(refs, oKey)) {
 						// Check first if we have the document in collection.
 						// If so, reference it to that model.
-						existing = modelCollection[refs[oKey]].get(oValue);
+						existing = modelCollection[refs[oKey]].collection.get(oValue);
 						if (existing) {
 							existing.set(oValue);
 							self[oKey](existing, true);
@@ -736,12 +741,10 @@
 			req.call(request, this.url(), this).then(function(data) {
 				self.set(data);
 				d.resolve(self);
-				if (_.isFunction(callback))
-					callback(null, self);
+				if (_.isFunction(callback)) callback(null, self);
 			}, function(err) {
 				d.reject(err);
-				if (_.isFunction(callback))
-					callback(err);
+				if (_.isFunction(callback)) callback(err);
 			});
 			return d.promise;
 		},
@@ -749,22 +752,26 @@
 			var self = this;
 			var d = m.deferred();
 			var id = this.id();
-			request.get(this.url() + (id ? '/' + id : '')).then(function(data) {
-				self.set(data);
-				d.resolve(self);
-				if (_.isFunction(callback))
-					callback(null, self);
-			}, function(err) {
-				d.reject(err);
-				if (_.isFunction(callback))
-					callback(err);
-			});
+			if (id) {
+				request.get(this.url(), {
+					id: id
+				}).then(function(data) {
+					self.set(data);
+					d.resolve(self);
+					if (_.isFunction(callback)) callback(null, self);
+				}, function(err) {
+					d.reject(err);
+					if (_.isFunction(callback)) callback(err);
+				});
+			} else {
+				d.reject(true);
+				if (_.isFunction(callback)) callback(true);
+			}
 			return d.promise;
 		},
 		remove: function(local, callback) {
 			var self = this;
 			var d = m.deferred();
-			var id = this.id();
 			var resolveCallback = function(data) {
 				// Remove this model to all collections.
 				var clonedCollections = _.clone(self.__collections);
@@ -773,19 +780,25 @@
 					clonedCollections[i] = null;
 				}
 				d.resolve();
-				if (_.isFunction(callback))
-					callback(null);
+				if (_.isFunction(callback)) callback(null);
 			};
 			if (local === true) {
 				resolveCallback();
 				this.dispose();
 			} else {
 				callback = local;
-				request.delete(this.url() + (id ? '/' + id : '')).then(resolveCallback, function(err) {
-					d.reject(err);
-					if (_.isFunction(callback))
-						callback(err);
-				});
+				var id = this.id();
+				if (id) {
+					request.delete(this.url(), {
+						id: id
+					}).then(resolveCallback, function(err) {
+						d.reject(err);
+						if (_.isFunction(callback)) callback(err);
+					});
+				} else {
+					d.reject(true);
+					if (_.isFunction(callback)) callback(true);
+				}
 			}
 			return d.promise;
 		},
@@ -849,7 +862,7 @@
 						if (_.isObjectLike(data[value]) && _.has(refs, value)) {
 							// This field is reference to another model.
 							// Create the another model and link to this model.
-							existing = modelCollection[refs[value]].get(data[value]);
+							existing = modelCollection[refs[value]].collection.get(data[value]);
 							if (existing) {
 								existing.set(data[value]);
 								self[value] = __prop(existing, self, value, self.changed);
@@ -870,7 +883,7 @@
 				this[config.keyId] = __prop();
 			}
 			// Successfully created a model. Add to collection.
-			modelCollection[this.options.name].add(this);
+			modelCollection[this.options.name].collection.add(this);
 		}
 		// Make sure that it options.methods does not create
 		// conflict with internal methods.
@@ -906,10 +919,10 @@
 		if (!modelOptions.name)
 			throw new Error('Model name must be set.');
 		var modelConstructor = modelCollection[modelOptions.name] = createModel(modelOptions);
-		modelConstructor._init(_.assign({
-			redraw: false,
+		modelConstructor._init(ctrlOptions);
+		modelConstructor.collection = new Collection({
 			model: modelConstructor
-		}, ctrlOptions));
+		});
 		return modelConstructor;
 	};
 
