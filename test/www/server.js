@@ -88,6 +88,9 @@ app.delete('/note', function(req, res) {
 	console.log(_.keys(notes));
 });
 
-app.listen(3002, 'localhost', function() {
-	console.log('Server running...');
+let port = 3002;
+let host = 'localhost';
+
+app.listen(port, host, function() {
+	console.log('Server running... ' + host + ':' + port);
 });

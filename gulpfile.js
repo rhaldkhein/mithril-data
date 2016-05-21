@@ -32,6 +32,6 @@ gulp.task('release', ['bundle'], function() {
 		.pipe(gulp.dest(''));
 });
 
-gulp.task('test', function() {
-	require('./test');
+gulp.task('test_run_server', function() {
+	require('./test/test.js');
 });

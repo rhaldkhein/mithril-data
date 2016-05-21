@@ -18,9 +18,12 @@ Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
 };
 
 function __prop(store, context, key, callback) {
-	var prop = m.prop(store);
-	// store, callback
-	if (arguments.length === 2) {
+	// store or callback (should not be a promise)
+	if (arguments.length === 1 && _.isFunction(store) && !store.then) {
+		callback = store;
+		store = null;
+	} else if (arguments.length === 2) {
+		// store, callback
 		callback = context;
 		context = null;
 	} else if (arguments.length === 3) {
@@ -28,11 +31,12 @@ function __prop(store, context, key, callback) {
 		callback = key;
 		key = null;
 	}
+	var prop = m.prop(store);
 	if (!callback)
 		return prop;
 	return function(value, silent) {
 		var args = slice.call(arguments);
-		var refs = context.options.refs;
+		var refs = context && context.options && context.options.refs ? context.options.refs : {};
 		var ret;
 		// Check if this key is a reference to another model.
 		if (_.isObjectLike(value) && _.has(refs, key)) {

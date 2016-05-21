@@ -1,1 +1,1 @@
-module.exports = require('./mithril-data');
+module.exports = require('./mithril-data.source.js');

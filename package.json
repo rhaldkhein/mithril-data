@@ -4,7 +4,7 @@
   "description": "A rich model framework for Mithril application.",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "test": "test/test.js"
   },
   "keywords": [
     "model",
