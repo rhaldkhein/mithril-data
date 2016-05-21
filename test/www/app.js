@@ -1,11 +1,6 @@
 (function() {
 
-	md.config({
-		storeConfigOptions: function(options) {
-			console.log('storeConfigOptions', options);
-			// options.url = '/xxx';
-		}
-	})
+	// md.config()
 
 	// Model
 	var Model = {};
@@ -17,6 +12,7 @@
 
 	Model.Note = md.model({
 		name: 'Note',
+		props: ['foo', 'bar'],
 		defaults: {
 			title: 'Default Title',
 			body: 'Default Note Body',
@@ -45,9 +41,11 @@
 			// Model.Note.fetch({title: 'Hello'});
 
 			// Create notes collection. This collection can't fetch.
-			var notes = new md.Collection({
-				model: Model.Note
-			});
+			// var notes = new md.Collection({
+			// 	model: Model.Note
+			// });
+
+			var notes = Model.Note.createCollection();
 
 			// Create user for notes
 			var user = new Model.User();
@@ -55,6 +53,7 @@
 
 			// Create first note
 			var noteA = new Model.Note();
+			noteA.id('Bkn6fspG');
 			noteA.title('First Note');
 			noteA.body('My first note.');
 			noteA.author(user);
@@ -90,17 +89,7 @@
 					},
 					addExisitng: function(e) {
 						e.preventDefault();
-
-						// Model.Note.pull({title: 'note'})
-						// 	.then(notes.addAll);
-
-						notes.fetch();
-
-						// Model.Note.pullById(['rJbyar_G', 'Hy9SpHOG'])
-						// 	.then(notes.addAll)
-						// 	.catch(function(e) {
-						// 		console.log(e);
-						// 	});
+						notes.fetchById(['rJpTGsaM', 'B1mAzjpz']);
 					},
 					regex: function() {
 						noteA.fetch();

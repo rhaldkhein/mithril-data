@@ -43,37 +43,40 @@ app.put('/note', function(req, res) {
 			});
 		}
 	}
-	console.log(_.keys(notes));
+	// console.log(_.keys(notes));
 });
 
-app.get('/note/:id?', function(req, res) {
+app.get('/note', function(req, res) {
 	// Model fetch, result single document.
-	if (req.params.id) {
-		let existing = notes[req.params.id];
-		if (existing)
-			res.json(existing);
-		else
-			res.status(400).json({
-				error: 'Model does not exist!'
-			});
-	} else {
-		let query = _.values(req.query);
-		if (!_.isEmpty(query)) {
-			// Model query, result array of documents.
-			res.json(_.transform(query, function(result, id) {
-				if (notes[id])
-					result.push(notes[id]);
-			}, []));
+	if (req.query) {
+		if (req.query.id) {
+			let existing = notes[req.query.id];
+			if (existing)
+				res.json(existing);
+			else
+				res.status(400).json({
+					error: 'Model does not exist!'
+				});
 		} else {
-			// Return all notes
-			res.json(_.values(notes));
+			let query = _.values(req.query);
+			if (!_.isEmpty(query)) {
+				// Model query, result array of documents.
+				res.json(_.transform(query, function(result, id) {
+					if (notes[id])
+						result.push(notes[id]);
+				}, []));
+			} else {
+				// Return all notes
+				res.json(_.values(notes));
+			}
 		}
 	}
+	// console.log(_.keys(notes));
 });
 
-app.delete('/note/:id?', function(req, res) {
-	if (req.params.id) {
-		delete notes[req.params.id];
+app.delete('/note', function(req, res) {
+	if (req.query && req.query.id) {
+		delete notes[req.query.id];
 		res.send({
 			err: false
 		});

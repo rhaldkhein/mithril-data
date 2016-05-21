@@ -163,10 +163,6 @@ function addMethods(dist, src, methods, distProp, retProp) {
 	});
 }
 
-/**
- * Method shortcuts.
- */
-
 function hasValueOfType(obj, type) {
 	var keys = _.keys(obj);
 	for (var i = 0; i < keys.length; i++) {
@@ -419,14 +415,14 @@ Collection.prototype = {
 	},
 	fetch: function(query, options, callback) {
 		if (_.isFunction(options)) {
-			callback = options
-			options = null
+			callback = options;
+			options = null;
 		}
 		var d = m.deferred();
 		if (this.hasModel) {
-			var thisCollection = this;
+			var self = this;
 			this.model().pull(this.url(), query, options).then(function(models) {
-				thisCollection.addAll(models);
+				self.addAll(models);
 				d.resolve(models);
 				if (_.isFunction(callback)) callback(null, models);
 			}, function(err) {
@@ -437,7 +433,30 @@ Collection.prototype = {
 			d.reject(true);
 			if (_.isFunction(callback)) callback(true);
 		}
-		d.promise;
+		return d.promise;
+	},
+	fetchById: function(ids, options, callback) {
+		if (_.isFunction(options)) {
+			callback = options;
+			options = null;
+		}
+		var self = this;
+		var d = m.deferred();
+		if (this.hasModel) {
+			Model.Note.pullById(ids, options)
+				.then(function(models) {
+					self.addAll(models);
+					d.resolve(models);
+					if (_.isFunction(callback)) callback(null, models);
+				}, function(err) {
+					d.reject(err);
+					if (_.isFunction(callback)) callback(err);
+				});
+		} else {
+			d.reject(true);
+			if (_.isFunction(callback)) callback(true);
+		}
+		return d.promise;
 	}
 };
 
@@ -459,7 +478,7 @@ addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
 function ModelController() {}
 
 ModelController.prototype = {
-	_init: function(options) {
+	__init: function(options) {
 		if (this.__options)
 			return;
 		this.__options = {
@@ -468,9 +487,13 @@ ModelController.prototype = {
 		if (options)
 			this.opt(options);
 	},
+	__flagSaved: function(models) {
+		for (i = 0; i < models.length; i++)
+			models[i].__saved = true;
+	},
 	opt: function(key, value) {
 		if (!this.__options)
-			this._init();
+			this.__init();
 		if (_.isPlainObject(key))
 			_.assign(this.__options, key);
 		else
@@ -490,12 +513,76 @@ ModelController.prototype = {
 				existingModel.set(modelData);
 				result.push(existingModel);
 			} else {
-				// Will create and automatically add to this collection.
-				// No need to reference.
+				// Will create and automatically add to the collection.
 				result.push(new self.collection.__options.model(modelData));
 			}
 		}, models);
 		return models;
+	},
+	createCollection: function(options) {
+		return new Collection(_.assign({
+			model: this
+		}, options));
+	},
+	loadById: function(ids, options, callback) {
+		// Only downloads from server, without returning the models.
+		// Compare which models are existing and download those are not.
+		if (_.isFunction(options)) {
+			callback = options;
+			options = null;
+		}
+		if (!ids)
+			throw new Error('Collection can\'t fetch. Id must be set.');
+		if (!_.isArray(ids))
+			ids = [ids];
+		var self = this;
+		var d = m.deferred();
+		var existing = [];
+		// Get all existing models.
+		this.collection.transform(function(result, model) {
+			if (model.id()) {
+				result.push(model.id());
+			}
+		}, existing);
+		// Start loading all non existing.
+		var toLoad = _.pullAll(ids, existing);
+		if (!_.isEmpty(toLoad)) {
+			request.get(this.collection.url(), toLoad, options)
+				.then(function(data) {
+					self.__flagSaved(self.create(data));
+					d.resolve();
+					if (_.isFunction(callback)) callback(null);
+				}, function(err) {
+					d.reject(err);
+					if (_.isFunction(callback)) callback(err);
+				});
+		} else {
+			d.resolve();
+			if (_.isFunction(callback)) callback(null);
+		}
+		return d.promise;
+	},
+	pullById: function(ids, options, callback) {
+		// Fetch from server and return the models.
+		if (_.isFunction(options)) {
+			callback = options;
+			options = null;
+		}
+		var self = this;
+		var d = m.deferred();
+		if (!_.isArray(ids))
+			ids = [ids];
+		this.loadById(ids, options)
+			.then(function() {
+				// Every model are in collection. Safe to get all.
+				var models = self.collection.getAll(ids);
+				d.resolve(models);
+				if (_.isFunction(callback)) callback(null, models);
+			}, function(err) {
+				d.reject(err);
+				if (_.isFunction(callback)) callback(err);
+			});
+		return d.promise;
 	},
 	pull: function(url, data, options, callback) {
 		if (_.isFunction(data)) {
@@ -507,15 +594,17 @@ ModelController.prototype = {
 		}
 		var self = this;
 		var d = m.deferred();
-		request.get(url, data, options).then(function(data) {
-			// data = complete list of models.
-			var models = self.create(data);
-			d.resolve(models);
-			if (_.isFunction(callback)) callback(null, models);
-		}, function(err) {
-			d.reject(err);
-			if (_.isFunction(callback)) callback(err);
-		});
+		request.get(url, data, options)
+			.then(function(data) {
+				// data = complete list of models.
+				var models = self.create(data);
+				self.__flagSaved(models);
+				d.resolve(models);
+				if (_.isFunction(callback)) callback(null, models);
+			}, function(err) {
+				d.reject(err);
+				if (_.isFunction(callback)) callback(err);
+			});
 		return d.promise;
 	}
 };
@@ -530,6 +619,7 @@ function BaseModel() {
 	};
 	this.__collections = [];
 	this.__cid = _.uniqueId('model');
+	this.__saved = false;
 	_.bindAll(this, modelBindMethods);
 }
 
@@ -627,7 +717,6 @@ BaseModel.prototype = {
 			this.__json = {};
 			this.__json.__model = this;
 		}
-		// console.log('updateJson', key, config.keyId);
 		if (key) {
 			// Update single prop.
 			if (!this.isProp(key))
@@ -687,6 +776,7 @@ BaseModel.prototype = {
 		var req = this.id() ? request.put : request.post;
 		req.call(request, this.url(), this).then(function(data) {
 			self.set(data);
+			self.__saved = true;
 			d.resolve(self);
 			if (_.isFunction(callback)) callback(null, self);
 		}, function(err) {
@@ -698,12 +788,11 @@ BaseModel.prototype = {
 	fetch: function(callback) {
 		var self = this;
 		var d = m.deferred();
-		var id = this.id();
-		if (id) {
-			request.get(this.url(), {
-				id: id
-			}).then(function(data) {
+		var id = this.__getDataId();
+		if (id[config.keyId]) {
+			request.get(this.url(), id).then(function(data) {
 				self.set(data);
+				self.__saved = true;
 				d.resolve(self);
 				if (_.isFunction(callback)) callback(null, self);
 			}, function(err) {
@@ -734,11 +823,9 @@ BaseModel.prototype = {
 			this.dispose();
 		} else {
 			callback = local;
-			var id = this.id();
-			if (id) {
-				request.delete(this.url(), {
-					id: id
-				}).then(resolveCallback, function(err) {
+			var id = this.__getDataId();
+			if (id[config.keyId]) {
+				request.delete(this.url(), id).then(resolveCallback, function(err) {
 					d.reject(err);
 					if (_.isFunction(callback)) callback(err);
 				});
@@ -749,11 +836,14 @@ BaseModel.prototype = {
 		}
 		return d.promise;
 	},
+	isSaved: function() {
+		return this.__saved;
+	},
 	isNew: function() {
-		return this.id() ? false : true;
+		return !(this.id() && this.__saved);
 	},
 	isProp: function(key) {
-		return _.indexOf(this.options.props, key) > -1 ? true : false;
+		return _.indexOf(this.options.props, key) > -1;
 	},
 	dispose: function() {
 		var keys = _.keys(this);
@@ -765,6 +855,11 @@ BaseModel.prototype = {
 		for (i = 0; i < keys.length; i++) {
 			this[keys[i]] = null;
 		}
+	},
+	__getDataId: function() {
+		var dataId = {};
+		dataId[config.keyId] = this.id();
+		return dataId;
 	}
 };
 
@@ -866,7 +961,7 @@ exports.model = function(modelOptions, ctrlOptions) {
 	if (!modelOptions.name)
 		throw new Error('Model name must be set.');
 	var modelConstructor = modelCollection[modelOptions.name] = createModel(modelOptions);
-	modelConstructor._init(ctrlOptions);
+	modelConstructor.__init(ctrlOptions);
 	modelConstructor.collection = new Collection({
 		model: modelConstructor
 	});
