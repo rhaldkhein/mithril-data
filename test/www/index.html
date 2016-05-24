@@ -9,6 +9,12 @@
 	<body>
 		<div id="mocha">
 		</div>
+
+		<script>
+			// Force mithril-data to export private objects for testing.
+			window.__TEST__ = true;
+		</script>
+
 		<script type="text/javascript" src="/node_modules/mocha/mocha.js"></script>
 		<script type="text/javascript" src="/node_modules/chai/chai.js"></script>
 		<script type="text/javascript" src="/node_modules/lodash/lodash.min.js"></script>
@@ -17,31 +23,17 @@
 
 		<script>
 			mocha.setup('bdd');
-			
+			// Shortcut to expect.
+			var expect = chai.expect;
+			// Namespace for test models.
 			window.Model = {};
-
-			Model.User = md.model({
-				name: 'User',
-				props: ['name', 'profile']
-			});
-		
-			Model.Note = md.model({
-				name: 'Note',
-				defaults: {
-					title: 'Default Title',
-					body: 'Default Note Body',
-					author: new Model.User({
-						name: 'User Default'
-					})
-				},
-				refs: {
-					author: 'User'
-				}
-			});
 		</script>
 
 		<!-- Test files here -->
-		<script type="text/javascript" src="./test-md.prop.js"></script>
+		<script type="text/javascript" src="./test-md.js"></script>
+		<script type="text/javascript" src="./test-md.model.js"></script>
+		<script type="text/javascript" src="./test-ModelConstructor.js"></script>
+		<script type="text/javascript" src="./test-Model.js"></script>
 
 		<script>
 			 mocha.run();

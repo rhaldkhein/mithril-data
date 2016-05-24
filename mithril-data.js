@@ -59,6 +59,7 @@
 	var modelCollection = {};
 	var oldConflict;
 	var config = {
+		__TEST__: false,
 		baseUrl: '',
 		keyId: 'id',
 		redraw: false,
@@ -71,26 +72,12 @@
 	};
 
 	function __prop(store, context, key, callback) {
-		// store or callback (should not be a promise)
-		if (arguments.length === 1 && _.isFunction(store) && !store.then) {
-			callback = store;
-			store = null;
-		} else if (arguments.length === 2) {
-			// store, callback
-			callback = context;
-			context = null;
-		} else if (arguments.length === 3) {
-			// store, context, callback
-			callback = key;
-			key = null;
-		}
+		if (arguments.length !== 4)
+			throw new Error();
 		var prop = m.prop(store);
-		if (!callback)
-			return prop;
+		var refs = context.options.refs || {};
 		return function(value, silent) {
 			var args = slice.call(arguments);
-			var refs = context && context.options && context.options.refs ? context.options.refs : {};
-			var ret;
 			// Check if this key is a reference to another model.
 			if (_.isObjectLike(value) && _.has(refs, key)) {
 				// This is a reference key
@@ -98,11 +85,11 @@
 				if (existing) {
 					existing.set(value);
 				} else {
-					existing = new modelCollection[refs[key]](value) || null;
+					existing = new modelCollection[refs[key]](value) || undefined;
 				}
-				args[0] = value = existing;
+				value = existing;
 			}
-			ret = prop.apply(null, args);
+			var ret = prop.apply(null, args);
 			if (args.length && !silent)
 				callback.call(context, value, key);
 			return ret;
@@ -114,22 +101,19 @@
 			strictExtend(BaseModel.prototype, config.methods);
 		}
 		if (config.controllerMethods) {
-			strictExtend(ModelController.prototype, config.controllerMethods);
+			strictExtend(ModelConstructor.prototype, config.controllerMethods);
 		}
 	}
 
 	function isConflictExtend(objSource, objInject, callback) {
-		var conflict = false;
-		var value;
-		_.each(_.keys(objInject), function(currValue) {
-			if (_.hasIn(objSource, currValue)) {
-				if (!conflict) {
-					conflict = true;
-					value = currValue;
-				}
+		var keys = _.keys(objInject);
+		var i = 0;
+		for (; i < keys.length; i++) {
+			if (_.hasIn(objSource, keys[i])) {
+				return keys[i];
 			}
-		});
-		return conflict ? value : conflict;
+		}
+		return false;
 	}
 
 	function strictExtend(objSource, objInject) {
@@ -179,9 +163,11 @@
 	}
 
 	function addMethods(dist, src, methods, distProp, retProp) {
+		// Need to be this loop. To retain `method` value.
 		_.each(methods, function(method) {
 			if (src[method]) {
 				switch (src[method].length) {
+					case 0:
 					case 1:
 						dist[method] = function() {
 							return resolveResult(src[method](this[distProp]), this[distProp], retProp);
@@ -287,7 +273,7 @@
 		put: function(url, data, opt) {
 			return this.request('PUT', url, data, opt);
 		},
-		delete: function(url, data, opt) {
+		destroy: function(url, data, opt) {
 			return this.request('DELETE', url, data, opt);
 		}
 	});
@@ -330,7 +316,7 @@
 					this.models.unshift(model.getJson());
 				else
 					this.models.push(model.getJson());
-				model.addCollection(this);
+				model.attachCollection(this);
 				added = true;
 			}
 			if (added && !silent)
@@ -340,12 +326,13 @@
 		addAll: function(models, unshift, silent) {
 			if (!_.isArray(models))
 				models = [models];
-			var self = this;
 			var added = false;
-			_.each(models, function(model) {
-				if (self.add(model, unshift, true))
+			var i = 0;
+			var model;
+			for (; i < models.length; i++) {
+				if (this.add(models[i], unshift, true))
 					added = true;
-			});
+			}
 			if (added && !silent)
 				this.changed();
 			return added;
@@ -370,15 +357,15 @@
 		getAll: function(mixed, falsy) {
 			if (!_.isArray(mixed))
 				mixed = [mixed];
-			var self = this;
 			var models = [];
+			var i = 0;
 			var exist;
-			_.transform(mixed, function(res, id) {
-				exist = self.get(id);
+			for (; i < mixed.length; i++) {
+				exist = this.get(mixed[i]);
 				if (exist || falsy) {
-					res.push(exist);
+					models.push(exist);
 				}
-			}, models);
+			}
 			return models;
 		},
 		remove: function(mixed, silent) {
@@ -411,7 +398,7 @@
 				}
 			});
 			_.each(removedModels, function(model) {
-				model.__model.removeCollection(self);
+				model.__model.detachCollection(self);
 			});
 			if (lastLength !== this.size() && !silent)
 				this.changed();
@@ -532,9 +519,9 @@
 	/**
 	 * Model collection controller.
 	 */
-	function ModelController() {}
+	function ModelConstructor() {}
 
-	ModelController.prototype = {
+	ModelConstructor.prototype = {
 		__init: function(options) {
 			if (this.__options)
 				return;
@@ -693,7 +680,7 @@
 			return config.baseUrl + (this.options.url || '/' + this.options.name.toLowerCase());
 		},
 		// Add this model to collection.
-		addCollection: function(collection) {
+		attachCollection: function(collection) {
 			if (!(collection instanceof Collection))
 				throw new Error('Argument `collection` must be instance of Collection.');
 			var model = collection.get(this);
@@ -706,7 +693,7 @@
 			}
 		},
 		// Remove this model from collection.
-		removeCollection: function(collection) {
+		detachCollection: function(collection) {
 			if (!(collection instanceof Collection))
 				throw new Error('Argument `collection` must be instance of Collection.');
 			// Remove this model from collection first.
@@ -769,7 +756,6 @@
 		updateJson: function(key) {
 			// Loop through props and update the json.
 			// Create new json object if not exist.
-			var self = this;
 			if (!this.__json) {
 				this.__json = {};
 				this.__json.__model = this;
@@ -782,16 +768,11 @@
 				this.__json[key] = value instanceof BaseModel ? value.getJson() : value;
 			} else {
 				// Update all props.
-				_.each(this, function(jValue, jKey) {
-					// Note that jValue is __prop function.
-					// And must be a function __prop.
-					if (!self.isProp(jKey) || !_.isFunction(jValue))
-						return;
-					jValue = jValue();
-					if (jValue && !_.isNull(jValue)) {
-						self.__json[jKey] = jValue instanceof BaseModel ? jValue.getJson() : jValue;
-					}
-				});
+				var keys = _.keys(this);
+				var i = 0;
+				for (; i < keys.length; i++) {
+					this.updateJson(keys[i]);
+				}
 			}
 		},
 		// Get all or a prop values in object format. Creates a copy.
@@ -862,36 +843,38 @@
 			}
 			return d.promise;
 		},
-		remove: function(local, callback) {
+		destroy: function(callback) {
+			// Destroy the model. Will sync to store.
 			var self = this;
 			var d = m.deferred();
-			var resolveCallback = function(data) {
-				// Remove this model to all collections.
-				var clonedCollections = _.clone(self.__collections);
-				for (var i = 0; i < clonedCollections.length; i++) {
-					clonedCollections[i].remove(self);
-					clonedCollections[i] = null;
-				}
-				d.resolve();
-				if (_.isFunction(callback)) callback(null);
-			};
-			if (local === true) {
-				resolveCallback();
-				this.dispose();
+			var id = this.__getDataId();
+			if (id[config.keyId]) {
+				request.destroy(this.url(), id).then(function(data) {
+					this.detach();
+					d.resolve();
+					if (_.isFunction(callback)) callback(null);
+					this.dispose();
+				}, function(err) {
+					d.reject(err);
+					if (_.isFunction(callback)) callback(err);
+				});
 			} else {
-				callback = local;
-				var id = this.__getDataId();
-				if (id[config.keyId]) {
-					request.delete(this.url(), id).then(resolveCallback, function(err) {
-						d.reject(err);
-						if (_.isFunction(callback)) callback(err);
-					});
-				} else {
-					d.reject(true);
-					if (_.isFunction(callback)) callback(true);
-				}
+				d.reject(true);
+				if (_.isFunction(callback)) callback(true);
 			}
 			return d.promise;
+		},
+		remove: function() {
+			this.detach();
+			this.dispose();
+		},
+		detach: function() {
+			// Detach this model to all collection. Including default collection.
+			var clonedCollections = _.clone(this.__collections);
+			for (var i = 0; i < clonedCollections.length; i++) {
+				clonedCollections[i].remove(this);
+				clonedCollections[i] = null;
+			}
 		},
 		isSaved: function() {
 			return this.__saved;
@@ -921,7 +904,7 @@
 	};
 
 	// Method to bind to Model object. Use by _.bindAll().
-	var modelBindMethods = ['save', 'remove'];
+	var modelBindMethods = ['save', 'destroy'];
 
 	// Add lodash methods.
 	var objectMethods = ['has', 'keys', 'values', 'invert', 'pick', 'omit'];
@@ -953,11 +936,11 @@
 				_.each(props, function(value) {
 					// 1. Must not starts  with '__'.
 					// 2. Omit id in data if you configure different id field.
-					if (!self.isProp(value) || ('id' === value && value !== config.keyId))
+					if (!self.isProp(value) || (value === 'id' && value !== config.keyId))
 						return;
 					// Make sure that it does not create conflict with
 					// internal reserved keywords.
-					if (!_.hasIn(self, value) || 'id' === value) {
+					if (!_.hasIn(self, value) || value === 'id') {
 						if (_.isObjectLike(data[value]) && _.has(refs, value)) {
 							// This field is reference to another model.
 							// Create the another model and link to this model.
@@ -966,11 +949,11 @@
 								existing.set(data[value]);
 								self[value] = __prop(existing, self, value, self.changed);
 							} else {
-								self[value] = __prop(new modelCollection[refs[value]](data[value]) || null, self, value, self.changed);
+								self[value] = __prop(new modelCollection[refs[value]](data[value]) || undefined, self, value, self.changed);
 							}
 						} else {
 							// Use default if data is not available.
-							self[value] = __prop(data[value] || defs[value] || null, self, value, self.changed);
+							self[value] = __prop(data[value] || defs[value] || undefined, self, value, self.changed);
 						}
 					} else {
 						throw new Error('`' + value + '` property field is not allowed.');
@@ -979,9 +962,9 @@
 			}
 			// Check if it contains user defined id. (This might not be necessary, as we pushed the keyId already.)
 			if (!_.has(this, config.keyId)) {
-				this[config.keyId] = __prop();
+				// this[config.keyId] = __prop();
 			}
-			// Successfully created a model. Add to collection.
+			// Successfully created a model. Add to default collection.
 			modelCollection[this.options.name].collection.add(this);
 		}
 		// Make sure that it options.methods does not create
@@ -997,7 +980,7 @@
 			options: options,
 		}));
 		// Link model controller prototype.
-		Object.setPrototypeOf(Model, ModelController.prototype);
+		Object.setPrototypeOf(Model, ModelConstructor.prototype);
 		// Return the model.
 		return Model;
 	}
@@ -1010,6 +993,15 @@
 	/**
 	 * Exports
 	 */
+
+	// Export class Collection.
+	exports.Collection = Collection;
+
+	// Export our custom m.prop.
+	// exports.prop = __prop;
+
+	// Export our custom request controller.
+	exports.request = request;
 
 	// Export model instantiator.
 	exports.model = function(modelOptions, ctrlOptions) {
@@ -1033,15 +1025,6 @@
 		configure();
 	};
 
-	// Export class Collection.
-	exports.Collection = Collection;
-
-	// Export our custom m.prop.
-	exports.prop = __prop;
-
-	// Export our custom request controller.
-	exports.request = request;
-
 	// Return back the old md.
 	exports.noConflict = function() {
 		if (oldConflict) {
@@ -1050,6 +1033,12 @@
 		}
 		return window.md;
 	};
+
+	// Return the current version.
+	exports.version = function() {
+		return 'v0.0.1';
+	};
+
 
 	// Export for AMD & browser's global.
 	if (true) {
@@ -1060,6 +1049,14 @@
 
 	// Export for browser's global.
 	if (typeof window !== 'undefined') {
+		// Export private objects for unit testing.
+		if (window.__TEST__ && window.mocha && window.chai) {
+			exports.__TEST__ = {
+				BaseModel: BaseModel,
+				ModelConstructor: ModelConstructor,
+				__prop: __prop
+			};
+		}
 		if (window.md)
 			oldConflict = window.md;
 		window.md = exports;

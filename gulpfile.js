@@ -2,13 +2,17 @@ var gulp = require('gulp'),
 	uglify = require('gulp-uglify'),
 	rename = require('gulp-rename'),
 	header = require('gulp-header'),
+	replace = require('gulp-replace'),
 	webpack = require('webpack-stream');
+
+var package = require('./package.json');
 
 gulp.task('default', ['test']);
 
 gulp.task('bundle', function() {
-	return gulp.src('mithril-data.js')
+	return gulp.src('')
 		.pipe(webpack(require('./webpack-config.js')))
+		.pipe(replace('<%version%>', 'v' + package.version))
 		.pipe(gulp.dest(''));
 });
 
@@ -27,7 +31,7 @@ gulp.task('release', ['bundle'], function() {
 			' */',
 			''
 		].join('\n'), {
-			pkg: require('./package.json')
+			pkg: package
 		}))
 		.pipe(gulp.dest(''));
 });
