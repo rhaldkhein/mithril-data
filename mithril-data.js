@@ -56,7 +56,7 @@
 	var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
 	var slice = Array.prototype.slice;
-	var modelCollection = {};
+	var modelConstructors = {};
 	var oldConflict;
 	var config = {
 		__TEST__: false,
@@ -79,15 +79,8 @@
 		return function(value, silent) {
 			var args = slice.call(arguments);
 			// Check if this key is a reference to another model.
-			if (_.isObjectLike(value) && _.has(refs, key)) {
-				// This is a reference key
-				var existing = modelCollection[refs[key]].collection.get(value);
-				if (existing) {
-					existing.set(value);
-				} else {
-					existing = new modelCollection[refs[key]](value) || undefined;
-				}
-				value = existing;
+			if (_.isPlainObject(value) && _.has(refs, key)) {
+				value = new modelConstructors[refs[key]](value);
 			}
 			var ret = prop.apply(null, args);
 			if (args.length && !silent)
@@ -163,17 +156,16 @@
 	}
 
 	function addMethods(dist, src, methods, distProp, retProp) {
-		// Need to be this loop. To retain `method` value.
-		_.each(methods, function(method) {
+		// Need to be this loop (each). To retain `method` value.
+		_.each(methods, function(length, method) {
 			if (src[method]) {
-				switch (src[method].length) {
+				switch (length) {
 					case 0:
-					case 1:
 						dist[method] = function() {
 							return resolveResult(src[method](this[distProp]), this[distProp], retProp);
 						};
 						break;
-					case 2:
+					case 1:
 						dist[method] = function(valueA) {
 							if (_.isFunction(valueA))
 								valueA = resolveWrapper(valueA, retProp);
@@ -182,7 +174,7 @@
 							return resolveResult(src[method](this[distProp], valueA), this[distProp], retProp);
 						};
 						break;
-					case 3:
+					case 2:
 						dist[method] = function(valueA, valueB) {
 							if (_.isFunction(valueA))
 								valueA = resolveWrapper(valueA, retProp);
@@ -289,7 +281,7 @@
 		};
 		if (options)
 			this.opt(options);
-		_.bindAll(this, collectionBindMethods);
+		_.bindAll(this, _.union(collectionBindMethods, config.collectionBindMethods));
 	}
 
 	Collection.prototype = {
@@ -299,6 +291,26 @@
 			else
 				this.__options[key] = value || true;
 		},
+		create: function(data) {
+			if (!_.isArray(data))
+				data = [data];
+			var self = this;
+			var existingModel;
+			var newModels = [];
+			_.transform(data, function(result, modelData) {
+				if (!_.isPlainObject(modelData))
+					throw new Error('Plain object required');
+				existingModel = self.get(modelData);
+				if (existingModel) {
+					existingModel.set(modelData);
+				} else {
+					if (self.__options.model)
+						result.push(new self.__options.model(modelData));
+				}
+			}, newModels);
+			this.addAll(newModels);
+			return newModels;
+		},
 		changed: function() {
 			if (this.__options.redraw || config.redraw) {
 				m.redraw();
@@ -306,7 +318,7 @@
 		},
 		add: function(model, unshift, silent) {
 			if (!(model instanceof BaseModel) || (this.__options.model && !(model instanceof this.__options.model)))
-				throw new Error('Can\'t add to collection. Argument must be a model or an instance of set model.');
+				throw new Error('Must be a model or an instance of set model');
 			var existingModel = this.get(model);
 			var added = false;
 			if (existingModel) {
@@ -505,15 +517,41 @@
 	};
 
 	// Method to bind to Collection object. Use by _.bindAll().
-	var collectionBindMethods = ['add', 'addAll'];
+	var collectionBindMethods = [];
 
 	// Add lodash methods.
-	var collectionMethods = [
-		'forEach', 'map', 'find', 'findIndex', 'findLastIndex', 'filter', 'reject',
-		'every', 'some', 'invoke', 'maxBy', 'minBy', 'sortBy', 'groupBy', 'shuffle',
-		'size', 'initial', 'without', 'indexOf', 'lastIndexOf', 'difference', 'sample',
-		'reverse', 'nth', 'first', 'last', 'toArray', 'slice', 'orderBy', 'transform'
-	];
+	var collectionMethods = {
+		forEach: 1,
+		map: 1,
+		find: 1,
+		findIndex: 1,
+		findLastIndex: 1,
+		filter: 1,
+		reject: 1,
+		every: 1,
+		some: 1,
+		invoke: 3,
+		maxBy: 1,
+		minBy: 1,
+		sortBy: 1,
+		groupBy: 1,
+		shuffle: 0,
+		size: 0,
+		initial: 0,
+		without: 1,
+		indexOf: 2,
+		lastIndexOf: 2,
+		difference: 1,
+		sample: 0,
+		reverse: 0,
+		nth: 1,
+		first: 0,
+		last: 0,
+		toArray: 0,
+		slice: 1,
+		orderBy: 2,
+		transform: 2
+	};
 	addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
 
 	/**
@@ -542,26 +580,6 @@
 				_.assign(this.__options, key);
 			else
 				this.__options[key] = value || true;
-		},
-		create: function(data) {
-			if (!_.isArray(data))
-				data = [data];
-			var self = this;
-			var existingModel;
-			var models = [];
-			_.transform(data, function(result, modelData) {
-				if (!_.isPlainObject(modelData))
-					throw new Error('Can\'t create model to collection. Argument must be a plain object.');
-				existingModel = self.collection.get(modelData);
-				if (existingModel) {
-					existingModel.set(modelData);
-					result.push(existingModel);
-				} else {
-					// Will create and automatically add to the collection.
-					result.push(new self.collection.__options.model(modelData));
-				}
-			}, models);
-			return models;
 		},
 		createCollection: function(options) {
 			return new Collection(_.assign({
@@ -664,10 +682,16 @@
 		this.__collections = [];
 		this.__cid = _.uniqueId('model');
 		this.__saved = false;
-		_.bindAll(this, modelBindMethods);
+		_.bindAll(this, _.union(modelBindMethods, config.modelBindMethods));
 	}
 
 	BaseModel.prototype = {
+		opt: function(key, value) {
+			if (_.isPlainObject(key))
+				_.assign(this.__options, key);
+			else
+				this.__options[key] = value || true;
+		},
 		// Get or set id of model.
 		id: function(id) {
 			return id ? this[config.keyId](id) : this[config.keyId]();
@@ -715,6 +739,8 @@
 			_.each(this.__collections, function(collection) {
 				collection.changed(this);
 			});
+			// If key is id and its not falsy, then add it to default collection.
+
 		},
 		// Sets all or a prop values from passed data.
 		set: function(key, value) {
@@ -724,18 +750,10 @@
 			var existing;
 			if (isModel || _.isPlainObject(key)) {
 				_.each(key, function(oValue, oKey) {
-					if (!self.isProp(oKey) || !_.isFunction(self[oKey]))
+					if (!self.__isProp(oKey) || !_.isFunction(self[oKey]))
 						return;
-					if (_.isObjectLike(oValue) && _.has(refs, oKey)) {
-						// Check first if we have the document in collection.
-						// If so, reference it to that model.
-						existing = modelCollection[refs[oKey]].collection.get(oValue);
-						if (existing) {
-							existing.set(oValue);
-							self[oKey](existing, true);
-						} else {
-							self[oKey](new modelCollection[refs[oKey]](oValue) || null, true);
-						}
+					if (_.isPlainObject(oValue) && _.has(refs, oKey)) {
+						self[oKey](new modelConstructors[refs[oKey]](oValue) || undefined, true);
 					} else {
 						if (isModel && _.isFunction(oValue)) {
 							// Id field is not changeable. Update only if not exist.
@@ -743,13 +761,13 @@
 								return;
 							self[oKey](oValue(), true);
 						} else {
-							self[oKey](oValue || null, true);
+							self[oKey](oValue || undefined, true);
 						}
 					}
 				});
 				this.changed();
 			} else {
-				this[key](value || null);
+				this[key](value || undefined);
 			}
 		},
 		// Create or update json representation of this model. Must use this method to update the json.
@@ -762,7 +780,7 @@
 			}
 			if (key) {
 				// Update single prop.
-				if (!this.isProp(key))
+				if (!this.__isProp(key))
 					return;
 				var value = this[key]();
 				this.__json[key] = value instanceof BaseModel ? value.getJson() : value;
@@ -789,24 +807,18 @@
 			return this.__json;
 		},
 		// Get a copy of json representation. Removing private properties.
-		getCopy: function() {
+		getCopy: function(deep) {
 			var self = this;
-			var obj = {};
+			var copy = {};
 			_.each(this.getJson(), function(value, key) {
-				if (!self.isProp(key))
+				if (!self.__isProp(key))
 					return;
-				if (value.__model && value.__model instanceof BaseModel)
-					obj[key] = value.__model.get();
+				if (value && value.__model && value.__model instanceof BaseModel)
+					copy[key] = value.__model.get();
 				else
-					obj[key] = value;
+					copy[key] = value;
 			});
-			return obj;
-		},
-		opt: function(key, value) {
-			if (_.isPlainObject(key))
-				_.assign(this.__options, key);
-			else
-				this.__options[key] = value || true;
+			return deep ? _.cloneDeep(copy) : copy;
 		},
 		save: function(callback) {
 			var self = this;
@@ -876,15 +888,6 @@
 				clonedCollections[i] = null;
 			}
 		},
-		isSaved: function() {
-			return this.__saved;
-		},
-		isNew: function() {
-			return !(this.id() && this.__saved);
-		},
-		isProp: function(key) {
-			return _.indexOf(this.options.props, key) > -1;
-		},
 		dispose: function() {
 			var keys = _.keys(this);
 			var props = this.options.props;
@@ -896,6 +899,15 @@
 				this[keys[i]] = null;
 			}
 		},
+		isSaved: function() {
+			return this.__saved;
+		},
+		isNew: function() {
+			return !(this.id() && this.__saved);
+		},
+		__isProp: function(key) {
+			return _.indexOf(this.options.props, key) > -1;
+		},
 		__getDataId: function() {
 			var dataId = {};
 			dataId[config.keyId] = this.id();
@@ -904,16 +916,22 @@
 	};
 
 	// Method to bind to Model object. Use by _.bindAll().
-	var modelBindMethods = ['save', 'destroy'];
+	var modelBindMethods = [];
 
 	// Add lodash methods.
-	var objectMethods = ['has', 'keys', 'values', 'invert', 'pick', 'omit'];
+	var objectMethods = {
+		has: 1,
+		keys: 0,
+		values: 0,
+		pick: 1,
+		omit: 1
+	};
 	addMethods(BaseModel.prototype, _, objectMethods, '__json');
 
 	/**
 	 * Model class.
 	 */
-	function createModel(options) {
+	function createModelConstructor(options) {
 		// Resolve model options. Mutates the object.
 		resolveModelOptions(options);
 		// The model constructor.
@@ -936,21 +954,13 @@
 				_.each(props, function(value) {
 					// 1. Must not starts  with '__'.
 					// 2. Omit id in data if you configure different id field.
-					if (!self.isProp(value) || (value === 'id' && value !== config.keyId))
+					if (!self.__isProp(value) || (value === 'id' && value !== config.keyId))
 						return;
 					// Make sure that it does not create conflict with
 					// internal reserved keywords.
 					if (!_.hasIn(self, value) || value === 'id') {
-						if (_.isObjectLike(data[value]) && _.has(refs, value)) {
-							// This field is reference to another model.
-							// Create the another model and link to this model.
-							existing = modelCollection[refs[value]].collection.get(data[value]);
-							if (existing) {
-								existing.set(data[value]);
-								self[value] = __prop(existing, self, value, self.changed);
-							} else {
-								self[value] = __prop(new modelCollection[refs[value]](data[value]) || undefined, self, value, self.changed);
-							}
+						if (_.isPlainObject(data[value]) && _.has(refs, value)) {
+							self[value] = __prop(new modelConstructors[refs[value]](data[value]) || undefined, self, value, self.changed);
 						} else {
 							// Use default if data is not available.
 							self[value] = __prop(data[value] || defs[value] || undefined, self, value, self.changed);
@@ -960,12 +970,8 @@
 					}
 				});
 			}
-			// Check if it contains user defined id. (This might not be necessary, as we pushed the keyId already.)
-			if (!_.has(this, config.keyId)) {
-				// this[config.keyId] = __prop();
-			}
-			// Successfully created a model. Add to default collection.
-			modelCollection[this.options.name].collection.add(this);
+			// Generate __json representation.
+			this.updateJson();
 		}
 		// Make sure that it options.methods does not create
 		// conflict with internal methods.
@@ -997,9 +1003,6 @@
 	// Export class Collection.
 	exports.Collection = Collection;
 
-	// Export our custom m.prop.
-	// exports.prop = __prop;
-
 	// Export our custom request controller.
 	exports.request = request;
 
@@ -1009,11 +1012,11 @@
 		ctrlOptions = ctrlOptions || {};
 		if (!modelOptions.name)
 			throw new Error('Model name must be set.');
-		var modelConstructor = modelCollection[modelOptions.name] = createModel(modelOptions);
+		var modelConstructor = modelConstructors[modelOptions.name] = createModelConstructor(modelOptions);
 		modelConstructor.__init(ctrlOptions);
-		modelConstructor.collection = new Collection({
-			model: modelConstructor
-		});
+		// modelConstructor.collection = new Collection({
+		// 	model: modelConstructor
+		// });
 		return modelConstructor;
 	};
 

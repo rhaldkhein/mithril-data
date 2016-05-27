@@ -7,20 +7,23 @@
 		<link rel="stylesheet" href="/node_modules/mocha/mocha.css"/>
 	</head>
 	<body>
+		<div id="help">
+			<h3>Server Required</h3>
+			<p>To run the test. Run the server first.</p>
+			<p>Issue command <i>node server.js</i> in <i>/test/www</i> directory.</p>
+			<p>Visit <i>localhost:3002</i> or assign different host or port.</p>
+		</div>
 		<div id="mocha">
 		</div>
-
 		<script>
 			// Force mithril-data to export private objects for testing.
 			window.__TEST__ = true;
 		</script>
-
 		<script type="text/javascript" src="/node_modules/mocha/mocha.js"></script>
 		<script type="text/javascript" src="/node_modules/chai/chai.js"></script>
 		<script type="text/javascript" src="/node_modules/lodash/lodash.min.js"></script>
 		<script type="text/javascript" src="/node_modules/mithril/mithril.min.js"></script>
 		<script type="text/javascript" src="/mithril-data.js"></script>
-
 		<script>
 			mocha.setup('bdd');
 			// Shortcut to expect.
@@ -28,16 +31,22 @@
 			// Namespace for test models.
 			window.Model = {};
 		</script>
-
 		<!-- Test files here -->
 		<script type="text/javascript" src="./test-md.js"></script>
 		<script type="text/javascript" src="./test-md.model.js"></script>
 		<script type="text/javascript" src="./test-ModelConstructor.js"></script>
 		<script type="text/javascript" src="./test-Model.js"></script>
-
+		<script type="text/javascript" src="./test-ModelLodash.js"></script>
+		<script type="text/javascript" src="./test-Collection.js"></script>
 		<script>
-			 mocha.run();
+			(function() {
+				if(mocha && mocha.run){
+					var elHelp = document.getElementById('help');
+					elHelp.outerHTML = "";
+					delete elHelp;
+				}
+			})();
+			mocha.run();
 		</script>
-
 	</body>
 </html>
