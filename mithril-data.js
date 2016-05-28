@@ -732,7 +732,7 @@
 			if (_.indexOf(this.__collections, collection) > -1)
 				_.pull(this.__collections, collection);
 		},
-		changed: function(value, key) {
+		changed: function(key) {
 			// Redraw by self.
 			if (this.__options.redraw || this.options.redraw || config.redraw)
 				m.redraw();
@@ -740,30 +740,27 @@
 			_.each(this.__collections, function(collection) {
 				collection.changed(this);
 			});
-
 		},
 		// Sets all or a prop values from passed data.
-		set: function(key, value) {
-			var self = this;
-			var refs = this.options.refs || {};
-			var isModel = key instanceof BaseModel;
-			var existing;
-			if (isModel || _.isPlainObject(key)) {
-				_.each(key, function(oValue, oKey) {
-					if (!self.__isProp(oKey) || !_.isFunction(self[oKey]))
+		set: function(obj, value, silent) {
+			var isModel = obj instanceof BaseModel;
+			if (isModel || _.isPlainObject(obj)) {
+				var keys = _.keys(obj);
+				for (var i = keys.length - 1, key, value; i >= 0; i--) {
+					key = keys[i];
+					value = obj[key];
+					if (!this.__isProp(key) || !_.isFunction(this[key]))
 						return;
-					if (isModel && _.isFunction(oValue)) {
-						// Id field is not changeable. Update only if not exist.
-						if (oKey === config.keyId && self.id())
-							return;
-						self[oKey](oValue());
+					if (isModel && _.isFunction(value)) {
+						this[key](value(), true);
 					} else {
-						self[oKey](oValue || undefined);
+						this[key](value, true);
 					}
-				});
-				this.changed();
+				}
+				if(!value) // silent
+					this.changed();
 			} else {
-				this[key](value || undefined);
+				this[obj](arguments[1], silent);
 			}
 		},
 		// Get all or a prop values in object format. Creates a copy.
@@ -887,14 +884,15 @@
 			dataId[config.keyId] = this.id();
 			return dataId;
 		},
-		__gettersetter(value, key) {
+		__gettersetter(initial, key) {
 			var store = this.__json;
 			var ref = this.options.refs[key];
-			store[key] = value;
 
 			function prop() {
 				var value;
 				if (arguments.length) {
+					// 0 = value
+					// 1 = silent
 					value = arguments[0];
 					if (_.isPlainObject(value) && ref) {
 						value = new modelConstructors[ref](value);
@@ -903,6 +901,8 @@
 						value = value.getJson();
 					}
 					store[key] = value;
+					if (!arguments[1])
+						this.changed(key)
 					return value;
 				}
 				value = store[key];
@@ -913,6 +913,7 @@
 			prop.toJSON = function() {
 				return store[key];
 			}
+			store[key] = initial;
 			return prop;
 		}
 	};
@@ -959,10 +960,10 @@
 				// internal reserved keywords.
 				if (!_.hasIn(this, value) || value === 'id') {
 					if (_.isPlainObject(data[value]) && _.has(refs, value)) {
-						this[value] = this.__gettersetter(new modelConstructors[refs[value]](data[value]) || undefined, value);
+						this[value] = this.__gettersetter(new modelConstructors[refs[value]](data[value]), value);
 					} else {
 						// Use default if data is not available.
-						this[value] = this.__gettersetter(data[value] || options.defaults[value] || undefined, value);
+						this[value] = this.__gettersetter(data[value] || options.defaults[value], value);
 					}
 				} else {
 					throw new Error('`' + value + '` property field is not allowed.');
