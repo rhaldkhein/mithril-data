@@ -38,4 +38,15 @@ describe("Model.<lodash>", function() {
 		expect(picked.profile).to.equal(user.profile());
 	})
 
+	it("omit()", function() {
+		var user = new Model.User();
+		expect(user.omit).to.exist;
+		user.name('Name');
+		user.profile('Profile');
+		var omited = user.omit(['profile']);
+		expect(omited).to.not.equal(user.getJson());
+		expect(omited.name).to.exist.and.to.equal('Name');
+		expect(omited.profile).to.not.exist;
+	})
+
 });

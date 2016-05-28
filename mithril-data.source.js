@@ -18,24 +18,6 @@ Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
 	return obj;
 };
 
-function __prop(store, context, key, callback) {
-	if (arguments.length !== 4)
-		throw new Error();
-	var prop = m.prop(store);
-	var refs = context.options.refs || {};
-	return function(value, silent) {
-		var args = slice.call(arguments);
-		// Check if this key is a reference to another model.
-		if (_.isPlainObject(value) && _.has(refs, key)) {
-			value = new modelConstructors[refs[key]](value);
-		}
-		var ret = prop.apply(null, args);
-		if (args.length && !silent)
-			callback.call(context, value, key);
-		return ret;
-	};
-}
-
 function configure() {
 	if (config.methods) {
 		strictExtend(BaseModel.prototype, config.methods);
@@ -103,7 +85,7 @@ function resolveResult(result, collection, property) {
 }
 
 function addMethods(dist, src, methods, distProp, retProp) {
-	// Need to be this loop (each). To retain `method` value.
+	// Need to be this loop (each). To retain value of `method` argument.
 	_.each(methods, function(length, method) {
 		if (src[method]) {
 			switch (length) {
@@ -337,6 +319,26 @@ Collection.prototype = {
 		var matchMix;
 		if (!lastLength)
 			return;
+		// for (var i = 0, mix; i < mixed.length; i++) {
+		// 	mix = mixed[i];
+		// 	if (!mix)
+		// 		throw new Error('Can\'t remove from collection. Argument must be set.');
+		// 	if (mix instanceof BaseModel) {
+		// 		removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
+		// 			return _.eq(value, mix.getJson());
+		// 		}));
+		// 	} else if (_.isObjectLike(mix)) {
+		// 		removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
+		// 			return _.isMatch(value, mix);
+		// 		}));
+		// 	} else {
+		// 		removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
+		// 			matchMix = {};
+		// 			matchMix[config.keyId] = mix;
+		// 			return _.isMatch(value, matchMix);
+		// 		}));
+		// 	}
+		// }
 		_.each(mixed, function(mix) {
 			if (!mix)
 				throw new Error('Can\'t remove from collection. Argument must be set.');
@@ -629,6 +631,9 @@ function BaseModel() {
 	this.__collections = [];
 	this.__cid = _.uniqueId('model');
 	this.__saved = false;
+	this.__json = {
+		__model: this
+	};
 	_.bindAll(this, _.union(modelBindMethods, config.modelBindMethods));
 }
 
@@ -675,10 +680,6 @@ BaseModel.prototype = {
 			_.pull(this.__collections, collection);
 	},
 	changed: function(value, key) {
-		if (value || key)
-			this.updateJson(key);
-		else
-			this.updateJson();
 		// Redraw by self.
 		if (this.__options.redraw || this.options.redraw || config.redraw)
 			m.redraw();
@@ -686,7 +687,6 @@ BaseModel.prototype = {
 		_.each(this.__collections, function(collection) {
 			collection.changed(this);
 		});
-		// If key is id and its not falsy, then add it to default collection.
 
 	},
 	// Sets all or a prop values from passed data.
@@ -699,45 +699,18 @@ BaseModel.prototype = {
 			_.each(key, function(oValue, oKey) {
 				if (!self.__isProp(oKey) || !_.isFunction(self[oKey]))
 					return;
-				if (_.isPlainObject(oValue) && _.has(refs, oKey)) {
-					self[oKey](new modelConstructors[refs[oKey]](oValue) || undefined, true);
+				if (isModel && _.isFunction(oValue)) {
+					// Id field is not changeable. Update only if not exist.
+					if (oKey === config.keyId && self.id())
+						return;
+					self[oKey](oValue());
 				} else {
-					if (isModel && _.isFunction(oValue)) {
-						// Id field is not changeable. Update only if not exist.
-						if (oKey === config.keyId && self.id())
-							return;
-						self[oKey](oValue(), true);
-					} else {
-						self[oKey](oValue || undefined, true);
-					}
+					self[oKey](oValue || undefined);
 				}
 			});
 			this.changed();
 		} else {
 			this[key](value || undefined);
-		}
-	},
-	// Create or update json representation of this model. Must use this method to update the json.
-	updateJson: function(key) {
-		// Loop through props and update the json.
-		// Create new json object if not exist.
-		if (!this.__json) {
-			this.__json = {};
-			this.__json.__model = this;
-		}
-		if (key) {
-			// Update single prop.
-			if (!this.__isProp(key))
-				return;
-			var value = this[key]();
-			this.__json[key] = value instanceof BaseModel ? value.getJson() : value;
-		} else {
-			// Update all props.
-			var keys = _.keys(this);
-			var i = 0;
-			for (; i < keys.length; i++) {
-				this.updateJson(keys[i]);
-			}
 		}
 	},
 	// Get all or a prop values in object format. Creates a copy.
@@ -749,22 +722,23 @@ BaseModel.prototype = {
 	},
 	// Retrieve json representation. Including private properties.
 	getJson: function() {
-		if (!this.__json)
-			this.updateJson();
 		return this.__json;
 	},
 	// Get a copy of json representation. Removing private properties.
 	getCopy: function(deep) {
 		var self = this;
 		var copy = {};
-		_.each(this.getJson(), function(value, key) {
-			if (!self.__isProp(key))
-				return;
-			if (value && value.__model && value.__model instanceof BaseModel)
-				copy[key] = value.__model.get();
-			else
-				copy[key] = value;
-		});
+		var keys = _.keys(this.__json);
+		for (var i = 0, key, value; i < keys.length; i++) {
+			key = keys[i];
+			value = this.__json[key];
+			if (this.__isProp(key)) {
+				if (value && value.__model instanceof BaseModel)
+					copy[key] = value.__model.get();
+				else
+					copy[key] = value;
+			}
+		}
 		return deep ? _.cloneDeep(copy) : copy;
 	},
 	save: function(callback) {
@@ -859,6 +833,34 @@ BaseModel.prototype = {
 		var dataId = {};
 		dataId[config.keyId] = this.id();
 		return dataId;
+	},
+	__gettersetter(value, key) {
+		var store = this.__json;
+		var ref = this.options.refs[key];
+		store[key] = value;
+
+		function prop() {
+			var value;
+			if (arguments.length) {
+				value = arguments[0];
+				if (_.isPlainObject(value) && ref) {
+					value = new modelConstructors[ref](value);
+				}
+				if (value instanceof BaseModel) {
+					value = value.getJson();
+				}
+				store[key] = value;
+				return value;
+			}
+			value = store[key];
+			if (value && value.__model instanceof BaseModel)
+				value = value.__model;
+			return value;
+		}
+		prop.toJSON = function() {
+			return store[key];
+		}
+		return prop;
 	}
 };
 
@@ -885,40 +887,34 @@ function createModelConstructor(options) {
 	function Model(propValues) {
 		var self = this;
 		var data = propValues || {};
-		var refs = options.refs || {};
-		var props = options.props || [];
-		var defs = options.defaults || {};
-		var existing;
+		var refs = options.refs;
+		var props = options.props;
 		// Make user id is in prop;
 		if (_.indexOf(props, config.keyId) === -1) {
 			props.push(config.keyId);
 		}
 		// Calling parent class.
 		BaseModel.call(this);
-		// Create model properties. Values can be null and set later.
-		if (props && _.isArray(props)) {
-			// Adding props.
-			_.each(props, function(value) {
-				// 1. Must not starts  with '__'.
-				// 2. Omit id in data if you configure different id field.
-				if (!self.__isProp(value) || (value === 'id' && value !== config.keyId))
-					return;
-				// Make sure that it does not create conflict with
-				// internal reserved keywords.
-				if (!_.hasIn(self, value) || value === 'id') {
-					if (_.isPlainObject(data[value]) && _.has(refs, value)) {
-						self[value] = __prop(new modelConstructors[refs[value]](data[value]) || undefined, self, value, self.changed);
-					} else {
-						// Use default if data is not available.
-						self[value] = __prop(data[value] || defs[value] || undefined, self, value, self.changed);
-					}
+		// Adding props.
+		for (var i = 0, value; i < props.length; i++) {
+			value = props[i];
+			// 1. Must not starts  with '__'.
+			// 2. Omit id in data if you configure different id field.
+			if (!this.__isProp(value) || (value === 'id' && value !== config.keyId))
+				return;
+			// Make sure that it does not create conflict with
+			// internal reserved keywords.
+			if (!_.hasIn(this, value) || value === 'id') {
+				if (_.isPlainObject(data[value]) && _.has(refs, value)) {
+					this[value] = this.__gettersetter(new modelConstructors[refs[value]](data[value]) || undefined, value);
 				} else {
-					throw new Error('`' + value + '` property field is not allowed.');
+					// Use default if data is not available.
+					this[value] = this.__gettersetter(data[value] || options.defaults[value] || undefined, value);
 				}
-			});
+			} else {
+				throw new Error('`' + value + '` property field is not allowed.');
+			}
 		}
-		// Generate __json representation.
-		this.updateJson();
 	}
 	// Make sure that it options.methods does not create
 	// conflict with internal methods.
@@ -939,8 +935,9 @@ function createModelConstructor(options) {
 }
 
 function resolveModelOptions(options) {
-	// Combine props with defaults keys.
-	options.props = _.union(options.props, _.keys(options.defaults));
+	options.defaults = options.defaults || {};
+	options.props = _.union(options.props || [], _.keys(options.defaults));
+	options.refs = options.refs || {};
 }
 
 /**
@@ -1003,8 +1000,7 @@ if (typeof window !== 'undefined') {
 	if (window.__TEST__ && window.mocha && window.chai) {
 		exports.__TEST__ = {
 			BaseModel: BaseModel,
-			ModelConstructor: ModelConstructor,
-			__prop: __prop
+			ModelConstructor: ModelConstructor
 		};
 	}
 	if (window.md)

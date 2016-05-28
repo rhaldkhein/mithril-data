@@ -30,7 +30,7 @@ describe("md.model()", function() {
 	it("is a function", function() {
 		expect(md.model).to.be.a("function");
 	});
-	
+
 	it("returns a Model Constructor", function() {
 		var User = window.Model.User;
 		expect(User.name).to.equal("Model");
