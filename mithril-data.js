@@ -273,26 +273,6 @@
 			else
 				this.__options[key] = value || true;
 		},
-		create: function(data) {
-			if (!_.isArray(data))
-				data = [data];
-			var self = this;
-			var existingModel;
-			var newModels = [];
-			_.transform(data, function(result, modelData) {
-				if (!_.isPlainObject(modelData))
-					throw new Error('Plain object required');
-				existingModel = self.get(modelData);
-				if (existingModel) {
-					existingModel.set(modelData);
-				} else {
-					if (self.__options.model)
-						result.push(new self.__options.model(modelData));
-				}
-			}, newModels);
-			this.addAll(newModels);
-			return newModels;
-		},
 		changed: function() {
 			if (this.__options.redraw || config.redraw) {
 				m.redraw();
@@ -331,6 +311,26 @@
 				this.changed();
 			return added;
 		},
+		create: function(data) {
+			if (!_.isArray(data))
+				data = [data];
+			var self = this;
+			var existingModel;
+			var newModels = [];
+			_.transform(data, function(result, modelData) {
+				if (!_.isPlainObject(modelData))
+					throw new Error('Plain object required');
+				existingModel = self.get(modelData);
+				if (existingModel) {
+					existingModel.set(modelData);
+				} else {
+					if (self.__options.model)
+						result.push(new self.__options.model(modelData));
+				}
+			}, newModels);
+			this.addAll(newModels);
+			return newModels;
+		},
 		get: function(mixed) {
 			// mixed can be id-number, id-string, plain-object or model.
 			// NOTE: check if model/object contains id and use it instead.
@@ -338,17 +338,20 @@
 			var jsonModel;
 			if (mixed instanceof BaseModel) {
 				// mixed is a model and is in this collection.
-				return (this.indexOf(mixed.getJson()) > -1) ? mixed : null;
-			} else if (_.isObjectLike(mixed)) {
+				return (this.indexOf(mixed.getJson()) > -1) ? mixed : undefined;
+			} else if (_.isObject(mixed)) {
+				// Use `isObject` to include functions.
 				if (mixed[config.keyId])
 					mixed = mixed[config.keyId];
 				else
-					return this.find(mixed) || null;
+					return this.find(mixed) || undefined;
 			}
 			jsonModel = this.find([config.keyId, mixed]);
-			return jsonModel || null;
+			return jsonModel || undefined;
 		},
 		getAll: function(mixed, falsy) {
+			// Note that this will not get all matched.
+			// Will only get the first match of each array item.
 			if (!_.isArray(mixed))
 				mixed = [mixed];
 			var models = [];
@@ -370,53 +373,39 @@
 			var lastLength = this.size();
 			var removedModels = [];
 			var matchMix;
+			var mix;
+			var i;
 			if (!lastLength)
 				return;
-			// for (var i = 0, mix; i < mixed.length; i++) {
-			// 	mix = mixed[i];
-			// 	if (!mix)
-			// 		throw new Error('Can\'t remove from collection. Argument must be set.');
-			// 	if (mix instanceof BaseModel) {
-			// 		removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
-			// 			return _.eq(value, mix.getJson());
-			// 		}));
-			// 	} else if (_.isObjectLike(mix)) {
-			// 		removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
-			// 			return _.isMatch(value, mix);
-			// 		}));
-			// 	} else {
-			// 		removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
-			// 			matchMix = {};
-			// 			matchMix[config.keyId] = mix;
-			// 			return _.isMatch(value, matchMix);
-			// 		}));
-			// 	}
-			// }
-			_.each(mixed, function(mix) {
+			for (i = 0; i < mixed.length; i++) {
+				mix = mixed[i];
 				if (!mix)
 					throw new Error('Can\'t remove from collection. Argument must be set.');
 				if (mix instanceof BaseModel) {
-					removedModels.push.apply(removedModels, _.remove(self.models, function(value) {
+					removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
 						return _.eq(value, mix.getJson());
 					}));
 				} else if (_.isObjectLike(mix)) {
-					removedModels.push.apply(removedModels, _.remove(self.models, function(value) {
+					removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
 						return _.isMatch(value, mix);
 					}));
 				} else {
-					removedModels.push.apply(removedModels, _.remove(self.models, function(value) {
+					removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
 						matchMix = {};
 						matchMix[config.keyId] = mix;
 						return _.isMatch(value, matchMix);
 					}));
 				}
-			});
-			_.each(removedModels, function(model) {
-				model.__model.detachCollection(self);
-			});
-			if (lastLength !== this.size() && !silent)
-				this.changed();
-			return this.size();
+			}
+			for (i = 0; i < removedModels.length; i++) {
+				removedModels[i].__model.detachCollection(this);
+			}
+			if (lastLength !== this.size()) {
+				if (!silent)
+					this.changed();
+				return true;
+			}
+			return false;
 		},
 		push: function(models, silent) {
 			return this.addAll(models, silent);
@@ -435,7 +424,7 @@
 			return model;
 		},
 		clear: function(silent) {
-			this.remove(this.toArray(), silent);
+			return this.remove(this.toArray(), silent);
 		},
 		pluck: function(key) {
 			var plucked = [];
@@ -443,10 +432,6 @@
 				_pluck.push(model[key]());
 			}, plucked);
 			return plucked;
-		},
-		destroy: function() {
-			this.clear(true);
-			this.dispose();
 		},
 		dispose: function() {
 			var keys = _.keys(this);
@@ -456,6 +441,10 @@
 			for (; i < keys.length; i++) {
 				this[keys[i]] = null;
 			}
+		},
+		destroy: function() {
+			this.clear(true);
+			this.dispose();
 		},
 		hasModel: function() {
 			return this.__options.model ? true : false;
@@ -474,7 +463,7 @@
 		fetch: function(query, options, callback) {
 			if (_.isFunction(options)) {
 				callback = options;
-				options = null;
+				options = undefined;
 			}
 			var d = m.deferred();
 			if (this.hasModel) {
@@ -496,7 +485,7 @@
 		fetchById: function(ids, options, callback) {
 			if (_.isFunction(options)) {
 				callback = options;
-				options = null;
+				options = undefined;
 			}
 			var self = this;
 			var d = m.deferred();
@@ -593,7 +582,7 @@
 			// Compare which models are existing and download those are not.
 			if (_.isFunction(options)) {
 				callback = options;
-				options = null;
+				options = undefined;
 			}
 			if (!ids)
 				throw new Error('Collection can\'t fetch. Id must be set.');
@@ -630,7 +619,7 @@
 			// Fetch from server and return the models.
 			if (_.isFunction(options)) {
 				callback = options;
-				options = null;
+				options = undefined;
 			}
 			var self = this;
 			var d = m.deferred();
@@ -651,10 +640,10 @@
 		pull: function(url, data, options, callback) {
 			if (_.isFunction(data)) {
 				callback = data;
-				data = null;
+				data = undefined;
 			} else if (_.isFunction(options)) {
 				callback = options;
-				options = null;
+				options = undefined;
 			}
 			var self = this;
 			var d = m.deferred();
@@ -737,9 +726,9 @@
 			if (this.__options.redraw || this.options.redraw || config.redraw)
 				m.redraw();
 			// Propagate change to model's collections.
-			_.each(this.__collections, function(collection) {
-				collection.changed(this);
-			});
+			for (var i = 0; i < this.__collections.length; i++) {
+				this.__collections[i].changed(this);
+			}
 		},
 		// Sets all or a prop values from passed data.
 		set: function(obj, value, silent) {
@@ -757,7 +746,7 @@
 						this[key](value, true);
 					}
 				}
-				if(!value) // silent
+				if (!value) // silent
 					this.changed();
 			} else {
 				this[obj](arguments[1], silent);
@@ -943,6 +932,7 @@
 			var data = propValues || {};
 			var refs = options.refs;
 			var props = options.props;
+			var initial;
 			// Make user id is in prop;
 			if (_.indexOf(props, config.keyId) === -1) {
 				props.push(config.keyId);
@@ -962,11 +952,12 @@
 					if (_.isPlainObject(data[value]) && _.has(refs, value)) {
 						this[value] = this.__gettersetter(new modelConstructors[refs[value]](data[value]), value);
 					} else {
-						// Use default if data is not available.
-						this[value] = this.__gettersetter(data[value] || options.defaults[value], value);
+						// Use default if data is not available. Only `undefined` should change to default.
+						// In order to accept other falsy value. Like, `false` and `0`.
+						this[value] = this.__gettersetter(_.isUndefined(data[value]) ? options.defaults[value] : data[value], value);
 					}
 				} else {
-					throw new Error('`' + value + '` property field is not allowed.');
+					throw new Error('`' + value + '` prop is not allowed.');
 				}
 			}
 		}
@@ -1012,9 +1003,6 @@
 			throw new Error('Model name must be set.');
 		var modelConstructor = modelConstructors[modelOptions.name] = createModelConstructor(modelOptions);
 		modelConstructor.__init(ctrlOptions);
-		// modelConstructor.collection = new Collection({
-		// 	model: modelConstructor
-		// });
 		return modelConstructor;
 	};
 

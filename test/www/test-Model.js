@@ -18,9 +18,13 @@ describe("Model Instance", function() {
 	it("create instance with defined prop values", function() {
 		var user = new Model.User({
 			name: 'Foo',
+			age: 0,
+			active: false
 		});
 		expect(user.name()).to.be.equal('Foo');
 		expect(user.profile()).to.be.undefined;
+		expect(user.age()).to.be.equal(0);
+		expect(user.active()).to.be.equal(false);
 	});
 
 	it("create instance with defined prop values and reference model", function() {
@@ -185,7 +189,7 @@ describe("Model.url()", function() {
 
 	it("returns a string", function() {
 		var user = new Model.User();
-		expect(user.cid()).to.be.a('string');
+		expect(user.url()).to.be.a('string');
 	});
 
 });
@@ -288,7 +292,7 @@ describe("Model.set()", function() {
 		expect(note.author()).to.equal(user);
 	});
 
-	it("default to undefined", function() {
+	it("set to undefined if no value is set", function() {
 		var user = new Model.User();
 		user.set({
 			name: 'Foo',
@@ -296,6 +300,25 @@ describe("Model.set()", function() {
 		user.set('profile');
 		expect(user.name()).to.equal('Foo');
 		expect(user.profile()).to.be.undefined;
+	});
+
+	it("set falsy value like `false` and `0` ", function() {
+		var user = new Model.User();
+		user.set({
+			name: 'Foo',
+			age: 0
+		});
+		user.set('active', false);
+		expect(user.name()).to.equal('Foo');
+		expect(user.age()).to.equal(0);
+		expect(user.active()).to.equal(false);
+	});
+
+	it("throw error if key is invalid", function() {
+		var user = new Model.User();
+		expect(function() {
+			user.set('noprop', 'Foo');
+		}).to.throw(Error);
 	});
 
 });

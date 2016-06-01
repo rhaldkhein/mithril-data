@@ -5,13 +5,18 @@
 			mithril-data
 		</title>
 		<link rel="stylesheet" href="/node_modules/mocha/mocha.css"/>
+		<style type="text/css">
+			#mocha code .comment {
+				color: #A5A5A5;
+			}
+		</style>
 	</head>
 	<body>
-		<div id="help">
+		<div id="help" style="display: none;">
 			<h3>Server Required</h3>
-			<p>To run the test. Run the server first.</p>
-			<p>Issue command <i>node server.js</i> in <i>/test/www</i> directory.</p>
-			<p>Visit <i>localhost:3002</i> or assign different host or port.</p>
+			<p>Run the test through http server.</p>
+			<p>Run server with <i>node server.js</i> in <i>/test/www</i> directory.</p>
+			<p>Visit <i>localhost:3002</i> or assign different host or port in <i>server.js</i>.</p>
 		</div>
 		<div id="mocha">
 		</div>
@@ -38,12 +43,16 @@
 		<script type="text/javascript" src="./test-Model.js"></script>
 		<script type="text/javascript" src="./test-ModelLodash.js"></script>
 		<script type="text/javascript" src="./test-Collection.js"></script>
+		<script type="text/javascript" src="./test-CollectionLodash.js"></script>
+		<script type="text/javascript" src="./test-Config.js"></script>
 		<script>
 			(function() {
+				var elHelp = document.getElementById('help');
 				if(mocha && mocha.run){
-					var elHelp = document.getElementById('help');
 					elHelp.outerHTML = "";
 					delete elHelp;
+				} else {
+					elHelp.style.display = 'block';
 				}
 			})();
 			mocha.run();

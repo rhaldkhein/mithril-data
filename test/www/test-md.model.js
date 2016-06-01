@@ -1,6 +1,6 @@
 window.Model.User = md.model({
 	name: 'User',
-	props: ['name', 'profile']
+	props: ['name', 'profile', 'age', 'active']
 });
 
 window.Model.Note = md.model({
@@ -42,6 +42,33 @@ describe("md.model()", function() {
 		console.log('Open `test-md.model.js` to see the model schemas.');
 		expect(window.Model.User).to.exist;
 		expect(window.Model.Note).to.exist;
+	});
+
+	it("throw error on missing name", function() {
+		expect(function() {
+			var ModelA = md.model({
+				props: ['name']
+			});
+		}).to.throw(Error);
+	});
+
+	it("throw error on restricted props", function() {
+		expect(function() {
+			var ModelB = md.model({
+				name: 'ModelB',
+				props: ['url'] // `url` is reserved
+			});
+			var mdl = new ModelB();
+		}).to.throw(Error);
+	});
+
+	it("correct url", function() {
+		var ModelB = md.model({
+			name: 'ModelB',
+			url: '/modelb'
+		});
+		var mdl = new ModelB();
+		expect(mdl.url()).to.equal('/modelb');
 	});
 
 
