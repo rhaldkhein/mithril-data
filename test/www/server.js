@@ -15,6 +15,8 @@ app.use(bodyparser.urlencoded({
 	extended: true
 }));
 
+// ------------------------------------------------
+
 let notes = {};
 
 app.post('/note', function(req, res) {
@@ -86,6 +88,93 @@ app.delete('/note', function(req, res) {
 		});
 	}
 	console.log(_.keys(notes));
+});
+
+// ------------------------------------------------
+
+let users = {};
+
+app.post('/user', function(req, res) {
+	let data = _.assign({
+		id: shortid.generate()
+	}, req.body);
+	users[data.id] = data;
+	res.json(data);
+	console.log(_.keys(users));
+});
+
+app.put('/user', function(req, res) {
+	if (!req.body.id) {
+		res.status(400).json({
+			error: 'ID is required!'
+		});
+	} else {
+		let data = _.assign({}, req.body),
+			existing = users[data.id];
+		if (existing) {
+			_.assign(existing, data);
+			res.json(data);
+		} else {
+			res.status(400).json({
+				error: 'Model does not exist!'
+			});
+		}
+	}
+	// console.log(_.keys(users));
+});
+
+app.get('/user', function(req, res) {
+	// Model fetch, result single document.
+	if (req.query) {
+		if (req.query.id) {
+			let existing = users[req.query.id];
+			if (existing)
+				res.json(existing);
+			else
+				res.status(400).json({
+					error: 'Model does not exist!'
+				});
+		} else {
+			let query = _.values(req.query);
+			if (!_.isEmpty(query)) {
+				// Model query, result array of documents.
+				res.json(_.transform(query, function(result, id) {
+					if (users[id])
+						result.push(users[id]);
+				}, []));
+			} else {
+				// Return all users
+				res.json(_.values(users));
+			}
+		}
+	}
+	// console.log(_.keys(users));
+});
+
+app.delete('/user', function(req, res) {
+	if (req.body && req.body.id) {
+		delete users[req.body.id];
+		res.send({
+			err: false
+		});
+	} else {
+		res.status(400).json({
+			error: 'ID is required!'
+		});
+	}
+	console.log(_.keys(users));
+});
+
+// ------------------------------------------------
+
+app.get('/exist', function(req, res) {
+	res.send('ok ' + Math.random().toString(36).slice(-12));
+});
+
+app.get('/clear', function(req, res) {
+	notes = {};
+	users = {};
+	res.send('done');
 });
 
 let port = 3002;

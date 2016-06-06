@@ -149,329 +149,622 @@ describe("Model.<properties>", function() {
 
 });
 
-describe("Model.opt()", function() {
+describe("Model.<methods>", function() {
 	"use strict";
 
-	it("set options by plain object", function() {
-		var user = new Model.User();
-		user.opt({
-			test: 'test'
+	describe("#opt()", function() {
+		"use strict";
+
+		it("set options by plain object", function() {
+			var user = new Model.User();
+			user.opt({
+				test: 'test'
+			});
+			expect(user.__options.test).to.be.equal('test');
 		});
-		expect(user.__options.test).to.be.equal('test');
-	});
 
-	it("set options by key/value`", function() {
-		var user = new Model.User();
-		user.opt('key', 'value');
-		expect(user.__options.key).to.be.equal('value');
-	});
-
-	it("defaults to boolean true", function() {
-		var user = new Model.User();
-		user.opt('key');
-		expect(user.__options.key).to.be.equal(true);
-	});
-
-});
-
-describe("Model.cid()", function() {
-	"use strict";
-
-	it("returns a string with value of its `__cid`", function() {
-		var user = new Model.User();
-		expect(user.cid()).to.be.a('string').and.equal(user.__cid);
-	});
-
-});
-
-describe("Model.url()", function() {
-	"use strict";
-
-	it("returns a string", function() {
-		var user = new Model.User();
-		expect(user.url()).to.be.a('string');
-	});
-
-});
-
-describe("Model.attachCollection()", function() {
-	"use strict";
-
-	it("property `__collections` contains the collection", function() {
-		var collection = new md.Collection();
-		var user = new Model.User();
-
-		user.attachCollection(collection);
-		expect(user.__collections).to.contain(collection);
-	});
-
-	it("property `__collections` has correct size", function() {
-		var collection = new md.Collection();
-		var user = new Model.User();
-		var size = user.__collections.length;
-
-		user.attachCollection(collection);
-		expect(user.__collections.length).to.be.equal(++size);
-
-		user.attachCollection(collection);
-		expect(user.__collections.length).to.be.equal(size);
-	});
-
-});
-
-describe("Model.detachCollection()", function() {
-	"use strict";
-
-	it("property `__collections` does NOT contain the collection", function() {
-		var collection = new md.Collection();
-		var user = new Model.User();
-
-		user.attachCollection(collection);
-		expect(user.__collections).to.contain(collection);
-
-		user.detachCollection(collection);
-		expect(user.__collections).to.not.contain(collection);
-
-	});
-
-	it("property `__collections` has correct size", function() {
-		var collection = new md.Collection();
-		var user = new Model.User();
-
-		user.attachCollection(collection);
-		expect(user.__collections.length).to.be.equal(1);
-
-		user.attachCollection(collection);
-		expect(user.__collections.length).to.be.equal(1);
-
-		user.detachCollection(collection);
-		expect(user.__collections.length).to.be.equal(0);
-	});
-
-});
-
-describe("Model.set()", function() {
-	"use strict";
-
-	it("set by object", function() {
-		var note = new Model.Note();
-		var user = new Model.User();
-		note.set({
-			title: 'Foo',
-			body: 'Bar',
-			author: user
+		it("set options by key/value`", function() {
+			var user = new Model.User();
+			user.opt('key', 'value');
+			expect(user.__options.key).to.be.equal('value');
 		});
-		expect(note.title()).to.equal('Foo');
-		expect(note.body()).to.equal('Bar');
-		expect(note.author()).to.equal(user);
+
+		it("defaults to boolean true", function() {
+			var user = new Model.User();
+			user.opt('key');
+			expect(user.__options.key).to.be.equal(true);
+		});
+
 	});
 
-	it("set by object with child object (reference model)", function() {
-		var note = new Model.Note();
-		note.set({
-			title: 'Foo',
-			body: 'Bar',
-			author: {
-				name: 'Test'
+	describe("#cid()", function() {
+		"use strict";
+
+		it("returns a string with value of its `__cid`", function() {
+			var user = new Model.User();
+			expect(user.cid()).to.be.a('string').and.equal(user.__cid);
+		});
+
+	});
+
+	describe("#url()", function() {
+		"use strict";
+
+		it("returns a string", function() {
+			var user = new Model.User();
+			expect(user.url()).to.be.a('string');
+		});
+
+	});
+
+	describe("#attachCollection()", function() {
+		"use strict";
+
+		it("property `__collections` contains the collection", function() {
+			var collection = new md.Collection();
+			var user = new Model.User();
+
+			user.attachCollection(collection);
+			expect(user.__collections).to.contain(collection);
+		});
+
+		it("property `__collections` has correct size", function() {
+			var collection = new md.Collection();
+			var user = new Model.User();
+			var size = user.__collections.length;
+
+			user.attachCollection(collection);
+			expect(user.__collections.length).to.be.equal(++size);
+
+			user.attachCollection(collection);
+			expect(user.__collections.length).to.be.equal(size);
+		});
+
+	});
+
+	describe("#detachCollection()", function() {
+		"use strict";
+
+		it("property `__collections` does NOT contain the collection", function() {
+			var collection = new md.Collection();
+			var user = new Model.User();
+
+			user.attachCollection(collection);
+			expect(user.__collections).to.contain(collection);
+
+			user.detachCollection(collection);
+			expect(user.__collections).to.not.contain(collection);
+
+		});
+
+		it("property `__collections` has correct size", function() {
+			var collection = new md.Collection();
+			var user = new Model.User();
+
+			user.attachCollection(collection);
+			expect(user.__collections.length).to.be.equal(1);
+
+			user.attachCollection(collection);
+			expect(user.__collections.length).to.be.equal(1);
+
+			user.detachCollection(collection);
+			expect(user.__collections.length).to.be.equal(0);
+		});
+
+	});
+
+	describe("#set()", function() {
+		"use strict";
+
+		it("set by object", function() {
+			var note = new Model.Note();
+			var user = new Model.User();
+			note.set({
+				title: 'Foo',
+				body: 'Bar',
+				author: user
+			});
+			expect(note.title()).to.equal('Foo');
+			expect(note.body()).to.equal('Bar');
+			expect(note.author()).to.equal(user);
+		});
+
+		it("set by object with child object (reference model)", function() {
+			var note = new Model.Note();
+			note.set({
+				title: 'Foo',
+				body: 'Bar',
+				author: {
+					name: 'Test'
+				}
+			});
+			expect(note.title()).to.equal('Foo');
+			expect(note.body()).to.equal('Bar');
+			expect(note.author()).to.instanceof(md.__TEST__.BaseModel);
+			expect(note.author().name()).to.equal('Test');
+		});
+
+		it("set by key & value", function() {
+			var note = new Model.Note();
+			var user = new Model.User();
+			note.set('title', 'Foo');
+			note.set('body', 'Bar');
+			note.set('author', user);
+			expect(note.title()).to.equal('Foo');
+			expect(note.body()).to.equal('Bar');
+			expect(note.author()).to.equal(user);
+		});
+
+		it("set to undefined if no value is set", function() {
+			var user = new Model.User();
+			user.set({
+				name: 'Foo',
+			});
+			user.set('profile');
+			expect(user.name()).to.equal('Foo');
+			expect(user.profile()).to.be.undefined;
+		});
+
+		it("set falsy value like `false` and `0` ", function() {
+			var user = new Model.User();
+			user.set({
+				name: 'Foo',
+				age: 0
+			});
+			user.set('active', false);
+			expect(user.name()).to.equal('Foo');
+			expect(user.age()).to.equal(0);
+			expect(user.active()).to.equal(false);
+		});
+
+		it("throw error if key is invalid", function() {
+			var user = new Model.User();
+			expect(function() {
+				user.set('noprop', 'Foo');
+			}).to.throw(Error);
+		});
+
+	});
+
+	describe("#get()", function() {
+		"use strict";
+
+		it("return correct value", function() {
+			var note = new Model.Note();
+			var user = new Model.User();
+			note.set({
+				title: 'Foo',
+				body: 'Bar',
+				author: user
+			});
+			expect(note.get('title')).to.equal('Foo');
+			expect(note.get('body')).to.equal('Bar');
+			expect(note.get('author')).to.equal(user);
+		});
+
+		it("return a copy if NO key is specified (alias of .getCopy())", function() {
+			var note = new Model.Note();
+			var user = new Model.User();
+			note.set({
+				title: 'Foo',
+				body: 'Bar',
+				author: user
+			});
+			var copy = note.get();
+			expect(copy).to.not.equal(note.getJson());
+			expect(copy.title).to.equal('Foo');
+			expect(copy.body).to.equal('Bar');
+			expect(copy.author).to.eql(user.get());
+		});
+
+	});
+
+	describe("#getJson()", function() {
+		"use strict";
+
+		it("return correct value", function() {
+			var user = new Model.User();
+			user.set({
+				name: 'Foo',
+				profile: 'Bar'
+			});
+			expect(user.getJson()).to.equal(user.__json);
+			expect(user.getJson().name).to.equal('Foo');
+			expect(user.getJson().profile).to.equal('Bar');
+		});
+
+	});
+
+	describe("#getCopy()", function() {
+		"use strict";
+
+		it("really return a copy", function() {
+			var user = new Model.User();
+			user.set({
+				name: 'Foo',
+				profile: 'Bar'
+			});
+			var copy = user.getCopy();
+			expect(copy).to.not.equal(user.getJson());
+		});
+
+		it("values are equal to the original", function() {
+			var note = new Model.Note();
+			var user = new Model.User();
+			note.set({
+				title: 'Foo',
+				body: 'Bar',
+				author: user
+			});
+			var copy = note.getCopy();
+			expect(copy.title).to.equal(note.title());
+			expect(copy.body).to.equal(note.body());
+			expect(copy.author).to.eql(note.author().getCopy());
+		});
+
+		it("copy should not set the original or vice versa", function() {
+			var note = new Model.Note();
+			var user = new Model.User();
+			note.set({
+				title: 'Foo',
+				body: 'Bar',
+				author: user
+			});
+			var copy = note.getCopy();
+			copy.title = 'Baz';
+			expect(copy.title).to.not.equal(note.title());
+			note.title('Test');
+			expect(note.title()).to.not.equal(copy.title);
+		});
+
+	});
+
+
+	describe("#detach()", function() {
+		"use strict";
+
+		it("detached from all collections", function() {
+			var user = new Model.User();
+			var collA = new md.Collection();
+			var collB = new md.Collection();
+			collA.add(user);
+			user.attachCollection(collB);
+			expect(user.__collections).to.contain(collA);
+			expect(user.__collections).to.contain(collB);
+			var arr = user.__collections;
+			user.detach();
+			expect(arr.length).to.be.equal(0);
+		});
+
+	});
+
+	describe("#dispose()", function() {
+		"use strict";
+
+		it("disposed", function() {
+			var user = new Model.User();
+			var keys = _.keys(user);
+			user.dispose();
+			for (var i = 0; i < keys.length; i++) {
+				expect(user[keys[i]]).to.be.null;
 			}
 		});
-		expect(note.title()).to.equal('Foo');
-		expect(note.body()).to.equal('Bar');
-		expect(note.author()).to.instanceof(md.__TEST__.BaseModel);
-		expect(note.author().name()).to.equal('Test');
+
 	});
 
-	it("set by key & value", function() {
-		var note = new Model.Note();
-		var user = new Model.User();
-		note.set('title', 'Foo');
-		note.set('body', 'Bar');
-		note.set('author', user);
-		expect(note.title()).to.equal('Foo');
-		expect(note.body()).to.equal('Bar');
-		expect(note.author()).to.equal(user);
-	});
+	describe("#remove()", function() {
+		"use strict";
 
-	it("set to undefined if no value is set", function() {
-		var user = new Model.User();
-		user.set({
-			name: 'Foo',
+		it("detached from all collections", function() {
+			var user = new Model.User();
+			var collA = new md.Collection();
+			var collB = new md.Collection();
+			collA.add(user);
+			user.attachCollection(collB);
+			expect(user.__collections).to.contain(collA);
+			expect(user.__collections).to.contain(collB);
+			var arr = user.__collections;
+			user.remove();
+			expect(arr.length).to.be.equal(0);
 		});
-		user.set('profile');
-		expect(user.name()).to.equal('Foo');
-		expect(user.profile()).to.be.undefined;
-	});
 
-	it("set falsy value like `false` and `0` ", function() {
-		var user = new Model.User();
-		user.set({
-			name: 'Foo',
-			age: 0
+		it("disposed", function() {
+			var user = new Model.User();
+			var keys = _.keys(user);
+			user.remove();
+			for (var i = 0; i < keys.length; i++) {
+				expect(user[keys[i]]).to.be.null;
+			}
 		});
-		user.set('active', false);
-		expect(user.name()).to.equal('Foo');
-		expect(user.age()).to.equal(0);
-		expect(user.active()).to.equal(false);
+
 	});
 
-	it("throw error if key is invalid", function() {
-		var user = new Model.User();
-		expect(function() {
-			user.set('noprop', 'Foo');
-		}).to.throw(Error);
-	});
+	describe("#save()", function() {
+		"use strict";
 
-});
-
-describe("Model.get()", function() {
-	"use strict";
-
-	it("return correct value", function() {
-		var note = new Model.Note();
-		var user = new Model.User();
-		note.set({
-			title: 'Foo',
-			body: 'Bar',
-			author: user
+		it("successful save (create)", function(done) {
+			var user = new Model.User();
+			user.name("Create");
+			user.age(123);
+			user.active(false);
+			user.save().then(function(model) {
+				try {
+					expect(model).to.be.equal(user);
+					expect(user.id().length).to.be.above(0);
+					expect(user.name()).to.equal("Create");
+					expect(user.profile()).to.be.undefined;
+					expect(user.age()).to.equal(123);
+					expect(user.active()).to.equal(false);
+					expect(user.isSaved()).to.equal(true);
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, function(err) {
+				done(err)
+			});
 		});
-		expect(note.get('title')).to.equal('Foo');
-		expect(note.get('body')).to.equal('Bar');
-		expect(note.get('author')).to.equal(user);
-	});
 
-	it("return a copy if NO key is specified (alias of .getCopy())", function() {
-		var note = new Model.Note();
-		var user = new Model.User();
-		note.set({
-			title: 'Foo',
-			body: 'Bar',
-			author: user
+		it("successful save (update)", function(done) {
+			var user = new Model.User();
+			user.name("Update");
+			user.age(123);
+			user.active(false);
+			user.save().then(function(model) {
+				try {
+					expect(model).to.be.equal(user);
+					expect(user.id().length).to.be.above(0);
+					expect(user.name()).to.equal("Update");
+					expect(user.age()).to.equal(123);
+					user.name('Updated!');
+					user.age(456);
+					return user.save();
+				} catch (e) {
+					done(e);
+				}
+			}, function(err) {
+				done(err)
+			}).then(function(model) {
+				try {
+					expect(model).to.be.equal(user);
+					expect(user.id().length).to.be.above(0);
+					expect(user.name()).to.equal("Updated!");
+					expect(user.age()).to.equal(456);
+					expect(user.active()).to.equal(false);
+					expect(user.profile()).to.be.undefined;
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, function(err) {
+				done(err)
+			});
 		});
-		var copy = note.get();
-		expect(copy).to.not.equal(note.getJson());
-		expect(copy.title).to.equal('Foo');
-		expect(copy.body).to.equal('Bar');
-		expect(copy.author).to.eql(user.get());
-	});
 
-});
-
-describe("Model.getJson()", function() {
-	"use strict";
-
-	it("return correct value", function() {
-		var user = new Model.User();
-		user.set({
-			name: 'Foo',
-			profile: 'Bar'
+		it("save result through callback", function(done) {
+			var user = new Model.User();
+			user.name("Callback");
+			user.save(function(err, model) {
+				if (err) {
+					done(err);
+					return;
+				}
+				try {
+					expect(model).to.be.equal(user);
+					expect(user.id().length).to.be.above(0);
+					expect(user.name()).to.equal("Callback");
+					done();
+				} catch (e) {
+					done(e);
+				}
+			});
 		});
-		expect(user.getJson()).to.equal(user.__json);
-		expect(user.getJson().name).to.equal('Foo');
-		expect(user.getJson().profile).to.equal('Bar');
+
 	});
 
-});
+	describe("#fetch()", function() {
+		"use strict";
 
-describe("Model.getCopy()", function() {
-	"use strict";
+		var user;
 
-	it("really return a copy", function() {
-		var user = new Model.User();
-		user.set({
-			name: 'Foo',
-			profile: 'Bar'
+		before(function(done) {
+			user = new Model.User();
+			user.name("Hello");
+			user.profile("World");
+			user.save().then(function(model) {
+				done()
+			}, function(err) {
+				done(err);
+			})
 		});
-		var copy = user.getCopy();
-		expect(copy).to.not.equal(user.getJson());
-	});
 
-	it("values are equal to the original", function() {
-		var note = new Model.Note();
-		var user = new Model.User();
-		note.set({
-			title: 'Foo',
-			body: 'Bar',
-			author: user
+		it("successful fetch", function(done) {
+			var existingUser = new Model.User();
+			existingUser.id(user.id());
+			existingUser.fetch().then(function(model) {
+				// Fetch result : resolve.
+				try {
+					expect(model.id()).to.be.equal(user.id());
+					expect(model.name()).to.equal("Hello");
+					expect(model.profile()).to.equal("World");
+					expect(model.isSaved()).to.equal(true);
+					expect(model.age()).to.be.undefined;
+					expect(model.active()).to.be.undefined;
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, function(err) {
+				// Fetch result : reject.
+				done(err);
+			});
 		});
-		var copy = note.getCopy();
-		expect(copy.title).to.equal(note.title());
-		expect(copy.body).to.equal(note.body());
-		expect(copy.author).to.eql(note.author().getCopy());
-	});
 
-	it("copy should not set the original or vice versa", function() {
-		var note = new Model.Note();
-		var user = new Model.User();
-		note.set({
-			title: 'Foo',
-			body: 'Bar',
-			author: user
+		it("fetch result through callback", function(done) {
+			var existingUser = new Model.User();
+			existingUser.id(user.id());
+			existingUser.fetch(function(err, model) {
+				if (err) {
+					done(err);
+					return;
+				}
+				try {
+					expect(model.id()).to.be.equal(user.id());
+					expect(model.name()).to.equal("Hello");
+					expect(model.profile()).to.equal("World");
+					expect(model.isSaved()).to.equal(true);
+					expect(model.age()).to.be.undefined;
+					expect(model.active()).to.be.undefined;
+					done();
+				} catch (e) {
+					done(e);
+				}
+			});
 		});
-		var copy = note.getCopy();
-		copy.title = 'Baz';
-		expect(copy.title).to.not.equal(note.title());
-		note.title('Test');
-		expect(note.title()).to.not.equal(copy.title);
+
 	});
 
-});
+	describe("#destroy()", function() {
+		"use strict";
 
+		it("successful destroy", function(done) {
+			var user = new Model.User();
+			user.name("Destroy");
+			user.save().then(function(model) {
+				// Save successful. Destroying now...
+				return model.destroy();
+			}, function(err) {
+				done(err);
+			}).then(function() {
+				// Model `user` should be desposed after then block.
+				setTimeout(function() {
+					try {
+						expect(user.__json).to.be.null;
+						expect(user.id).to.be.null;
+						done();
+					} catch (e) {
+						done(e);
+					}
+				}, 0);
+			}, function(err) {
+				done(err)
+			});
+		});
 
-describe("Model.detach()", function() {
-	"use strict";
+		it("destroy result through callback", function(done) {
+			var user = new Model.User();
+			user.name("Destroy");
+			user.save().then(function(model) {
+				// Save successful. Destroying now...
+				model.destroy(function(err) {
+					if (err) {
+						done(err);
+						return;
+					}
+					setTimeout(function() {
+						try {
+							expect(user.__json).to.be.null;
+							expect(user.id).to.be.null;
+							done();
+						} catch (e) {
+							done(e);
+						}
+					}, 0);
+				});
+			}, function(err) {
+				done(err);
+			});
+		});
 
-	it("detached from all collections", function() {
-		var user = new Model.User();
-		var collA = new md.Collection();
-		var collB = new md.Collection();
-		collA.add(user);
-		user.attachCollection(collB);
-		expect(user.__collections).to.contain(collA);
-		expect(user.__collections).to.contain(collB);
-		var arr = user.__collections;
-		user.detach();
-		expect(arr.length).to.be.equal(0);
 	});
 
-});
+	describe("#isSaved()", function() {
+		"use strict";
 
-describe("Model.dispose()", function() {
-	"use strict";
+		it("through save", function(done) {
+			var user = new Model.User();
+			user.name("IsSaved");
+			if (user.isSaved())
+				done('Model must not be saved yet.')
+			user.save().then(function(model) {
+				try {
+					expect(user.isSaved()).to.be.true;
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, function(err) {
+				done(err);
+			});
+		});
 
-	it("disposed", function() {
-		var user = new Model.User();
-		var keys = _.keys(user);
-		user.dispose();
-		for (var i = 0; i < keys.length; i++) {
-			expect(user[keys[i]]).to.be.null;
-		}
+		it("through fetch", function(done) {
+			var user = new Model.User();
+			user.name("IsSaved");
+			if (user.isSaved())
+				done('Model must not be saved yet.')
+			user.save().then(function(model) {
+				try {
+					expect(user.isSaved()).to.be.true;
+					var existingUser = new Model.User();
+					existingUser.id(model.id());
+					expect(existingUser.isSaved()).to.be.false;
+					return existingUser.fetch();
+				} catch (e) {
+					done(e);
+				}
+			}, function(err) {
+				done(err);
+			}).then(function(existingUser) {
+				try {
+					expect(existingUser.isSaved()).to.be.true;
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, function(err) {
+				done(err);
+			});
+		});
+
 	});
 
-});
+	describe("#isNew()", function() {
+		"use strict";
 
-describe("Model.remove()", function() {
-	"use strict";
+		it("new if fresh instance", function(done) {
+			try {
+				var user = new Model.User();
+				user.name("IsNew");
+				expect(user.isNew()).to.be.true;
+				user.id('notexist');
+				expect(user.isNew()).to.be.true;
+				done();
+			} catch (e) {
+				done(e);
+			}
+		});
 
-	it("detached from all collections", function() {
-		var user = new Model.User();
-		var collA = new md.Collection();
-		var collB = new md.Collection();
-		collA.add(user);
-		user.attachCollection(collB);
-		expect(user.__collections).to.contain(collA);
-		expect(user.__collections).to.contain(collB);
-		var arr = user.__collections;
-		user.remove();
-		expect(arr.length).to.be.equal(0);
-	});
+		it("NOT new if saved", function(done) {
+			var user = new Model.User();
+			try {
+				user.name("IsNew");
+				expect(user.isNew()).to.be.true;
+			} catch (e) {
+				done(e);
+			}
+			user.save(function() {
+				try {
+					expect(user.isNew()).to.be.false;
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, function(err) {
+				done(err)
+			});
+		});
 
-	it("disposed", function() {
-		var user = new Model.User();
-		var keys = _.keys(user);
-		user.remove();
-		for (var i = 0; i < keys.length; i++) {
-			expect(user[keys[i]]).to.be.null;
-		}
 	});
 
 });

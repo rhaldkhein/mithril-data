@@ -57,14 +57,8 @@
 	var m = __webpack_require__(2);
 	var slice = Array.prototype.slice;
 	var modelConstructors = {};
-	var oldConflict;
-	var config = {
-		__TEST__: false,
-		baseUrl: '',
-		keyId: 'id',
-		redraw: false,
-		store: m.request
-	};
+	var config = {};
+	var oldObject;
 
 	Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
 		obj.__proto__ = proto;
@@ -72,12 +66,15 @@
 	};
 
 	function configure() {
-		if (config.methods) {
-			strictExtend(BaseModel.prototype, config.methods);
-		}
-		if (config.controllerMethods) {
-			strictExtend(ModelConstructor.prototype, config.controllerMethods);
-		}
+		if (config.modelMethods)
+			strictExtend(BaseModel.prototype, config.modelMethods);
+		if (config.constructorMethods)
+			strictExtend(ModelConstructor.prototype, config.constructorMethods);
+		if (config.collectionMethods)
+			strictExtend(Collection.prototype, config.collectionMethods);
+		config.modelMethods = null;
+		config.constructorMethods = null;
+		config.collectionMethods = null;
 	}
 
 	function isConflictExtend(objSource, objInject, callback) {
@@ -194,16 +191,16 @@
 	 * Request controller.
 	 */
 
-	var request = _.create({
-		request: function(method, url, data, opt) {
+	var store = _.create({
+		request: function(url, method, data, opt) {
 			var options = {
-				method: method,
+				method: method || 'GET',
 				url: url,
 				data: data || {},
-				serialize: this.serializer,
-				deserialize: this.deserializer,
-				config: this.config,
-				extract: this.extract
+				serialize: this.__serializer,
+				deserialize: this.__deserializer,
+				config: this.__config,
+				extract: this.__extract
 			};
 			if (opt)
 				_.assign(options, opt);
@@ -211,44 +208,49 @@
 				config.storeConfigOptions(options);
 			return config.store(options);
 		},
-		config: function(xhr, xhrOptions) {
+		__config: function(xhr, xhrOptions) {
 			if (config.storeConfigXHR)
 				config.storeConfigXHR(xhr, xhrOptions);
 			xhr.setRequestHeader('Content-Type', 'application/json');
 		},
-		extract: function(xhr, xhrOptions) {
+		__extract: function(xhr, xhrOptions) {
 			if (config.storeExtract) {
 				return config.storeExtract(xhr, xhrOptions);
 			} else if (xhr.responseText.length) {
-				return xhr.responseText
+				return xhr.responseText;
 			} else {
-				return null
+				return null;
 			}
 		},
-		serializer: function(data) {
+		__serializer: function(data) {
 			data = data instanceof BaseModel ? data.getCopy() : data;
 			if (config.storeSerializer)
 				return config.storeSerializer(data);
 			else
 				return JSON.stringify(data);
 		},
-		deserializer: function(data) {
-			if (config.storeDeserializer)
+		__deserializer: function(data) {
+			if (config.storeDeserializer) {
 				return config.storeDeserializer(data);
-			else
-				return JSON.parse(data);
+			} else {
+				try {
+					return JSON.parse(data);
+				} catch (e) {
+					return data;
+				}
+			}
 		},
 		get: function(url, data, opt) {
-			return this.request('GET', url, data, opt);
+			return this.request(url, 'GET', data, opt);
 		},
 		post: function(url, data, opt) {
-			return this.request('POST', url, data, opt);
+			return this.request(url, 'POST', data, opt);
 		},
 		put: function(url, data, opt) {
-			return this.request('PUT', url, data, opt);
+			return this.request(url, 'PUT', data, opt);
 		},
 		destroy: function(url, data, opt) {
-			return this.request('DELETE', url, data, opt);
+			return this.request(url, 'DELETE', data, opt);
 		}
 	});
 
@@ -302,7 +304,6 @@
 				models = [models];
 			var added = false;
 			var i = 0;
-			var model;
 			for (; i < models.length; i++) {
 				if (this.add(models[i], unshift, true))
 					added = true;
@@ -314,20 +315,22 @@
 		create: function(data) {
 			if (!_.isArray(data))
 				data = [data];
-			var self = this;
-			var existingModel;
 			var newModels = [];
-			_.transform(data, function(result, modelData) {
+			var existingModel;
+			var modelData;
+			var i = 0;
+			for (; i < data.length; i++) {
+				modelData = data[i];
 				if (!_.isPlainObject(modelData))
 					throw new Error('Plain object required');
-				existingModel = self.get(modelData);
+				existingModel = this.get(modelData);
 				if (existingModel) {
 					existingModel.set(modelData);
 				} else {
-					if (self.__options.model)
-						result.push(new self.__options.model(modelData));
+					if (this.__options.model)
+						newModels.push(new this.__options.model(modelData));
 				}
-			}, newModels);
+			}
 			this.addAll(newModels);
 			return newModels;
 		},
@@ -369,7 +372,6 @@
 			// mixed can be array of id-number, id-string, plain-object or model.
 			if (!_.isArray(mixed))
 				mixed = [mixed];
-			var self = this;
 			var lastLength = this.size();
 			var removedModels = [];
 			var matchMix;
@@ -428,9 +430,9 @@
 		},
 		pluck: function(key) {
 			var plucked = [];
-			this.transform(function(_pluck, model) {
-				_pluck.push(model[key]());
-			}, plucked);
+			for (var i = 0, models = this.models; i < models.length; i++) {
+				plucked.push(models[i][key]);
+			}
 			return plucked;
 		},
 		dispose: function() {
@@ -470,35 +472,12 @@
 				var self = this;
 				this.model().pull(this.url(), query, options).then(function(models) {
 					self.addAll(models);
-					d.resolve(models);
-					if (_.isFunction(callback)) callback(null, models);
+					d.resolve(self);
+					if (_.isFunction(callback)) callback(null, self);
 				}, function(err) {
 					d.reject(err);
 					if (_.isFunction(callback)) callback(err);
 				});
-			} else {
-				d.reject(true);
-				if (_.isFunction(callback)) callback(true);
-			}
-			return d.promise;
-		},
-		fetchById: function(ids, options, callback) {
-			if (_.isFunction(options)) {
-				callback = options;
-				options = undefined;
-			}
-			var self = this;
-			var d = m.deferred();
-			if (this.hasModel) {
-				Model.Note.pullById(ids, options)
-					.then(function(models) {
-						self.addAll(models);
-						d.resolve(models);
-						if (_.isFunction(callback)) callback(null, models);
-					}, function(err) {
-						d.reject(err);
-						if (_.isFunction(callback)) callback(err);
-					});
 			} else {
 				d.reject(true);
 				if (_.isFunction(callback)) callback(true);
@@ -561,7 +540,7 @@
 				this.opt(options);
 		},
 		__flagSaved: function(models) {
-			for (i = 0; i < models.length; i++)
+			for (var i = 0; i < models.length; i++)
 				models[i].__saved = true;
 		},
 		opt: function(key, value) {
@@ -577,65 +556,15 @@
 				model: this
 			}, options));
 		},
-		loadById: function(ids, options, callback) {
-			// Only downloads from server, without returning the models.
-			// Compare which models are existing and download those are not.
-			if (_.isFunction(options)) {
-				callback = options;
-				options = undefined;
+		createModels: function(data) {
+			if (!_.isArray(data))
+				data = [data];
+			for (var i = 0; i < data.length; i++) {
+				if (!_.isPlainObject(data[i]))
+					throw new Error('Plain object required');
+				data[i] = new this(data[i]);
 			}
-			if (!ids)
-				throw new Error('Collection can\'t fetch. Id must be set.');
-			if (!_.isArray(ids))
-				ids = [ids];
-			var self = this;
-			var d = m.deferred();
-			var existing = [];
-			// Get all existing models.
-			this.collection.transform(function(result, model) {
-				if (model.id()) {
-					result.push(model.id());
-				}
-			}, existing);
-			// Start loading all non existing.
-			var toLoad = _.pullAll(ids, existing);
-			if (!_.isEmpty(toLoad)) {
-				request.get(this.collection.url(), toLoad, options)
-					.then(function(data) {
-						self.__flagSaved(self.create(data));
-						d.resolve();
-						if (_.isFunction(callback)) callback(null);
-					}, function(err) {
-						d.reject(err);
-						if (_.isFunction(callback)) callback(err);
-					});
-			} else {
-				d.resolve();
-				if (_.isFunction(callback)) callback(null);
-			}
-			return d.promise;
-		},
-		pullById: function(ids, options, callback) {
-			// Fetch from server and return the models.
-			if (_.isFunction(options)) {
-				callback = options;
-				options = undefined;
-			}
-			var self = this;
-			var d = m.deferred();
-			if (!_.isArray(ids))
-				ids = [ids];
-			this.loadById(ids, options)
-				.then(function() {
-					// Every model are in collection. Safe to get all.
-					var models = self.collection.getAll(ids);
-					d.resolve(models);
-					if (_.isFunction(callback)) callback(null, models);
-				}, function(err) {
-					d.reject(err);
-					if (_.isFunction(callback)) callback(err);
-				});
-			return d.promise;
+			return data;
 		},
 		pull: function(url, data, options, callback) {
 			if (_.isFunction(data)) {
@@ -647,10 +576,10 @@
 			}
 			var self = this;
 			var d = m.deferred();
-			request.get(url, data, options)
+			store.get(url, data, options)
 				.then(function(data) {
 					// data = complete list of models.
-					var models = self.create(data);
+					var models = self.createModels(data);
 					self.__flagSaved(models);
 					d.resolve(models);
 					if (_.isFunction(callback)) callback(null, models);
@@ -693,7 +622,7 @@
 		cid: function() {
 			return this.__cid;
 		},
-		// Get the full url for request.
+		// Get the full url for store.
 		url: function() {
 			return config.baseUrl + (this.options.url || '/' + this.options.name.toLowerCase());
 		},
@@ -735,15 +664,15 @@
 			var isModel = obj instanceof BaseModel;
 			if (isModel || _.isPlainObject(obj)) {
 				var keys = _.keys(obj);
-				for (var i = keys.length - 1, key, value; i >= 0; i--) {
+				for (var i = keys.length - 1, key, val; i >= 0; i--) {
 					key = keys[i];
-					value = obj[key];
+					val = obj[key];
 					if (!this.__isProp(key) || !_.isFunction(this[key]))
 						return;
-					if (isModel && _.isFunction(value)) {
-						this[key](value(), true);
+					if (isModel && _.isFunction(val)) {
+						this[key](val(), true);
 					} else {
-						this[key](value, true);
+						this[key](val, true);
 					}
 				}
 				if (!value) // silent
@@ -765,7 +694,6 @@
 		},
 		// Get a copy of json representation. Removing private properties.
 		getCopy: function(deep) {
-			var self = this;
 			var copy = {};
 			var keys = _.keys(this.__json);
 			for (var i = 0, key, value; i < keys.length; i++) {
@@ -783,8 +711,8 @@
 		save: function(callback) {
 			var self = this;
 			var d = m.deferred();
-			var req = this.id() ? request.put : request.post;
-			req.call(request, this.url(), this).then(function(data) {
+			var req = this.id() ? store.put : store.post;
+			req.call(store, this.url(), this).then(function(data) {
 				self.set(data);
 				self.__saved = true;
 				d.resolve(self);
@@ -800,7 +728,7 @@
 			var d = m.deferred();
 			var id = this.__getDataId();
 			if (id[config.keyId]) {
-				request.get(this.url(), id).then(function(data) {
+				store.get(this.url(), id).then(function(data) {
 					self.set(data);
 					self.__saved = true;
 					d.resolve(self);
@@ -821,11 +749,11 @@
 			var d = m.deferred();
 			var id = this.__getDataId();
 			if (id[config.keyId]) {
-				request.destroy(this.url(), id).then(function(data) {
-					this.detach();
+				store.destroy(this.url(), id).then(function(data) {
+					self.detach();
 					d.resolve();
 					if (_.isFunction(callback)) callback(null);
-					this.dispose();
+					self.dispose();
 				}, function(err) {
 					d.reject(err);
 					if (_.isFunction(callback)) callback(err);
@@ -852,8 +780,9 @@
 			var keys = _.keys(this);
 			var props = this.options.props;
 			var i;
+			this.__json.__model = null;
 			for (i = 0; i < props.length; i++) {
-				this[props[i]](null)
+				this[props[i]](null);
 			}
 			for (i = 0; i < keys.length; i++) {
 				this[keys[i]] = null;
@@ -873,10 +802,10 @@
 			dataId[config.keyId] = this.id();
 			return dataId;
 		},
-		__gettersetter(initial, key) {
+		__gettersetter: function(initial, key) {
 			var store = this.__json;
 			var ref = this.options.refs[key];
-
+			// Getter and setter function.
 			function prop() {
 				var value;
 				if (arguments.length) {
@@ -891,7 +820,7 @@
 					}
 					store[key] = value;
 					if (!arguments[1])
-						this.changed(key)
+						this.changed(key);
 					return value;
 				}
 				value = store[key];
@@ -899,10 +828,12 @@
 					value = value.__model;
 				return value;
 			}
+			// Add toJSON method to prop.
 			prop.toJSON = function() {
 				return store[key];
-			}
-			store[key] = initial;
+			};
+			// Store initial value.
+			prop(initial, true);
 			return prop;
 		}
 	};
@@ -928,7 +859,6 @@
 		resolveModelOptions(options);
 		// The model constructor.
 		function Model(propValues) {
-			var self = this;
 			var data = propValues || {};
 			var refs = options.refs;
 			var props = options.props;
@@ -949,13 +879,9 @@
 				// Make sure that it does not create conflict with
 				// internal reserved keywords.
 				if (!_.hasIn(this, value) || value === 'id') {
-					if (_.isPlainObject(data[value]) && _.has(refs, value)) {
-						this[value] = this.__gettersetter(new modelConstructors[refs[value]](data[value]), value);
-					} else {
-						// Use default if data is not available. Only `undefined` should change to default.
-						// In order to accept other falsy value. Like, `false` and `0`.
-						this[value] = this.__gettersetter(_.isUndefined(data[value]) ? options.defaults[value] : data[value], value);
-					}
+					// Use default if data is not available. Only `undefined` should change to default.
+					// In order to accept other falsy value. Like, `false` and `0`.
+					this[value] = this.__gettersetter(_.isUndefined(data[value]) ? options.defaults[value] : data[value], value);
 				} else {
 					throw new Error('`' + value + '` prop is not allowed.');
 				}
@@ -989,11 +915,16 @@
 	 * Exports
 	 */
 
+	// Return the current version.
+	exports.version = function() {
+		return 'v0.0.1';
+	};
+
 	// Export class Collection.
 	exports.Collection = Collection;
 
-	// Export our custom request controller.
-	exports.request = request;
+	// Export our own store controller.
+	exports.store = store;
 
 	// Export model instantiator.
 	exports.model = function(modelOptions, ctrlOptions) {
@@ -1006,6 +937,11 @@
 		return modelConstructor;
 	};
 
+	// A way to get a constructor from this scope.
+	exports.model.get = function(name) {
+		return modelConstructors[name];
+	};
+
 	// Export configurator.
 	exports.config = function(userConfig) {
 		// Compile configuration.
@@ -1014,20 +950,20 @@
 		configure();
 	};
 
-	// Return back the old md.
-	exports.noConflict = function() {
-		if (oldConflict) {
-			window.md = oldConflict;
-			oldConflict = null;
-		}
-		return window.md;
+	// Option to reset config to defaults.
+	exports.resetConfig = function() {
+		for (var member in config)
+			delete config[member];
+		exports.config({
+			baseUrl: '',
+			keyId: 'id',
+			store: m.request,
+			redraw: false
+		});
 	};
 
-	// Return the current version.
-	exports.version = function() {
-		return 'v0.0.1';
-	};
-
+	// Set config defaults.
+	exports.resetConfig();
 
 	// Export for AMD & browser's global.
 	if (true) {
@@ -1038,15 +974,24 @@
 
 	// Export for browser's global.
 	if (typeof window !== 'undefined') {
+		// Return back old md.
+		exports.noConflict = function() {
+			if (oldObject) {
+				window.md = oldObject;
+				oldObject = null;
+			}
+			return window.md;
+		};
 		// Export private objects for unit testing.
 		if (window.__TEST__ && window.mocha && window.chai) {
 			exports.__TEST__ = {
+				config: config,
 				BaseModel: BaseModel,
 				ModelConstructor: ModelConstructor
 			};
 		}
 		if (window.md)
-			oldConflict = window.md;
+			oldObject = window.md;
 		window.md = exports;
 	}
 
