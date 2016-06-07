@@ -1,5 +1,5 @@
 // Root before - Run before all tests.
-before(function() {
+before(function(done) {
 
 	it("Create sample schemas for test", function() {
 		window.Model.User = md.model({
@@ -24,16 +24,15 @@ before(function() {
 		expect(window.Model.User).to.exist;
 		expect(window.Model.Note).to.exist;
 
-		console.dir(window.Model.User);
-		console.dir(window.Model.Note);
 	});
 
-});
-
-// Root after - Run after all tests.
-after(function() {
 	// Clear all test data in server.
-	md.store.get('/clear');
+	md.store.get('/clear').then(function() {
+		done();
+	}, function(err) {
+		done(err);
+	});
+
 });
 
 describe("md", function() {

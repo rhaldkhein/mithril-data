@@ -222,11 +222,6 @@ Collection.prototype = {
 		else
 			this.__options[key] = value || true;
 	},
-	changed: function() {
-		if (this.__options.redraw || config.redraw) {
-			m.redraw();
-		}
-	},
 	add: function(model, unshift, silent) {
 		if (!(model instanceof BaseModel) || (this.__options.model && !(model instanceof this.__options.model)))
 			throw new Error('Must be a model or an instance of set model');
@@ -243,7 +238,7 @@ Collection.prototype = {
 			added = true;
 		}
 		if (added && !silent)
-			this.changed();
+			this.__update();
 		return added;
 	},
 	addAll: function(models, unshift, silent) {
@@ -256,7 +251,7 @@ Collection.prototype = {
 				added = true;
 		}
 		if (added && !silent)
-			this.changed();
+			this.__update();
 		return added;
 	},
 	create: function(data) {
@@ -351,7 +346,7 @@ Collection.prototype = {
 		}
 		if (lastLength !== this.size()) {
 			if (!silent)
-				this.changed();
+				this.__update();
 			return true;
 		}
 		return false;
@@ -430,6 +425,13 @@ Collection.prototype = {
 			if (_.isFunction(callback)) callback(true);
 		}
 		return d.promise;
+	},
+	__update: function() {
+		// Levels: instance || global
+		if (this.__options.redraw || config.redraw) {
+			m.startComputation();
+			m.endComputation();
+		}
 	}
 };
 
@@ -597,15 +599,6 @@ BaseModel.prototype = {
 		if (_.indexOf(this.__collections, collection) > -1)
 			_.pull(this.__collections, collection);
 	},
-	changed: function(key) {
-		// Redraw by self.
-		if (this.__options.redraw || this.options.redraw || config.redraw)
-			m.redraw();
-		// Propagate change to model's collections.
-		for (var i = 0; i < this.__collections.length; i++) {
-			this.__collections[i].changed(this);
-		}
-	},
 	// Sets all or a prop values from passed data.
 	set: function(obj, value, silent) {
 		var isModel = obj instanceof BaseModel;
@@ -623,7 +616,7 @@ BaseModel.prototype = {
 				}
 			}
 			if (!value) // silent
-				this.changed();
+				this.__update();
 		} else {
 			this[obj](arguments[1], silent);
 		}
@@ -741,6 +734,22 @@ BaseModel.prototype = {
 	isNew: function() {
 		return !(this.id() && this.__saved);
 	},
+
+	__update: function(key) {
+		// Redraw by self.
+		var redrawing;
+		// Levels: instance || schema || global
+		if (this.__options.redraw || this.options.redraw || config.redraw) {
+			m.startComputation();
+			redrawing == true;
+		}
+		// Propagate change to model's collections.
+		for (var i = 0; i < this.__collections.length; i++) {
+			this.__collections[i].__update(this);
+		}
+		if (redrawing)
+			m.endComputation();
+	},
 	__isProp: function(key) {
 		return _.indexOf(this.options.props, key) > -1;
 	},
@@ -767,7 +776,7 @@ BaseModel.prototype = {
 				}
 				store[key] = value;
 				if (!arguments[1])
-					this.changed(key);
+					this.__update(key);
 				return value;
 			}
 			value = store[key];
@@ -805,8 +814,8 @@ function createModelConstructor(options) {
 	// Resolve model options. Mutates the object.
 	resolveModelOptions(options);
 	// The model constructor.
-	function Model(propValues) {
-		var data = propValues || {};
+	function Model(vals, opts) {
+		var data = vals || {};
 		var refs = options.refs;
 		var props = options.props;
 		var initial;
@@ -833,6 +842,8 @@ function createModelConstructor(options) {
 				throw new Error('`' + value + '` prop is not allowed.');
 			}
 		}
+		if (opts)
+			this.opt(opts);
 	}
 	// Make sure that it options.methods does not create
 	// conflict with internal methods.
