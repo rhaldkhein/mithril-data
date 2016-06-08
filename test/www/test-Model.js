@@ -81,6 +81,16 @@ describe("Model Instance", function() {
 		}
 	});
 
+	it("create instance with options", function() {
+		var user = new Model.User({
+			name: 'Foo'
+		}, {
+			test: 'test'
+		});
+		expect(user).to.be.instanceof(Model.User);
+		expect(user.__options.test).to.be.equal('test');
+	});
+
 });
 
 describe("Model.<properties>", function() {
