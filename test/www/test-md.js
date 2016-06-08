@@ -1,7 +1,7 @@
 // Root before - Run before all tests.
 before(function(done) {
 
-	it("Create sample schemas for test", function() {
+	it("create sample schemas for test", function() {
 		window.Model.User = md.model({
 			name: 'User',
 			props: ['name', 'profile', 'age', 'active']

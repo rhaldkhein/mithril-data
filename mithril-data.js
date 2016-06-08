@@ -794,7 +794,7 @@
 			// Levels: instance || schema || global
 			if (this.__options.redraw || this.options.redraw || config.redraw) {
 				m.startComputation();
-				redrawing == true;
+				redrawing = true;
 			}
 			// Propagate change to model's collections.
 			for (var i = 0; i < this.__collections.length; i++) {

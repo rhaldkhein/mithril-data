@@ -75,8 +75,10 @@ describe("Model Constructor", function() {
 				_ids.push(model.id());
 				_models[model.id()] = model;
 				cnt++;
-				if (cnt >= len)
+				if (cnt >= len) {
 					done();
+					return;
+				}
 			};
 			for (var i = len; i > 0; i--) {
 				user = new Model.User();

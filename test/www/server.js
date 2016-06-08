@@ -25,7 +25,8 @@ app.post('/note', function(req, res) {
 	}, req.body);
 	notes[data.id] = data;
 	res.json(data);
-	console.log(_.keys(notes));
+	// console.log(_.keys(notes));
+	// console.log(_.size(notes));
 });
 
 app.put('/note', function(req, res) {
@@ -87,7 +88,8 @@ app.delete('/note', function(req, res) {
 			error: 'ID is required!'
 		});
 	}
-	console.log(_.keys(notes));
+	// console.log(_.keys(notes));
+	// console.log(_.size(notes));
 });
 
 // ------------------------------------------------
@@ -100,7 +102,8 @@ app.post('/user', function(req, res) {
 	}, req.body);
 	users[data.id] = data;
 	res.json(data);
-	console.log(_.keys(users));
+	// console.log(_.keys(users));
+	// console.log(_.size(users));
 });
 
 app.put('/user', function(req, res) {
@@ -162,7 +165,8 @@ app.delete('/user', function(req, res) {
 			error: 'ID is required!'
 		});
 	}
-	console.log(_.keys(users));
+	// console.log(_.keys(users));
+	// console.log(_.size(users));
 });
 
 // ------------------------------------------------

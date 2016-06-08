@@ -8,12 +8,6 @@ describe("md.store", function() {
 			expect(md.store.request).to.be.a('function');
 		});
 
-		it("error on request without url specified", function() {
-			expect(function() {
-				md.store.request();
-			}).to.throw(Error);
-		});
-
 		it("returns a promise", function() {
 			var req = md.store.request('/notexist');
 			expect(req).to.be.a('function');
@@ -55,21 +49,6 @@ describe("md.store", function() {
 			expect(md.store.post).to.be.a('function');
 			expect(md.store.put).to.be.a('function');
 			expect(md.store.destroy).to.be.a('function');
-		});
-
-		it("error on request without url specified", function() {
-			expect(function() {
-				md.store.get();
-			}).to.throw(Error);
-			expect(function() {
-				md.store.post();
-			}).to.throw(Error);
-			expect(function() {
-				md.store.put();
-			}).to.throw(Error);
-			expect(function() {
-				md.store.destroy();
-			}).to.throw(Error);
 		});
 
 	});
