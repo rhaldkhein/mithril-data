@@ -82,7 +82,7 @@ function resolveResult(result, collection, property) {
 }
 
 function addMethods(dist, src, methods, distProp, retProp) {
-	// Need to be this loop (each). To retain value of `method` argument.
+	// Need to be this loop (each). To retain value of methods' arguments.
 	_.each(methods, function(length, method) {
 		if (src[method]) {
 			switch (length) {
@@ -135,7 +135,7 @@ function hasValueOfType(obj, type) {
 }
 
 /**
- * Request controller.
+ * Store controller.
  */
 
 var store = _.create({
