@@ -3,11 +3,11 @@
 /*
 
 # === EXCEPT ===
-# Common Files
 !/.gitignore
 !/*.json
 !/*.txt
 !/*.md
 !/*.js
 
+!/source
 !/test

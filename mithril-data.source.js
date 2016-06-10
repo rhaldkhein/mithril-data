@@ -138,7 +138,7 @@ function hasValueOfType(obj, type) {
  * Store controller.
  */
 
-var store = _.create({
+var store = _.create(null, {
 	request: function(url, method, data, opt) {
 		var options = {
 			method: method || 'GET',
