@@ -6,9 +6,9 @@ var _ = require('lodash');
 var m = require('mithril');
 var config = require('./global').config;
 var modelConstructors = require('./global').modelConstructors;
-var Collection;
-var store;
-var util;
+//var Collection;
+//var store;
+//var util;
 
 function BaseModel() {
 	this.__options = {
@@ -22,6 +22,14 @@ function BaseModel() {
 	};
 	_.bindAll(this, _.union(modelBindMethods, config.modelBindMethods));
 }
+
+// Export class.
+module.exports = BaseModel;
+
+// Need to require after export. A fix for circular dependencies issue.
+var store = require('./store');
+var Collection = require('./collection');
+var util = require('./util');
 
 BaseModel.prototype = {
 	opt: function(key, value) {
@@ -272,13 +280,6 @@ var objectMethods = {
 	omit: 1
 };
 
-// Export class.
-module.exports = BaseModel;
-
-// Need to require after export. A fix for circular dependencies issue.
-store = require('./store');
-Collection = require('./collection');
-util = require('./util');
 
 // Inject lodash methods.
 util.addMethods(BaseModel.prototype, _, objectMethods, '__json');

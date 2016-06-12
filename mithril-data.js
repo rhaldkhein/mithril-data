@@ -245,9 +245,9 @@
 	var m = __webpack_require__(2);
 	var config = __webpack_require__(3).config;
 	var modelConstructors = __webpack_require__(3).modelConstructors;
-	var Collection;
-	var store;
-	var util;
+	//var Collection;
+	//var store;
+	//var util;
 
 	function BaseModel() {
 		this.__options = {
@@ -261,6 +261,14 @@
 		};
 		_.bindAll(this, _.union(modelBindMethods, config.modelBindMethods));
 	}
+
+	// Export class.
+	module.exports = BaseModel;
+
+	// Need to require after export. A fix for circular dependencies issue.
+	var store = __webpack_require__(5);
+	var Collection = __webpack_require__(6);
+	var util = __webpack_require__(7);
 
 	BaseModel.prototype = {
 		opt: function(key, value) {
@@ -511,13 +519,6 @@
 		omit: 1
 	};
 
-	// Export class.
-	module.exports = BaseModel;
-
-	// Need to require after export. A fix for circular dependencies issue.
-	store = __webpack_require__(5);
-	Collection = __webpack_require__(6);
-	util = __webpack_require__(7);
 
 	// Inject lodash methods.
 	util.addMethods(BaseModel.prototype, _, objectMethods, '__json');
