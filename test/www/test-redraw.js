@@ -19,6 +19,7 @@
 		modelB2: new PostB(),
 		collection: PostB.createCollection(),
 		view: function() {
+			console.log('Redraw ' + this.count)
 			return m("div", [
 				m("h2", "count = " + (++this.count)),
 				m("h2", [
@@ -58,41 +59,51 @@
 		}
 	};
 
-	m.mount(document.getElementById("redraw"), redrawComponent);
+	var elRedraw = document.getElementById("redraw");
+	m.mount(elRedraw, redrawComponent);
 
-	describe.skip("Auto Redraw", function() {
+	describe("Auto Redraw", function() {
 		"use strict";
+
+		var elemA1 = document.getElementById("modela1-name");
+		var elemA2 = document.getElementById("modela2-name");
 
 		describe("Model", function() {
 			it("should redraw ALL instances - if redraw=true is set in `schema` option", function(done) {
 				// Open `test-redraw.js` to see schema configuration.
 				var doneCount = 0;
 				var fnDone = function() {
-					if (++doneCount >= 2)
+					if (++doneCount >= 1)
 						done();
 				};
-				// First instance.
-				var modelA1 = redrawComponent.modelA1;
-				var elemA1 = document.getElementById("modela1-name");
-				expect(elemA1.innerHTML).to.equal("undefined");
-				modelA1.name('Foo');
-				setTimeout(function() {
-					// Successfully updated the element.
-					expect(elemA1.innerHTML).to.equal("Foo");
-					fnDone();
-					// Need to delay and wait for DOM update.
-				}, 1500);
-				// Second instance. ------------------------------------
+
 				var modelA2 = redrawComponent.modelA2;
-				var elemA2 = document.getElementById("modela2-name");
 				expect(elemA2.innerHTML).to.equal("undefined");
+
+				var modelA1 = redrawComponent.modelA1;
+				expect(elemA1.innerHTML).to.equal("undefined");
+
+				modelA1.name('Foo');
 				modelA2.name('Bar');
+
 				setTimeout(function() {
 					// Successfully updated the element.
 					expect(elemA2.innerHTML).to.equal("Bar");
+					expect(elemA1.innerHTML).to.equal("Foo");
 					fnDone();
 					// Need to delay and wait for DOM update.
-				}, 1500);
+				}, 300);
+				// Second instance. ------------------------------------
+				// var modelA2 = redrawComponent.modelA2;
+				// var elemA2 = document.getElementById("modela2-name");
+				// expect(elemA2.innerHTML).to.equal("undefined");
+				// modelA2.name('Bar');
+				// setTimeout(function() {
+				// 	// Successfully updated the element.
+				// 	expect(elemA2.innerHTML).to.equal("Bar");
+				// 	fnDone();
+				// 	// Need to delay and wait for DOM update.
+				// }, 300);
 			});
 
 			it("should redraw ONLY centain instances - if redraw=true is set in `instance` option", function(done) {
@@ -123,8 +134,8 @@
 						expect(elemB2.innerHTML).to.equal("Bar");
 						fnDone();
 						// Need to delay and wait for DOM update.
-					}, 1500);
-				}, 1500);
+					}, 300);
+				}, 300);
 				// Need to delay and wait for DOM update.
 			});
 		});
@@ -155,8 +166,8 @@
 						var elemB1x = document.getElementById("col-modelb1-name");
 						expect(elemB1x.innerHTML).to.equal("Test");
 						done();
-					}, 1500);
-				}, 1500);
+					}, 300);
+				}, 300);
 
 			});
 		});

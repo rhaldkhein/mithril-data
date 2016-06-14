@@ -255,18 +255,6 @@ describe("md.config()", function() {
 			expect(md.__TEST__.config.storeConfigXHR).to.equal(fn);
 		});
 
-		it.skip("called", function(done) {
-			var fn = function(xhr) {
-				// console.log(arguments);
-				// expect(xhr).to.be.instanceof(XMLHttpRequest);
-				done();
-			};
-			md.config({
-				storeConfigXHR: fn
-			});
-			md.store.request('/exist');
-		});
-
 	});
 
 	describe("storeExtract", function() {
@@ -279,23 +267,6 @@ describe("md.config()", function() {
 				storeExtract: fn
 			});
 			expect(md.__TEST__.config.storeExtract).to.equal(fn);
-		});
-
-		it.skip("called", function(done) {
-			var called; // A dirty fix to avoid multiple call of `done()`
-			var fn = function(xhr, options) {
-				// expect(xhr).to.be.instanceof(XMLHttpRequest);
-				if (!called) {
-					done();
-					called = true;
-				}
-				// Note that `storeExtract` needs to return the content.
-				return xhr.responseText.length ? xhr.responseText : null;
-			};
-			md.config({
-				storeExtract: fn
-			});
-			md.store.request('/exist');
 		});
 
 	});

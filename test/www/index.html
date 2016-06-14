@@ -12,12 +12,6 @@
 		</style>
 	</head>
 	<body>
-		<div id="help" style="display: none;">
-			<h3>Server Required</h3>
-			<p>Run the test through http server.</p>
-			<p>Run server with <i>node server.js</i> in <i>/test/www</i> directory.</p>
-			<p>Visit <i>localhost:3002</i> or assign different host or port in <i>server.js</i>.</p>
-		</div>
 		<div id="mocha">
 			<div>
 				<h1>Redraw</h1>
@@ -33,12 +27,13 @@
 		<script type="text/javascript" src="../../node_modules/mocha/mocha.js"></script>
 		<script type="text/javascript" src="../../node_modules/chai/chai.js"></script>
 		<script type="text/javascript" src="../../node_modules/lodash/lodash.min.js"></script>
+		<script type="text/javascript" src="../deps/mock.js"></script>
 		<script type="text/javascript" src="../../node_modules/mithril/mithril.min.js"></script>
 		<script type="text/javascript" src="../../mithril-data.js"></script>
 		<script>
 			mocha.setup('bdd');
+			mocha.reporter('html');
 			var expect = chai.expect;
-			console.log(page);
 		</script>
 		<!-- Test files here -->
 		<script type="text/javascript" src="./configure.js"></script>
@@ -52,17 +47,13 @@
 		<script type="text/javascript" src="./test-md.store.js"></script>
 		<script type="text/javascript" src="./test-redraw.js"></script>
 		<script>
-			(function() {
-				var elHelp = document.getElementById('help');
-				if (mocha && mocha.run) {
-					elHelp.outerHTML = "";
-					delete elHelp;
-				} else {
-					elHelp.style.display = 'block';
-				}
-			})();
-			mocha.checkLeaks();
-			mocha.run();
+			if (window.mochaPhantomJS) { 
+				//mochaPhantomJS.checkLeaks();
+				mochaPhantomJS.run();
+			} else { 
+				mocha.checkLeaks();
+				mocha.run();
+			}
 		</script>
 	</body>
 </html>
