@@ -6,16 +6,13 @@ var _ = require('lodash');
 var m = require('mithril');
 var config = require('./global').config;
 var modelConstructors = require('./global').modelConstructors;
-//var Collection;
-//var store;
-//var util;
 
 function BaseModel() {
 	this.__options = {
 		redraw: false
 	};
 	this.__collections = [];
-	this.__cid = _.uniqueId('model');
+	this.__lid = _.uniqueId('model');
 	this.__saved = false;
 	this.__json = {
 		__model: this
@@ -28,9 +25,22 @@ module.exports = BaseModel;
 
 // Need to require after export. A fix for circular dependencies issue.
 var store = require('./store');
-var Collection = require('./collection');
 var util = require('./util');
+var Collection = require('./collection');
 
+// Method to bind to Model object. Use by _.bindAll().
+var modelBindMethods = [];
+
+// Lodash methods to add.
+var objectMethods = {
+	has: 1,
+	keys: 0,
+	values: 0,
+	pick: 1,
+	omit: 1
+};
+
+// Prototype methods.
 BaseModel.prototype = {
 	opt: function(key, value) {
 		if (_.isPlainObject(key))
@@ -40,10 +50,10 @@ BaseModel.prototype = {
 	},
 	// Get or set id of model.
 	id: function(id) {
-		return id ? this[config.keyId](id) : this[config.keyId]();
+		return id ? this[config.keyId](id, true) : this[config.keyId]();
 	},
-	cid: function() {
-		return this.__cid;
+	lid: function() {
+		return this.__lid;
 	},
 	// Get the full url for store.
 	url: function() {
@@ -183,7 +193,7 @@ BaseModel.prototype = {
 		this.dispose();
 	},
 	detach: function() {
-		// Detach this model to all collection. Including default collection.
+		// Detach this model to all collection.
 		var clonedCollections = _.clone(this.__collections);
 		for (var i = 0; i < clonedCollections.length; i++) {
 			clonedCollections[i].remove(this);
@@ -267,19 +277,6 @@ BaseModel.prototype = {
 		return prop;
 	}
 };
-
-// Method to bind to Model object. Use by _.bindAll().
-var modelBindMethods = [];
-
-// Lodash methods to add.
-var objectMethods = {
-	has: 1,
-	keys: 0,
-	values: 0,
-	pick: 1,
-	omit: 1
-};
-
 
 // Inject lodash methods.
 util.addMethods(BaseModel.prototype, _, objectMethods, '__json');

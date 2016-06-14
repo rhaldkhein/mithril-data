@@ -60,7 +60,7 @@
 
 	m.mount(document.getElementById("redraw"), redrawComponent);
 
-	describe("Auto Redraw", function() {
+	describe.skip("Auto Redraw", function() {
 		"use strict";
 
 		describe("Model", function() {
@@ -81,7 +81,7 @@
 					expect(elemA1.innerHTML).to.equal("Foo");
 					fnDone();
 					// Need to delay and wait for DOM update.
-				}, 500);
+				}, 1500);
 				// Second instance. ------------------------------------
 				var modelA2 = redrawComponent.modelA2;
 				var elemA2 = document.getElementById("modela2-name");
@@ -92,7 +92,7 @@
 					expect(elemA2.innerHTML).to.equal("Bar");
 					fnDone();
 					// Need to delay and wait for DOM update.
-				}, 500);
+				}, 1500);
 			});
 
 			it("should redraw ONLY centain instances - if redraw=true is set in `instance` option", function(done) {
@@ -123,8 +123,8 @@
 						expect(elemB2.innerHTML).to.equal("Bar");
 						fnDone();
 						// Need to delay and wait for DOM update.
-					}, 500);
-				}, 500);
+					}, 1500);
+				}, 1500);
 				// Need to delay and wait for DOM update.
 			});
 		});
@@ -155,8 +155,8 @@
 						var elemB1x = document.getElementById("col-modelb1-name");
 						expect(elemB1x.innerHTML).to.equal("Test");
 						done();
-					}, 500);
-				}, 500);
+					}, 1500);
+				}, 1500);
 
 			});
 		});

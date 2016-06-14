@@ -57,8 +57,13 @@
 	var modelConstructors = __webpack_require__(3).modelConstructors;
 	var BaseModel = __webpack_require__(4);
 	var ModelConstructor = __webpack_require__(8);
-	var util = __webpack_require__(7);
-	var Collection = __webpack_require__(6);
+	var util = __webpack_require__(6);
+	var Collection = __webpack_require__(7);
+
+	Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
+		obj.__proto__ = proto;
+		return obj;
+	};
 
 	function createModelConstructor(options) {
 		// Resolve model options. Mutates the object.
@@ -129,7 +134,7 @@
 	};
 
 	// Export class Collection.
-	exports.Collection = __webpack_require__(6);
+	exports.Collection = __webpack_require__(7);
 
 	// Export our own store controller.
 	exports.store = __webpack_require__(5);
@@ -145,12 +150,13 @@
 		return modelConstructor;
 	};
 
-	// A way to get a constructor from this scope.
+	// A way to get a constructor from this scope
 	exports.model.get = function(name) {
 		return modelConstructors[name];
 	};
 
-	// Export configurator.
+	// Export configurator
+	var defaultConfig = {};
 	exports.config = function(userConfig) {
 		// Compile configuration.
 		_.assign(config, userConfig);
@@ -167,20 +173,26 @@
 		config.collectionMethods = null;
 	};
 
-	// Option to reset config to defaults.
+	// Option to reset to first initial config.
 	exports.resetConfig = function() {
-		for (var member in config)
-			delete config[member];
-		exports.config({
-			baseUrl: '',
-			keyId: 'id',
-			store: m.request,
-			redraw: false
-		});
+		util.clearObject(config);
+		exports.config(defaultConfig);
+	};
+
+	// Add config to default config. Does not overwrite the old config.
+	exports.defaultConfig = function(defaults, silent) {
+		_.assign(defaultConfig, defaults);
+		if (!silent)
+			exports.resetConfig();
 	};
 
 	// Set config defaults.
-	exports.resetConfig();
+	exports.defaultConfig({
+		baseUrl: '',
+		keyId: 'id',
+		store: m.request,
+		redraw: false
+	});
 
 	// Export for AMD & browser's global.
 	if (true) {
@@ -245,16 +257,13 @@
 	var m = __webpack_require__(2);
 	var config = __webpack_require__(3).config;
 	var modelConstructors = __webpack_require__(3).modelConstructors;
-	//var Collection;
-	//var store;
-	//var util;
 
 	function BaseModel() {
 		this.__options = {
 			redraw: false
 		};
 		this.__collections = [];
-		this.__cid = _.uniqueId('model');
+		this.__lid = _.uniqueId('model');
 		this.__saved = false;
 		this.__json = {
 			__model: this
@@ -267,9 +276,22 @@
 
 	// Need to require after export. A fix for circular dependencies issue.
 	var store = __webpack_require__(5);
-	var Collection = __webpack_require__(6);
-	var util = __webpack_require__(7);
+	var util = __webpack_require__(6);
+	var Collection = __webpack_require__(7);
 
+	// Method to bind to Model object. Use by _.bindAll().
+	var modelBindMethods = [];
+
+	// Lodash methods to add.
+	var objectMethods = {
+		has: 1,
+		keys: 0,
+		values: 0,
+		pick: 1,
+		omit: 1
+	};
+
+	// Prototype methods.
 	BaseModel.prototype = {
 		opt: function(key, value) {
 			if (_.isPlainObject(key))
@@ -279,10 +301,10 @@
 		},
 		// Get or set id of model.
 		id: function(id) {
-			return id ? this[config.keyId](id) : this[config.keyId]();
+			return id ? this[config.keyId](id, true) : this[config.keyId]();
 		},
-		cid: function() {
-			return this.__cid;
+		lid: function() {
+			return this.__lid;
 		},
 		// Get the full url for store.
 		url: function() {
@@ -422,7 +444,7 @@
 			this.dispose();
 		},
 		detach: function() {
-			// Detach this model to all collection. Including default collection.
+			// Detach this model to all collection.
 			var clonedCollections = _.clone(this.__collections);
 			for (var i = 0; i < clonedCollections.length; i++) {
 				clonedCollections[i].remove(this);
@@ -507,19 +529,6 @@
 		}
 	};
 
-	// Method to bind to Model object. Use by _.bindAll().
-	var modelBindMethods = [];
-
-	// Lodash methods to add.
-	var objectMethods = {
-		has: 1,
-		keys: 0,
-		values: 0,
-		pick: 1,
-		omit: 1
-	};
-
-
 	// Inject lodash methods.
 	util.addMethods(BaseModel.prototype, _, objectMethods, '__json');
 
@@ -603,13 +612,134 @@
 /* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var _ = __webpack_require__(1);
+	var slice = Array.prototype.slice;
+	var BaseModel = __webpack_require__(4);
+
+	function resolveWrapper(func, property) {
+		return function(argA, argB, argC, argD) {
+			return func(argA ? (argA[property] || argA) : argA, argB ? (argB[property] || argB) : argB, argC, argD);
+		};
+	};
+
+	function resolveArguments(args, property) {
+		var i = args.length - 1;
+		var arg;
+		for (; i >= 0; i--) {
+			arg = args[i];
+			if (_.isFunction(arg))
+				args[i] = resolveWrapper(arg, property);
+			else if (arg instanceof BaseModel)
+				args[i] = arg.__json;
+		}
+		return args;
+	};
+
+	function resolveResult(result, collection, property) {
+		if (result === collection) {
+			return result;
+		} else {
+			if (_.isArray(result)) {
+				var i = result.length - 1;
+				var value;
+				for (; i >= 0; i--) {
+					value = result[i];
+					if (value && value[property])
+						result[i] = value[property];
+				}
+				return result;
+			} else {
+				return result ? (result[property] || result) : result;
+			}
+		}
+	};
+
+	module.exports = _.create(null, {
+		clearObject: function(obj) {
+			for (var member in obj)
+				delete obj[member];
+		},
+		hasValueOfType: function(obj, type) {
+			var keys = _.keys(obj);
+			for (var i = 0; i < keys.length; i++) {
+				if (obj[keys[i]] instanceof type) {
+					return true;
+				}
+			}
+			return false;
+		},
+		isConflictExtend: function(objSource, objInject, callback) {
+			var keys = _.keys(objInject);
+			var i = 0;
+			for (; i < keys.length; i++) {
+				if (_.hasIn(objSource, keys[i])) {
+					return keys[i];
+				}
+			}
+			return false;
+		},
+		strictExtend: function(objSource, objInject) {
+			var isConflict = this.isConflictExtend(objSource, objInject);
+			if (isConflict)
+				throw new Error('`' + isConflict + '` method / property is not allowed.');
+			else
+				_.extend(objSource, objInject);
+		},
+		addMethods: function(dist, src, methods, distProp, retProp) {
+			// Need to be this loop (each). To retain value of methods' arguments.
+			_.each(methods, function(length, method) {
+				if (src[method]) {
+					switch (length) {
+						case 0:
+							dist[method] = function() {
+								return resolveResult(src[method](this[distProp]), this[distProp], retProp);
+							};
+							break;
+						case 1:
+							dist[method] = function(valueA) {
+								if (_.isFunction(valueA))
+									valueA = resolveWrapper(valueA, retProp);
+								else if (valueA instanceof BaseModel)
+									valueA = valueA.__json;
+								return resolveResult(src[method](this[distProp], valueA), this[distProp], retProp);
+							};
+							break;
+						case 2:
+							dist[method] = function(valueA, valueB) {
+								if (_.isFunction(valueA))
+									valueA = resolveWrapper(valueA, retProp);
+								else if (valueA instanceof BaseModel)
+									valueA = valueA.__json;
+								if (_.isFunction(valueB))
+									valueB = resolveWrapper(valueB, retProp);
+								else if (valueB instanceof BaseModel)
+									valueB = valueB.__json;
+								return resolveResult(src[method](this[distProp], valueA, valueB), this[distProp], retProp);
+							};
+							break;
+						default:
+							dist[method] = function() {
+								var args = resolveArguments(slice.call(arguments), retProp);
+								args.unshift(this[distProp]);
+								return resolveResult(src[method].apply(src, args), this[distProp], retProp);
+							};
+					}
+				}
+			});
+		}
+	});
+
+/***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
 	/**
 	 * Collection
 	 */
 
 	var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
-	var util = __webpack_require__(7);
+	var util = __webpack_require__(6);
 	var config = __webpack_require__(3).config;
 	var BaseModel = __webpack_require__(4);
 
@@ -623,6 +753,10 @@
 		_.bindAll(this, _.union(collectionBindMethods, config.collectionBindMethods));
 	}
 
+	// Export class.
+	module.exports = Collection;
+
+	// Prototype methods.
 	Collection.prototype = {
 		opt: function(key, value) {
 			if (_.isPlainObject(key))
@@ -675,7 +809,7 @@
 					throw new Error('Plain object required');
 				existingModel = this.get(modelData);
 				if (existingModel) {
-					existingModel.set(modelData);
+					existingModel.set(modelData, true);
 				} else {
 					if (this.__options.model)
 						newModels.push(new this.__options.model(modelData));
@@ -884,126 +1018,6 @@
 	// Inject lodash method.
 	util.addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
 
-	// Export class.
-	module.exports = Collection;
-
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var _ = __webpack_require__(1);
-	var slice = Array.prototype.slice;
-	var BaseModel = __webpack_require__(4);
-
-	function resolveWrapper(func, property) {
-		return function(argA, argB, argC, argD) {
-			return func(argA ? (argA[property] || argA) : argA, argB ? (argB[property] || argB) : argB, argC, argD);
-		};
-	};
-
-	function resolveArguments(args, property) {
-		var i = args.length - 1;
-		var arg;
-		for (; i >= 0; i--) {
-			arg = args[i];
-			if (_.isFunction(arg))
-				args[i] = resolveWrapper(arg, property);
-			else if (arg instanceof BaseModel)
-				args[i] = arg.__json;
-		}
-		return args;
-	};
-
-	function resolveResult(result, collection, property) {
-		if (result === collection) {
-			return result;
-		} else {
-			if (_.isArray(result)) {
-				var i = result.length - 1;
-				var value;
-				for (; i >= 0; i--) {
-					value = result[i];
-					if (value && value[property])
-						result[i] = value[property];
-				}
-				return result;
-			} else {
-				return result ? (result[property] || result) : result;
-			}
-		}
-	};
-
-	module.exports = _.create(null, {
-		hasValueOfType: function(obj, type) {
-			var keys = _.keys(obj);
-			for (var i = 0; i < keys.length; i++) {
-				if (obj[keys[i]] instanceof type) {
-					return true;
-				}
-			}
-			return false;
-		},
-		isConflictExtend: function(objSource, objInject, callback) {
-			var keys = _.keys(objInject);
-			var i = 0;
-			for (; i < keys.length; i++) {
-				if (_.hasIn(objSource, keys[i])) {
-					return keys[i];
-				}
-			}
-			return false;
-		},
-		strictExtend: function(objSource, objInject) {
-			var isConflict = this.isConflictExtend(objSource, objInject);
-			if (isConflict)
-				throw new Error('`' + isConflict + '` method / property is not allowed.');
-			else
-				_.extend(objSource, objInject);
-		},
-		addMethods: function(dist, src, methods, distProp, retProp) {
-			// Need to be this loop (each). To retain value of methods' arguments.
-			_.each(methods, function(length, method) {
-				if (src[method]) {
-					switch (length) {
-						case 0:
-							dist[method] = function() {
-								return resolveResult(src[method](this[distProp]), this[distProp], retProp);
-							};
-							break;
-						case 1:
-							dist[method] = function(valueA) {
-								if (_.isFunction(valueA))
-									valueA = resolveWrapper(valueA, retProp);
-								else if (valueA instanceof BaseModel)
-									valueA = valueA.__json;
-								return resolveResult(src[method](this[distProp], valueA), this[distProp], retProp);
-							};
-							break;
-						case 2:
-							dist[method] = function(valueA, valueB) {
-								if (_.isFunction(valueA))
-									valueA = resolveWrapper(valueA, retProp);
-								else if (valueA instanceof BaseModel)
-									valueA = valueA.__json;
-								if (_.isFunction(valueB))
-									valueB = resolveWrapper(valueB, retProp);
-								else if (valueB instanceof BaseModel)
-									valueB = valueB.__json;
-								return resolveResult(src[method](this[distProp], valueA, valueB), this[distProp], retProp);
-							};
-							break;
-						default:
-							dist[method] = function() {
-								var args = resolveArguments(slice.call(arguments), retProp);
-								args.unshift(this[distProp]);
-								return resolveResult(src[method].apply(src, args), this[distProp], retProp);
-							};
-					}
-				}
-			});
-		}
-	});
-
 /***/ },
 /* 8 */
 /***/ function(module, exports, __webpack_require__) {
@@ -1013,10 +1027,14 @@
 	 */
 
 	var store = __webpack_require__(5);
-	var Collection = __webpack_require__(6);
+	var Collection = __webpack_require__(7);
 
 	function ModelConstructor() {}
 
+	// Export class.
+	module.exports = ModelConstructor;
+
+	// Prototype methods.
 	ModelConstructor.prototype = {
 		__init: function(options) {
 			if (this.__options)
@@ -1078,9 +1096,6 @@
 			return d.promise;
 		}
 	};
-
-	// Export class.
-	module.exports = ModelConstructor;
 
 /***/ }
 /******/ ]);

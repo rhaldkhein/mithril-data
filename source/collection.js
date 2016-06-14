@@ -18,6 +18,10 @@ function Collection(options) {
 	_.bindAll(this, _.union(collectionBindMethods, config.collectionBindMethods));
 }
 
+// Export class.
+module.exports = Collection;
+
+// Prototype methods.
 Collection.prototype = {
 	opt: function(key, value) {
 		if (_.isPlainObject(key))
@@ -70,7 +74,7 @@ Collection.prototype = {
 				throw new Error('Plain object required');
 			existingModel = this.get(modelData);
 			if (existingModel) {
-				existingModel.set(modelData);
+				existingModel.set(modelData, true);
 			} else {
 				if (this.__options.model)
 					newModels.push(new this.__options.model(modelData));
@@ -278,6 +282,3 @@ var collectionMethods = {
 
 // Inject lodash method.
 util.addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
-
-// Export class.
-module.exports = Collection;

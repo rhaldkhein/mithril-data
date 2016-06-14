@@ -7,6 +7,10 @@ var Collection = require('./collection');
 
 function ModelConstructor() {}
 
+// Export class.
+module.exports = ModelConstructor;
+
+// Prototype methods.
 ModelConstructor.prototype = {
 	__init: function(options) {
 		if (this.__options)
@@ -68,6 +72,3 @@ ModelConstructor.prototype = {
 		return d.promise;
 	}
 };
-
-// Export class.
-module.exports = ModelConstructor;

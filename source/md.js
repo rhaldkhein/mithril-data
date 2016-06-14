@@ -7,6 +7,11 @@ var ModelConstructor = require('./modelConstructor');
 var util = require('./util');
 var Collection = require('./collection');
 
+Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
+	obj.__proto__ = proto;
+	return obj;
+};
+
 function createModelConstructor(options) {
 	// Resolve model options. Mutates the object.
 	resolveModelOptions(options);
@@ -92,12 +97,13 @@ exports.model = function(modelOptions, ctrlOptions) {
 	return modelConstructor;
 };
 
-// A way to get a constructor from this scope.
+// A way to get a constructor from this scope
 exports.model.get = function(name) {
 	return modelConstructors[name];
 };
 
-// Export configurator.
+// Export configurator
+var defaultConfig = {};
 exports.config = function(userConfig) {
 	// Compile configuration.
 	_.assign(config, userConfig);
@@ -114,20 +120,26 @@ exports.config = function(userConfig) {
 	config.collectionMethods = null;
 };
 
-// Option to reset config to defaults.
+// Option to reset to first initial config.
 exports.resetConfig = function() {
-	for (var member in config)
-		delete config[member];
-	exports.config({
-		baseUrl: '',
-		keyId: 'id',
-		store: m.request,
-		redraw: false
-	});
+	util.clearObject(config);
+	exports.config(defaultConfig);
+};
+
+// Add config to default config. Does not overwrite the old config.
+exports.defaultConfig = function(defaults, silent) {
+	_.assign(defaultConfig, defaults);
+	if (!silent)
+		exports.resetConfig();
 };
 
 // Set config defaults.
-exports.resetConfig();
+exports.defaultConfig({
+	baseUrl: '',
+	keyId: 'id',
+	store: m.request,
+	redraw: false
+});
 
 // Export for AMD & browser's global.
 if (typeof define === 'function' && define.amd) {

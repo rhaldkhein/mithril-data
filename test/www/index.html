@@ -4,7 +4,7 @@
 		<title>
 			mithril-data
 		</title>
-		<link rel="stylesheet" href="/node_modules/mocha/mocha.css"/>
+		<link rel="stylesheet" href="../../node_modules/mocha/mocha.css"/>
 		<style type="text/css">
 			#mocha code .comment, #mocha code .comment * {
 				color: #07B31E;
@@ -30,20 +30,18 @@
 			// Force mithril-data to export private objects for testing.
 			window.__TEST__ = true;
 		</script>
-		<script type="text/javascript" src="/node_modules/mocha/mocha.js"></script>
-		<script type="text/javascript" src="/node_modules/chai/chai.js"></script>
-		<script type="text/javascript" src="/node_modules/lodash/lodash.min.js"></script>
-		<script type="text/javascript" src="/node_modules/mithril/mithril.min.js"></script>
-		<!-- <script type="text/javascript" src="/test/mithril.js"></script> -->
-		<script type="text/javascript" src="/mithril-data.js"></script>
+		<script type="text/javascript" src="../../node_modules/mocha/mocha.js"></script>
+		<script type="text/javascript" src="../../node_modules/chai/chai.js"></script>
+		<script type="text/javascript" src="../../node_modules/lodash/lodash.min.js"></script>
+		<script type="text/javascript" src="../../node_modules/mithril/mithril.min.js"></script>
+		<script type="text/javascript" src="../../mithril-data.js"></script>
 		<script>
 			mocha.setup('bdd');
-			// Shortcut to expect.
 			var expect = chai.expect;
-			// Namespace for test models.
-			window.Model = {};
+			console.log(page);
 		</script>
 		<!-- Test files here -->
+		<script type="text/javascript" src="./configure.js"></script>
 		<script type="text/javascript" src="./test-md.js"></script>
 		<script type="text/javascript" src="./test-ModelConstructor.js"></script>
 		<script type="text/javascript" src="./test-Model.js"></script>

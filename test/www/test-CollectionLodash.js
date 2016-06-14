@@ -41,14 +41,14 @@ describe("Collection.<lodash>", function() {
 		var result = col.map(function(model) {
 			expect(model).to.be.instanceof(Model.User);
 			loopCount++;
-			return model.cid();
+			return model.lid();
 		});
 		expect(loopCount).to.be.equal(3);
 		expect(result).to.be.a("array");
 		expect(result.length).to.be.equal(3);
-		expect(result[0]).to.be.equal(userA.cid());
-		expect(result[1]).to.be.equal(userB.cid());
-		expect(result[2]).to.be.equal(userC.cid());
+		expect(result[0]).to.be.equal(userA.lid());
+		expect(result[1]).to.be.equal(userB.lid());
+		expect(result[2]).to.be.equal(userC.lid());
 	});
 
 	it("find", function() {

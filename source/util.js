@@ -41,6 +41,10 @@ function resolveResult(result, collection, property) {
 };
 
 module.exports = _.create(null, {
+	clearObject: function(obj) {
+		for (var member in obj)
+			delete obj[member];
+	},
 	hasValueOfType: function(obj, type) {
 		var keys = _.keys(obj);
 		for (var i = 0; i < keys.length; i++) {

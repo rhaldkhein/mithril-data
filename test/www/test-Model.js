@@ -96,9 +96,9 @@ describe("Model Instance", function() {
 describe("Model.<properties>", function() {
 	"use strict";
 
-	it("`__cid` exist with value type of string", function() {
+	it("`__lid` exist with value type of string", function() {
 		var user = new Model.User();
-		expect(user).to.have.property("__cid").and.to.be.a("string");
+		expect(user).to.have.property("__lid").and.to.be.a("string");
 	});
 
 	it("`__collections` exist with value type of array", function() {
@@ -187,12 +187,12 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#cid()", function() {
+	describe("#lid()", function() {
 		"use strict";
 
-		it("returns a string with value of its `__cid`", function() {
+		it("returns a string with value of its `__lid`", function() {
 			var user = new Model.User();
-			expect(user.cid()).to.be.a('string').and.equal(user.__cid);
+			expect(user.lid()).to.be.a('string').and.equal(user.__lid);
 		});
 
 	});
