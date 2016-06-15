@@ -13,4 +13,7 @@
 !/LICENSE
 
 !/source
+/source/**.DS_Store
+
 !/test
+/test/**.DS_Store
