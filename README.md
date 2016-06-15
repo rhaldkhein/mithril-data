@@ -11,7 +11,9 @@ A rich model library for Mithril javascript framework.
 ##### Prerequisite
 - [Mithril](http://mithril.js.org/)
 - [Lodash](http://lodash.com/)
+
 - - - -
+
 ## Schema
 ```javascript
 var userSchema = {
@@ -40,7 +42,9 @@ All available schema options:
 * **refs** - (object {prop:model}) list of references to other models
 * **url** - (string) the specific url of the model. defaults to model's `name`
 * **redraw** - (boolean) trigger a redraw when a model with this schema is updated. defaults to `false`
+
 - - - -
+
 ## Model
 ```javascript
 var User = md.model(userSchema)
@@ -63,12 +67,12 @@ noteA.body('A note content')
 noteA.author(userA)
 noteA.save().then(fnResolve, fnReject)
 ```
-##### <ModelConstructor>([initials, options])
+##### \<ModelConstructor>([initials, options])
 Creates an instance of model.
 * **initials** - (object {prop:value}) initial values of props
 * **options** - (object) specific options to model instance
   * **redraw** - (boolean) redraw 
-##### <prop>([value, silent])
+##### \<prop>([value, silent])
 Get or set value of prop. If auto-redraw is enabled, pass `true` at the end to set without redrawing.
 ```javascript
 user.name('Foo') // Sets the name to `Foo`
@@ -138,7 +142,7 @@ user.fetch().then( function (model) { /* Success! model now have other prop valu
 ```
 ##### destroy([callback])
 Destroys the model from data store and triggers `remove` method. Also accept `callback` or `then`.
-##### <lodash methods>()
+##### \<lodash methods>()
 Model includes few methods of Lodash. `has`, `keys`, `values`, `pick`, and `omit`. See **Lodash** for info.
 ```javascript
 userA.pick(['name', 'age'])
@@ -150,7 +154,9 @@ Note: *Following methods are not nesseccary or not recommended. Use with caution
 Disposes the object by `null`-ing all properties of the object. Note that this might not be nesseccary.
 ##### getJson()
 Get a reference to model's `__json`, the prop-store of all models' props. Make sure to ONLY read and don't write! 
+
 - - - -
+
 ## Collection
 ```javascript
 var userCollection = md.Collection({
@@ -219,7 +225,7 @@ userCollection.fetch({ age : 30 }).then(function (){
 Returns `true` if the collection has associated model, otherwise `false`.
 ##### destroy()
 Destroys the collection. Trigger `clear` and `dispose`.
-##### <lodash methods>()
+##### \<lodash methods>()
 Collection includes several methods of Lodash. `forEach`, `map`, `find`, `findIndex`, `findLastIndex`, `filter`, `reject`, `every`, `some`, `invoke`, `maxBy`, `minBy`, `sortBy`, `groupBy`, `shuffle`, `size`, `initial`, `without`, `indexOf`, `lastIndexOf`, `difference`, `sample`, `reverse`, `nth`, `first`, `last`, `toArray`, `slice`, `orderBy`, `transform`. See **Lodash** for info.
 ```javascript
 var filtered = userCollection.filter({age: 30})
@@ -229,7 +235,9 @@ var filtered = userCollection.filter({age: 30})
 Note: *Following methods are not nesseccary or not recommended. Use with caution.*
 ##### dispose()
 Disposes the object by `null`-ing all properties of the object. Note that this might not be nesseccary. 
+
 - - - -
+
 ## Configure & Customize
 Configuration must be set before using any of `mithril-data`'s functionality.
 ```javascript
@@ -275,7 +283,9 @@ var fnLocalStorage = function (data) {
 md.config({ store : fnLocalStorage})
 ```
 > Just make sure that your custom store should return a promise, or your own promise-like with `then` and `catch` methods.
+
 - - - -
+
 ## More
 ##### md.store
 A handy tool that handles request to data-store. The result is through `then` / `catch`.
@@ -293,7 +303,9 @@ Resets the config to default. If `defaultConfig()` is used, it will reset to tha
 Return the old reference to `md`.
 ##### md.version()
 Return the current version.
+
 - - - -
+
 ## Installation
 ```sh
 # NPM
@@ -311,7 +323,9 @@ HTML: (`md` is automatically exposed to browser's global scope)
 <script type="text/javascript" src="mithril.min.js"></script>
 <script type="text/javascript" src="mithril-data.min.js"></script>
 ```
+
 - - - -
+
 ### License
 MIT
 
