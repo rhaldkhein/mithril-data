@@ -38,6 +38,8 @@
     "mithril": "^0.2.4"
   },
   "files": [
+    "source/*",
+    "index.js",
     "mithril-data.js",
     "mithril-data.min.js"
   ]

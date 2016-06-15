@@ -7,7 +7,7 @@ function resolveWrapper(func, property) {
 	return function(argA, argB, argC, argD) {
 		return func(argA ? (argA[property] || argA) : argA, argB ? (argB[property] || argB) : argB, argC, argD);
 	};
-};
+}
 
 function resolveArguments(args, property) {
 	var i = args.length - 1;
@@ -20,7 +20,7 @@ function resolveArguments(args, property) {
 			args[i] = arg.__json;
 	}
 	return args;
-};
+}
 
 function resolveResult(result, collection, property) {
 	if (result === collection) {
@@ -39,7 +39,7 @@ function resolveResult(result, collection, property) {
 			return result ? (result[property] || result) : result;
 		}
 	}
-};
+}
 
 function getNextTickMethod() {
 	if (hasWindow && window.setImmediate) {
