@@ -4,6 +4,7 @@
 
 # === EXCEPT ===
 !/.gitignore
+!/.npmignore
 !/.travis.yml
 !/*.json
 !/*.txt
