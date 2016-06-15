@@ -149,7 +149,7 @@ userA.pick(['name', 'age'])
 // Returns an object with only two properties `name` and `age`, excluding others.
 ```
 
-Note: *Following methods are not nesseccary or not recommended. Use with caution.*
+Note: Following methods are not nesseccary or not recommended. Use with caution.
 ##### \#dispose()
 Disposes the object by `null`-ing all properties of the object. Note that this might not be nesseccary.
 ##### \#getJson()
@@ -232,7 +232,7 @@ var filtered = userCollection.filter({age: 30})
 // Returns an array of models with age of 30.
 ```
 
-Note: *Following methods are not nesseccary or not recommended. Use with caution.*
+Note: Following methods are not nesseccary or not recommended. Use with caution.
 ##### \#dispose()
 Disposes the object by `null`-ing all properties of the object. Note that this might not be nesseccary. 
 
