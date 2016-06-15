@@ -77,7 +77,7 @@ function resolveModelOptions(options) {
 
 // Return the current version.
 exports.version = function() {
-	return '<%version%>';
+	return 'v0.1.0';//version
 };
 
 // Export class Collection.
