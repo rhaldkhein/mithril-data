@@ -9,14 +9,20 @@ var package = require('./package.json');
 
 gulp.task('default', ['test']);
 
+gulp.task('version', function() {
+	return gulp.src('source/md.js')
+		.pipe(replace(/v.+\/\/version/g, 'v' + package.version + '\';//version'))
+		.pipe(gulp.dest('source'));
+});
+
 gulp.task('bundle', function() {
 	return gulp.src('')
 		.pipe(webpack(require('./webpack-config.js')))
-		.pipe(replace('<%version%>', 'v' + package.version))
 		.pipe(gulp.dest(''));
+	// .pipe(replace('<%version%>', 'v' + package.version))
 });
 
-gulp.task('release', ['bundle'], function() {
+gulp.task('release', ['version', 'bundle'], function() {
 	return gulp.src('mithril-data.js')
 		.pipe(uglify())
 		.pipe(rename({

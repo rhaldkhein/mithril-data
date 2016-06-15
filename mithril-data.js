@@ -130,7 +130,7 @@
 
 	// Return the current version.
 	exports.version = function() {
-		return 'v0.1.0';
+		return 'v0.1.0';//version
 	};
 
 	// Export class Collection.
