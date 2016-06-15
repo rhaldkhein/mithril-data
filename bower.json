@@ -1,6 +1,6 @@
 {
   "name": "mithril-data",
-  "description": "A rich model framework for Mithril application.",
+  "description": "A rich model library for Mithril javascript framework.",
   "main": "index.js",
   "authors": [
     "Kevin <undyingmind@gmail.com> (https://github.com/rhaldkhein)"
@@ -19,10 +19,12 @@
   ],
   "homepage": "",
   "ignore": [
-    "**/.*",
-    "node_modules",
-    "bower_components",
-    "test",
-    "tests"
+    "*",
+    "!LICENSE",
+    "!README.md",
+    "!mithril-data.js",
+    "!mithril-data.min.js",
+    "!bower.json",
+    "!package.json"
   ]
 }

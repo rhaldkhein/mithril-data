@@ -237,7 +237,7 @@ Collection.prototype = {
 		// Levels: instance || global
 		if (this.__options.redraw || config.redraw) {
 			m.startComputation();
-			m.endComputation();
+			util.nextTick(m.endComputation);
 		}
 	}
 };

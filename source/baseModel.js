@@ -232,7 +232,7 @@ BaseModel.prototype = {
 			this.__collections[i].__update(this);
 		}
 		if (redrawing)
-			m.endComputation();
+			util.nextTick(m.endComputation);
 	},
 	__isProp: function(key) {
 		return _.indexOf(this.options.props, key) > -1;

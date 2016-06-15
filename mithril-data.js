@@ -1,7 +1,7 @@
 /*!
- * mithril-data v0.0.1
- * A rich model framework for Mithril application.
- * 
+ * mithril-data v0.1.0
+ * A rich model library for Mithril javascript framework.
+ * https://github.com/rhaldkhein/mithril-data
  * (c) 2016 Kevin Villanueva
  * License: MIT
  */
@@ -56,9 +56,9 @@
 	var config = __webpack_require__(3).config;
 	var modelConstructors = __webpack_require__(3).modelConstructors;
 	var BaseModel = __webpack_require__(4);
-	var ModelConstructor = __webpack_require__(8);
+	var ModelConstructor = __webpack_require__(9);
 	var util = __webpack_require__(6);
-	var Collection = __webpack_require__(7);
+	var Collection = __webpack_require__(8);
 
 	Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
 		obj.__proto__ = proto;
@@ -130,11 +130,11 @@
 
 	// Return the current version.
 	exports.version = function() {
-		return 'v0.0.1';
+		return 'v0.1.0';
 	};
 
 	// Export class Collection.
-	exports.Collection = __webpack_require__(7);
+	exports.Collection = __webpack_require__(8);
 
 	// Export our own store controller.
 	exports.store = __webpack_require__(5);
@@ -277,7 +277,7 @@
 	// Need to require after export. A fix for circular dependencies issue.
 	var store = __webpack_require__(5);
 	var util = __webpack_require__(6);
-	var Collection = __webpack_require__(7);
+	var Collection = __webpack_require__(8);
 
 	// Method to bind to Model object. Use by _.bindAll().
 	var modelBindMethods = [];
@@ -483,7 +483,7 @@
 				this.__collections[i].__update(this);
 			}
 			if (redrawing)
-				m.endComputation();
+				util.nextTick(m.endComputation);
 		},
 		__isProp: function(key) {
 			return _.indexOf(this.options.props, key) > -1;
@@ -531,7 +531,6 @@
 
 	// Inject lodash methods.
 	util.addMethods(BaseModel.prototype, _, objectMethods, '__json');
-
 
 /***/ },
 /* 5 */
@@ -612,9 +611,10 @@
 /* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var _ = __webpack_require__(1);
+	/* WEBPACK VAR INJECTION */(function(process) {var _ = __webpack_require__(1);
 	var slice = Array.prototype.slice;
 	var BaseModel = __webpack_require__(4);
+	var hasWindow = typeof window !== 'undefined';
 
 	function resolveWrapper(func, property) {
 		return function(argA, argB, argC, argD) {
@@ -654,7 +654,20 @@
 		}
 	};
 
+	function getNextTickMethod() {
+		if (hasWindow && window.setImmediate) {
+			return window.setImmediate;
+		} else if (typeof process === 'object' && typeof process.nextTick === 'function') {
+			return process.nextTick;
+		}
+		return function(fn) {
+			setTimeout(fn, 0);
+		};
+	}
+
 	module.exports = _.create(null, {
+		isBrowser: hasWindow,
+		nextTick: getNextTickMethod(),
 		clearObject: function(obj) {
 			for (var member in obj)
 				delete obj[member];
@@ -728,9 +741,110 @@
 			});
 		}
 	});
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7)))
 
 /***/ },
 /* 7 */
+/***/ function(module, exports) {
+
+	// shim for using process in browser
+
+	var process = module.exports = {};
+	var queue = [];
+	var draining = false;
+	var currentQueue;
+	var queueIndex = -1;
+
+	function cleanUpNextTick() {
+	    if (!draining || !currentQueue) {
+	        return;
+	    }
+	    draining = false;
+	    if (currentQueue.length) {
+	        queue = currentQueue.concat(queue);
+	    } else {
+	        queueIndex = -1;
+	    }
+	    if (queue.length) {
+	        drainQueue();
+	    }
+	}
+
+	function drainQueue() {
+	    if (draining) {
+	        return;
+	    }
+	    var timeout = setTimeout(cleanUpNextTick);
+	    draining = true;
+
+	    var len = queue.length;
+	    while(len) {
+	        currentQueue = queue;
+	        queue = [];
+	        while (++queueIndex < len) {
+	            if (currentQueue) {
+	                currentQueue[queueIndex].run();
+	            }
+	        }
+	        queueIndex = -1;
+	        len = queue.length;
+	    }
+	    currentQueue = null;
+	    draining = false;
+	    clearTimeout(timeout);
+	}
+
+	process.nextTick = function (fun) {
+	    var args = new Array(arguments.length - 1);
+	    if (arguments.length > 1) {
+	        for (var i = 1; i < arguments.length; i++) {
+	            args[i - 1] = arguments[i];
+	        }
+	    }
+	    queue.push(new Item(fun, args));
+	    if (queue.length === 1 && !draining) {
+	        setTimeout(drainQueue, 0);
+	    }
+	};
+
+	// v8 likes predictible objects
+	function Item(fun, array) {
+	    this.fun = fun;
+	    this.array = array;
+	}
+	Item.prototype.run = function () {
+	    this.fun.apply(null, this.array);
+	};
+	process.title = 'browser';
+	process.browser = true;
+	process.env = {};
+	process.argv = [];
+	process.version = ''; // empty string to avoid regexp issues
+	process.versions = {};
+
+	function noop() {}
+
+	process.on = noop;
+	process.addListener = noop;
+	process.once = noop;
+	process.off = noop;
+	process.removeListener = noop;
+	process.removeAllListeners = noop;
+	process.emit = noop;
+
+	process.binding = function (name) {
+	    throw new Error('process.binding is not supported');
+	};
+
+	process.cwd = function () { return '/' };
+	process.chdir = function (dir) {
+	    throw new Error('process.chdir is not supported');
+	};
+	process.umask = function() { return 0; };
+
+
+/***/ },
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -972,7 +1086,7 @@
 			// Levels: instance || global
 			if (this.__options.redraw || config.redraw) {
 				m.startComputation();
-				m.endComputation();
+				util.nextTick(m.endComputation);
 			}
 		}
 	};
@@ -1019,7 +1133,7 @@
 	util.addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -1027,7 +1141,7 @@
 	 */
 
 	var store = __webpack_require__(5);
-	var Collection = __webpack_require__(7);
+	var Collection = __webpack_require__(8);
 
 	function ModelConstructor() {}
 

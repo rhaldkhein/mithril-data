@@ -1,10 +1,11 @@
 {
   "name": "mithril-data",
-  "version": "0.0.1",
-  "description": "A rich model framework for Mithril application.",
+  "version": "0.1.0",
+  "description": "A rich model library for Mithril javascript framework.",
+  "homepage": "https://github.com/rhaldkhein/mithril-data",
   "main": "index.js",
   "scripts": {
-    "test": "test/test.js"
+    "test": "mocha-phantomjs test/www/index.html"
   },
   "keywords": [
     "model",
@@ -35,5 +36,9 @@
   "dependencies": {
     "lodash": "^4.12.0",
     "mithril": "^0.2.4"
-  }
+  },
+  "files": [
+    "mithril-data.js",
+    "mithril-data.min.js"
+  ]
 }

@@ -1,6 +1,7 @@
 var _ = require('lodash');
 var slice = Array.prototype.slice;
 var BaseModel = require('./baseModel');
+var hasWindow = typeof window !== 'undefined';
 
 function resolveWrapper(func, property) {
 	return function(argA, argB, argC, argD) {
@@ -40,7 +41,20 @@ function resolveResult(result, collection, property) {
 	}
 };
 
+function getNextTickMethod() {
+	if (hasWindow && window.setImmediate) {
+		return window.setImmediate;
+	} else if (typeof process === 'object' && typeof process.nextTick === 'function') {
+		return process.nextTick;
+	}
+	return function(fn) {
+		setTimeout(fn, 0);
+	};
+}
+
 module.exports = _.create(null, {
+	isBrowser: hasWindow,
+	nextTick: getNextTickMethod(),
 	clearObject: function(obj) {
 		for (var member in obj)
 			delete obj[member];
