@@ -287,20 +287,26 @@ md.config({ store : fnLocalStorage})
 - - - -
 
 ## More
+
 ##### md.store
 A handy tool that handles request to data-store. The result is through `then` / `catch`.
 * **request(url[, method, data, opt])** - creates a request to data-store. the `opt` will override the options when storing to data-store
 * **get(url[, data, opt])** - calls`request` with `GET` method, passing the `data` and `opt`
 * **post(url[, data, opt])** - calls`request` with `POST` method, passing the `data` and `opt`
 * **destroy(url[, data, opt])** - calls`request` with `DELETE` method, passing the `data` and `opt`
+
 ##### md.model.get(name)
 A way to get a model constructor from other scope. Argument `name` is the model name.
+
 ##### md.defaultConfig(config)
 Overrides the default config.
+
 ##### md.resetConfig()
 Resets the config to default. If `defaultConfig()` is used, it will reset to that config.
+
 ##### md.noConflict()
 Return the old reference to `md`.
+
 ##### md.version()
 Return the current version.
 
