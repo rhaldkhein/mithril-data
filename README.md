@@ -4,7 +4,7 @@ A rich model library for Mithril javascript framework.
 [![Build Status](https://travis-ci.org/rhaldkhein/mithril-data.svg?branch=release)](https://travis-ci.org/rhaldkhein/mithril-data)
 
 ##### Features
-* Create brilliant application with **Model** and **Collection**
+* Create brilliant application with **Schema**-based **Model** and **Collection**
 * Enriched with **Lodash** methods
 * Auto redraw
 * Configurable and customizable

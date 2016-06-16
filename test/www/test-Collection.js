@@ -57,6 +57,12 @@ describe("Collection.<methods>", function() {
 			expect(col.__options.key).to.be.equal(true);
 		});
 
+		it("can set falsy except `undefined`", function() {
+			var col = new md.Collection();
+			col.opt('key', false);
+			expect(col.__options.key).to.be.false;
+		});
+
 	});
 
 	describe("#add()", function() {

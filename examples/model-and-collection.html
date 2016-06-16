@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+	<head>
+		<title>
+			model-and-collection
+		</title>
+	</head>
+	<body>
+		<div id="app">
+		</div>
+		<script type="text/javascript" src="../node_modules/lodash/lodash.min.js"></script>
+		<script type="text/javascript" src="../node_modules/mithril/mithril.min.js"></script>
+		<script type="text/javascript" src="../mithril-data.js"></script>
+		<script type="text/javascript">
+								(function(){
+				
+									// Schema
+									var User = md.model({
+										name: 'User',
+										props: ['name', 'profile', 'age', 'active']
+									});
+				
+									var Note = md.model({
+										name: 'Note',
+										props: ['title', 'body', 'dateUpdate', 'author'],
+										defaults: {
+											title: 'Notes',
+											body: '',
+										},
+										refs: {
+											author: 'User'
+										}
+									});
+		
+									var NoteDemo = {
+
+										// Controller
+										controller: function() {
+											var self = this;
+
+											// Create user author for notes
+											var author = new User();
+											author.name('Noname');
+											author.age(123);
+
+											// Create the collection
+											this.collection = new md.Collection({
+												model: Note
+											});
+
+											// Event handler for add
+											this.add = function() {
+												var size = self.collection.size();
+												self.collection.add(new Note({
+													title: 'Note ' + size,
+													body: 'Content of note ' + size + '.',
+													author: author
+												}));
+											};
+
+											// Event handler for remove
+											this.remove = function() {
+												self.collection.remove(self.collection.last());
+											};
+										},
+
+										// View
+										view: function(ctrl) {
+											return m('div', [
+
+												// Add button
+												m('button', {
+													onclick: ctrl.add
+												}, 'Add'),
+
+												// Remove button
+												m('button', {
+													onclick: ctrl.remove
+												}, 'Remove'),
+
+												// Notes list
+												m('div', ctrl.collection.map(function(model, i) {
+													return m('ul', [
+														m('li', 'Title: ' + model.title()),
+														m('li', 'Body: ' + model.body()),
+														m('li', 'Author: ' + model.author().name()),
+														m('hr')
+													]);
+												}))
+											]);
+										}
+									};
+								
+									//initialize
+									m.mount(document.body, NoteDemo);
+				
+								})();
+						</script>
+	</body>
+</html>

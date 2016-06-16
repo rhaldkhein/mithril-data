@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+	<head>
+		<title>
+			model-and-collection
+		</title>
+	</head>
+	<body>
+		<div id="app">
+		</div>
+		<script type="text/javascript" src="../node_modules/lodash/lodash.min.js"></script>
+		<script type="text/javascript" src="../node_modules/mithril/mithril.min.js"></script>
+		<script type="text/javascript" src="../mithril-data.js"></script>
+		<script type="text/javascript">
+					(function(){
+	
+						// Schema
+						var User = md.model({
+							name: 'User',
+							props: ['name', 'profile', 'age', 'active']
+						});
+	
+						var Note = md.model({
+							name: 'Note',
+							props: ['title', 'body', 'dateUpdate', 'author'],
+							defaults: {
+								title: 'Notes',
+								body: '',
+							},
+							refs: {
+								author: 'User'
+							}
+						});
+
+						var NoteDemo = {
+
+							// Controller
+							controller: function() {
+								var self = this;
+
+								// Create user author for notes
+								var author = new User();
+								author.name('Noname');
+								author.age(123);
+
+								// Seconds to change
+								this.seconds = 3;
+
+								// Initial redraw flag
+								this.redraw = m.prop();
+
+								// Create the collection
+								this.collection = new md.Collection({
+									model: Note
+								});
+
+								// Change prop
+								this.propChange = function(model, e) {
+									setTimeout(function() {
+										model.title('Note Changed!');
+									}, self.seconds * 1000);
+								};
+
+								// Event handler for checkbox
+								this.chChanged = function(value) {
+									self.collection.opt('redraw', value);
+									self.redraw(value);
+								};
+
+								// Set initial redraw to true
+								this.chChanged(true);
+
+								// Event handler for add
+								this.add = function() {
+									var size = self.collection.size();
+									self.collection.add(new Note({
+										title: 'Note ' + size,
+										body: 'Content of note ' + size + '.',
+										author: author
+									}));
+								};
+							},
+
+							// View
+							view: function(ctrl) {
+								return m('div', [
+
+									// Redraw checkbox
+									m('label', [m('input', {type:'checkbox', onchange: m.withAttr('checked', ctrl.chChanged), checked: ctrl.redraw()}), 'Auto Redraw ']),
+
+									// Add button
+									m('button', {onclick: ctrl.add}, 'Add'),
+
+									// Notes list
+									m('div', ctrl.collection.map(function(model, i) {
+										return m('ul', [
+											m('li', ['Title: ' + model.title() + ' ', m('button', {onclick: ctrl.propChange.bind(ctrl, model)}, 'Change after ' + ctrl.seconds +' sec')]),
+											m('li', 'Body: ' + model.body()),
+											m('li', 'Author: ' + model.author().name()),
+											m('hr')
+										]);
+									}))
+								]);
+							}
+						};
+					
+						//initialize
+						m.mount(document.body, NoteDemo);
+	
+					})();
+			</script>
+	</body>
+</html>

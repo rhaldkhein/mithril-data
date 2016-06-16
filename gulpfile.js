@@ -19,7 +19,6 @@ gulp.task('bundle', function() {
 	return gulp.src('')
 		.pipe(webpack(require('./webpack-config.js')))
 		.pipe(gulp.dest(''));
-	// .pipe(replace('<%version%>', 'v' + package.version))
 });
 
 gulp.task('release', ['version', 'bundle'], function() {
@@ -40,8 +39,4 @@ gulp.task('release', ['version', 'bundle'], function() {
 			pkg: package
 		}))
 		.pipe(gulp.dest(''));
-});
-
-gulp.task('test_run_server', function() {
-	require('./test/test.js');
 });

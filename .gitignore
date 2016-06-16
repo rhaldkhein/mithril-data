@@ -17,3 +17,6 @@
 
 !/test
 /test/**.DS_Store
+
+!/examples
+/examples/**.DS_Store

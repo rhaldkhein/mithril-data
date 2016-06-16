@@ -1,5 +1,5 @@
 /*!
- * mithril-data v0.1.0
+ * mithril-data v0.1.1
  * A rich model library for Mithril javascript framework.
  * https://github.com/rhaldkhein/mithril-data
  * (c) 2016 Kevin Villanueva
@@ -130,7 +130,7 @@
 
 	// Return the current version.
 	exports.version = function() {
-		return 'v0.1.0';//version
+		return 'v0.1.1';//version
 	};
 
 	// Export class Collection.
@@ -297,7 +297,7 @@
 			if (_.isPlainObject(key))
 				_.assign(this.__options, key);
 			else
-				this.__options[key] = value || true;
+				this.__options[key] = _.isUndefined(value) ? true : value;
 		},
 		// Get or set id of model.
 		id: function(id) {
@@ -876,7 +876,7 @@
 			if (_.isPlainObject(key))
 				_.assign(this.__options, key);
 			else
-				this.__options[key] = value || true;
+				this.__options[key] = _.isUndefined(value) ? true : value;
 		},
 		add: function(model, unshift, silent) {
 			if (!(model instanceof BaseModel) || (this.__options.model && !(model instanceof this.__options.model)))
@@ -1169,7 +1169,7 @@
 			if (_.isPlainObject(key))
 				_.assign(this.__options, key);
 			else
-				this.__options[key] = value || true;
+				this.__options[key] = _.isUndefined(value) ? true : value;
 		},
 		createCollection: function(options) {
 			return new Collection(_.assign({

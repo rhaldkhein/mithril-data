@@ -184,6 +184,12 @@ describe("Model.<methods>", function() {
 			user.opt('key');
 			expect(user.__options.key).to.be.equal(true);
 		});
+		
+		it("can set falsy except `undefined`", function() {
+			var user = new Model.User();
+			user.opt('key', false);
+			expect(user.__options.key).to.be.false;
+		});
 
 	});
 
