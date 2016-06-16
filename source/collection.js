@@ -27,7 +27,7 @@ Collection.prototype = {
 		if (_.isPlainObject(key))
 			_.assign(this.__options, key);
 		else
-			this.__options[key] = value || true;
+			this.__options[key] = _.isUndefined(value) ? true : value;
 	},
 	add: function(model, unshift, silent) {
 		if (!(model instanceof BaseModel) || (this.__options.model && !(model instanceof this.__options.model)))

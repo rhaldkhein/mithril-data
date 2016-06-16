@@ -31,7 +31,7 @@ ModelConstructor.prototype = {
 		if (_.isPlainObject(key))
 			_.assign(this.__options, key);
 		else
-			this.__options[key] = value || true;
+			this.__options[key] = _.isUndefined(value) ? true : value;
 	},
 	createCollection: function(options) {
 		return new Collection(_.assign({

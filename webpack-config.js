@@ -8,7 +8,6 @@ ${pkg.homepage||''}
 License: ${pkg.license}`;
 
 module.exports = {
-	// entry: './mithril-data.source.js',
 	entry: './source/md.js',
 	output: {
 		filename: 'mithril-data.js'
