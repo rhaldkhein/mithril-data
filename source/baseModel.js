@@ -7,7 +7,7 @@ var m = require('mithril');
 var config = require('./global').config;
 var modelConstructors = require('./global').modelConstructors;
 
-function BaseModel() {
+function BaseModel(opts) {
 	this.__options = {
 		redraw: false
 	};
@@ -18,12 +18,14 @@ function BaseModel() {
 		__model: this
 	};
 	_.bindAll(this, _.union(modelBindMethods, config.modelBindMethods));
+	if (opts)
+		this.opt(opts);
 }
 
 // Export class.
 module.exports = BaseModel;
 
-// Need to require after export. A fix for circular dependencies issue.
+// Need to require after export. To fix the circular dependencies issue.
 var store = require('./store');
 var util = require('./util');
 var Collection = require('./collection');
@@ -77,8 +79,9 @@ BaseModel.prototype = {
 		if (!(collection instanceof Collection))
 			throw new Error('Argument `collection` must be instance of Collection.');
 		// Remove this model from collection first.
-		if (collection.get(this))
+		if (collection.get(this)) {
 			collection.remove(this);
+		}
 		// Remove that collection from model's collection.
 		if (_.indexOf(this.__collections, collection) > -1)
 			_.pull(this.__collections, collection);
@@ -218,7 +221,6 @@ BaseModel.prototype = {
 	isNew: function() {
 		return !(this.id() && this.__saved);
 	},
-
 	__update: function(key) {
 		// Redraw by self.
 		var redrawing;

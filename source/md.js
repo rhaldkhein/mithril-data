@@ -26,7 +26,7 @@ function createModelConstructor(options) {
 			props.push(config.keyId);
 		}
 		// Calling parent class.
-		BaseModel.call(this);
+		BaseModel.call(this, opts);
 		// Adding props.
 		for (var i = 0, value; i < props.length; i++) {
 			value = props[i];
@@ -44,8 +44,6 @@ function createModelConstructor(options) {
 				throw new Error('`' + value + '` prop is not allowed.');
 			}
 		}
-		if (opts)
-			this.opt(opts);
 	}
 	// Make sure that it options.methods does not create
 	// conflict with internal methods.
@@ -77,11 +75,14 @@ function resolveModelOptions(options) {
 
 // Return the current version.
 exports.version = function() {
-	return 'v0.1.1';//version
+	return 'v0.1.2';//version
 };
 
 // Export class Collection.
 exports.Collection = require('./collection');
+
+// Export class State.
+exports.State = require('./state');
 
 // Export our own store controller.
 exports.store = require('./store');

@@ -14,6 +14,57 @@ describe("Collection Instance", function() {
 		expect(col.__options.test).to.be.equal('test');
 	});
 
+	it("state - by object and array and instance", function() {
+		// By array
+		var colA = new md.Collection({
+			state: ['a', 'b']
+		});
+		var userA = new Model.User();
+		colA.add(userA);
+		expect(colA.stateOf(userA).a()).to.be.undefined;
+		// By object
+		var colB = new md.Collection({
+			state: {
+				x: 123,
+				y: 456
+			}
+		});
+		var userB = new Model.User();
+		colB.add(userB);
+		expect(colB.stateOf(userB).x()).to.be.equal(123);
+		// By Instance
+		var colC = new md.Collection({
+			state: new md.State(['name'])
+		});
+		var userC = new Model.User();
+		colC.add(userC);
+		expect(colC.stateOf(userC).name()).to.be.undefined;
+	});
+
+	it("state - set and get and remove", function() {
+		// By object
+		var colB = new md.Collection({
+			state: {
+				x: 123,
+				y: 456
+			}
+		});
+		var userB = new Model.User();
+		var userC = new Model.User();
+		colB.add(userB);
+		colB.add(userC);
+		expect(colB.stateOf(userB).x()).to.be.equal(123);
+		// Set
+		colB.stateOf(userB).x(789);
+		colB.stateOf(userC).x(258);
+		// Get
+		expect(colB.stateOf(userB).x()).to.be.equal(789);
+		expect(colB.stateOf(userC).x()).to.be.equal(258);
+		// Remove
+		colB.remove(userC);
+		expect(colB.stateOf(userC)).to.be.undefined;
+	});
+
 });
 
 describe("Collection.<properties>", function() {
@@ -683,6 +734,81 @@ describe("Collection.<methods>", function() {
 			expect(result[3]).to.be.equal('Test');
 		});
 
+		it("successful pluck by id", function() {
+			var col = new md.Collection({
+				model: Model.User
+			});
+			var userA = new Model.User({
+				id: 'Foo'
+			});
+			var userB = new Model.User({
+				id: 'Bar'
+			});
+			var userC = new Model.User({
+				id: 'Baz'
+			});
+			var userD = new Model.User({
+				id: 'Test'
+			});
+			col.addAll([userA, userB, userC, userD]);
+			var result = col.pluck('id');
+			expect(result.length).to.equal(4);
+			expect(result[0]).to.be.equal('Foo');
+			expect(result[1]).to.be.equal('Bar');
+			expect(result[2]).to.be.equal('Baz');
+			expect(result[3]).to.be.equal('Test');
+		});
+
+	});
+
+	describe("#contains()", function() {
+		"use strict";
+
+		var col;
+		var userA;
+
+		before(function() {
+			col = new md.Collection({
+				model: Model.User
+			});
+			userA = new Model.User({
+				id: '123',
+				name: 'Foo'
+			});
+			var userB = new Model.User({
+				id: '456',
+				name: 'Bar'
+			});
+			var userC = new Model.User({
+				id: '789',
+				name: 'Baz'
+			});
+			var userD = new Model.User({
+				id: '109',
+				name: 'Test'
+			});
+			col.addAll([userA, userB, userC, userD]);
+		});
+
+		it("by id", function() {
+			expect(col.contains('456')).to.be.true;
+			expect(col.contains('XXX')).to.be.false;
+		});
+
+		it("by plain object", function() {
+			expect(col.contains({
+				name: 'Baz'
+			})).to.be.true;
+			expect(col.contains({
+				name: 'Boo'
+			})).to.be.false;
+		});
+
+		it("by model instance", function() {
+			expect(col.contains(userA)).to.be.true;
+			expect(col.contains(new Model.User())).to.be.false;
+		});
+
 	});
 
 
@@ -711,6 +837,43 @@ describe("Collection.<methods>", function() {
 			for (var i = 0; i < keys.length; i++) {
 				expect(col[keys[i]]).to.be.null;
 			}
+		});
+
+	});
+
+	describe("#stateOf()", function() {
+		"use strict";
+
+		var col;
+
+		before(function() {
+			col = new md.Collection({
+				model: Model.User,
+				state: ['stateA', 'stateB']
+			});
+			var userA = new Model.User({
+				id: '123',
+				name: 'Foo'
+			});
+			var userB = new Model.User({
+				id: '456',
+				name: 'Bar'
+			});
+			var userC = new Model.User({
+				id: '789',
+				name: 'Baz'
+			});
+			var userD = new Model.User({
+				id: '109',
+				name: 'Test'
+			});
+			col.addAll([userA, userB, userC, userD]);
+		});
+
+		it("successful state", function() {
+			expect(col.stateOf('123').stateA()).to.be.undefined;
+			col.stateOf('123').stateA('New State');
+			expect(col.stateOf('123').stateA()).to.be.equal('New State');
 		});
 
 	});

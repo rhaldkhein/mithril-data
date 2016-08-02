@@ -1,5 +1,5 @@
 /*!
- * mithril-data v0.1.1
+ * mithril-data v0.1.2
  * A rich model library for Mithril javascript framework.
  * https://github.com/rhaldkhein/mithril-data
  * (c) 2016 Kevin Villanueva
@@ -56,7 +56,7 @@
 	var config = __webpack_require__(3).config;
 	var modelConstructors = __webpack_require__(3).modelConstructors;
 	var BaseModel = __webpack_require__(4);
-	var ModelConstructor = __webpack_require__(9);
+	var ModelConstructor = __webpack_require__(10);
 	var util = __webpack_require__(6);
 	var Collection = __webpack_require__(8);
 
@@ -79,7 +79,7 @@
 				props.push(config.keyId);
 			}
 			// Calling parent class.
-			BaseModel.call(this);
+			BaseModel.call(this, opts);
 			// Adding props.
 			for (var i = 0, value; i < props.length; i++) {
 				value = props[i];
@@ -97,8 +97,6 @@
 					throw new Error('`' + value + '` prop is not allowed.');
 				}
 			}
-			if (opts)
-				this.opt(opts);
 		}
 		// Make sure that it options.methods does not create
 		// conflict with internal methods.
@@ -130,11 +128,14 @@
 
 	// Return the current version.
 	exports.version = function() {
-		return 'v0.1.1';//version
+		return 'v0.1.2';//version
 	};
 
 	// Export class Collection.
 	exports.Collection = __webpack_require__(8);
+
+	// Export class State.
+	exports.State = __webpack_require__(9);
 
 	// Export our own store controller.
 	exports.store = __webpack_require__(5);
@@ -258,7 +259,7 @@
 	var config = __webpack_require__(3).config;
 	var modelConstructors = __webpack_require__(3).modelConstructors;
 
-	function BaseModel() {
+	function BaseModel(opts) {
 		this.__options = {
 			redraw: false
 		};
@@ -269,12 +270,14 @@
 			__model: this
 		};
 		_.bindAll(this, _.union(modelBindMethods, config.modelBindMethods));
+		if (opts)
+			this.opt(opts);
 	}
 
 	// Export class.
 	module.exports = BaseModel;
 
-	// Need to require after export. A fix for circular dependencies issue.
+	// Need to require after export. To fix the circular dependencies issue.
 	var store = __webpack_require__(5);
 	var util = __webpack_require__(6);
 	var Collection = __webpack_require__(8);
@@ -328,8 +331,9 @@
 			if (!(collection instanceof Collection))
 				throw new Error('Argument `collection` must be instance of Collection.');
 			// Remove this model from collection first.
-			if (collection.get(this))
+			if (collection.get(this)) {
 				collection.remove(this);
+			}
 			// Remove that collection from model's collection.
 			if (_.indexOf(this.__collections, collection) > -1)
 				_.pull(this.__collections, collection);
@@ -469,7 +473,6 @@
 		isNew: function() {
 			return !(this.id() && this.__saved);
 		},
-
 		__update: function(key) {
 			// Redraw by self.
 			var redrawing;
@@ -699,7 +702,7 @@
 				_.extend(objSource, objInject);
 		},
 		addMethods: function(dist, src, methods, distProp, retProp) {
-			// Need to be this loop (each). To retain value of methods' arguments.
+			// Need to use _.each loop. To retain value of methods' arguments.
 			_.each(methods, function(length, method) {
 				if (src[method]) {
 					switch (length) {
@@ -856,6 +859,7 @@
 	var util = __webpack_require__(6);
 	var config = __webpack_require__(3).config;
 	var BaseModel = __webpack_require__(4);
+	var State = __webpack_require__(9);
 
 	function Collection(options) {
 		this.models = [];
@@ -864,6 +868,13 @@
 		};
 		if (options)
 			this.opt(options);
+		var state = this.__options.state;
+		if (state) {
+			if (!(state instanceof State)) {
+				state = new State(state);
+			}
+			this.__state = state;
+		}
 		_.bindAll(this, _.union(collectionBindMethods, config.collectionBindMethods));
 	}
 
@@ -891,6 +902,8 @@
 				else
 					this.models.push(model.getJson());
 				model.attachCollection(this);
+				if (this.__state)
+					this.__state.set(model.lid());
 				added = true;
 			}
 			if (added && !silent)
@@ -997,8 +1010,12 @@
 					}));
 				}
 			}
+			var model;
 			for (i = 0; i < removedModels.length; i++) {
-				removedModels[i].__model.detachCollection(this);
+				model = removedModels[i].__model;
+				model.detachCollection(this);
+				if (this.__state)
+					this.__state.remove(model.lid());
 			}
 			if (lastLength !== this.size()) {
 				if (!silent)
@@ -1027,9 +1044,10 @@
 			return this.remove(this.toArray(), silent);
 		},
 		pluck: function(key) {
-			var plucked = [];
+			var plucked = [],
+				isId = (key === 'id');
 			for (var i = 0, models = this.models; i < models.length; i++) {
-				plucked.push(models[i][key]);
+				plucked.push(isId ? models[i].__model[key]() : models[i][key]);
 			}
 			return plucked;
 		},
@@ -1045,6 +1063,27 @@
 		destroy: function() {
 			this.clear(true);
 			this.dispose();
+		},
+		stateOf: function(mixed) {
+			if (this.__state) {
+				var model = this.get(mixed);
+				if (model)
+					return this.__state.get(model.lid());
+			}
+		},
+		contains: function(mixed) {
+			if (mixed instanceof BaseModel) {
+				// mixed is a model and is in this collection.
+				return this.indexOf(mixed.getJson()) > -1;
+			} else if (_.isObject(mixed)) {
+				// Use `isObject` to include functions.
+				// If mixed contains `keyId` then search by id
+				if (mixed[config.keyId])
+					mixed = mixed[config.keyId];
+				else
+					return this.findIndex(mixed) > -1;
+			}
+			return this.findIndex([config.keyId, mixed]) > -1;
 		},
 		hasModel: function() {
 			return this.__options.model ? true : false;
@@ -1134,6 +1173,79 @@
 
 /***/ },
 /* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * State
+	 */
+	var _ = __webpack_require__(1);
+	var m = __webpack_require__(2);
+
+	// Class
+	function State(signature) {
+		if (_.isArray(signature)) {
+			this.signature = _.invert(signature);
+			for (var prop in this.signature) {
+				this.signature[prop] = undefined;
+			}
+		} else {
+			this.signature = signature;
+		}
+		this.map = {};
+	}
+
+	// Exports
+	module.exports = State;
+
+	// Prototype
+	State.prototype = {
+		set: function(key) {
+			if (!this.map[key]) {
+				this.map[key] = {
+					factory: m.prop(this)
+				};
+				for (var prop in this.signature) {
+					if (prop === 'factory')
+						throw new Error('State key `factory` is not allowed.');
+					this.map[key][prop] = m.prop(this.signature[prop]);
+				}
+			}
+			return this.map[key];
+		},
+		get: function(key) {
+			if (!this.map[key]) {
+				this.set(key);
+			}
+			return this.map[key];
+		},
+		remove: function(key) {
+			if (this.map[key]){
+				var b, keys = _.keys(this.map[key]);
+				for (b = 0; b < keys.length; b++) {
+					this.map[key][keys[b]] = null;
+				}
+				delete this.map[key];
+			}
+		},
+		dispose: function() {
+			var keysThis = _.keys(this);
+			var keysMap = _.keys(this.map);
+			var keySignature = _.keys(this.signature);
+			var a, b;
+			for (a = 0; a < keysMap.length; a++) {
+				for (b = 0; b < keySignature.length; b++) {
+					this.map[keysMap[a]][keySignature[b]] = null;
+				}
+				this.map[keysMap[a]] = null;
+			}
+			for (a = 0; a < keysThis.length; a++) {
+				this[keysThis[a]] = null;
+			}
+		}
+	};
+
+/***/ },
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
