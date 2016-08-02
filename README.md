@@ -1,12 +1,13 @@
 # mithril-data
 A rich model library for Mithril javascript framework.
 
-[![Build Status](https://travis-ci.org/rhaldkhein/mithril-data.svg?branch=release)](https://travis-ci.org/rhaldkhein/mithril-data)
+[![Build Status](https://travis-ci.org/rhaldkhein/mithril-data.svg?branch=master)](https://travis-ci.org/rhaldkhein/mithril-data)
 
 ##### Features
 * Create brilliant application with **Schema**-based **Model** and **Collection**
 * Enriched with **Lodash** methods
 * Auto redraw
+* **State** (View-Model)
 * Configurable and customizable
 * and many more ...
 
@@ -44,6 +45,7 @@ All available schema options:
 * **refs** - (object {prop:model}) list of references to other models
 * **url** - (string) the specific url of the model. defaults to model's `name`
 * **redraw** - (boolean) trigger a redraw when a model with this schema is updated. defaults to `false`
+* **methods** - (object {name:function}) add custom methods to all models (by schema)
 
 - - - -
 
@@ -182,17 +184,21 @@ Get a reference to model's `__json`, the prop-store of all models' props. Make s
 
 ## Collection
 ```javascript
-var userCollection = md.Collection({
+var userCollection = new md.Collection({
    model : User,
    url : '/usercollectionurl',
    redraw : true
 })
 userCollection.add(new User())
 ```
+
+##### \#\<Collection>([options])
+
 All available collection options:
 * **model** - (model constructor) the associated model to the collection
 * **url** - (string) the specific url of the collection. defaults to associated model's `name`
-* **redraw** - (boolean) trigger a redraw when the collection is updated. defaults to `false`
+* **redraw** - (boolean) trigger a redraw when the collection is updated. Defaults to `false`
+* **state** - (State | object | array) set a state factory (View-Model) for the collection. See `#stateOf()` method and `md.State()` for more info.
 
 > A collection with redraw = `true` will always trigger a `redraw` even though the contained model has redraw = `false`.
 
@@ -245,9 +251,36 @@ Removes ALL models.
 
 ##### \#pluck()
 Pluck a prop from each model.
+```javascript
+userCollection.pluck('id') 
+// Returns [123, 456, 789]
+```
+
+##### \#contains(mixed)
+Returns `true` if the model contains in the collection, otherwise `false`. Argument `mixed` is the same with `get()` method.
 
 ##### \#model()
-Get the associated model.
+Get the associated model constructor.
+
+##### \#stateOf(mixed)
+Get the state of a model in the collection. Argument `mixed` is the same with `get()` method.
+```javascript
+// Set state signature on creating collection
+var col = new md.Collection({
+   state : {
+      isEditing: true,
+      isLoading: false  
+   }
+})
+// Create user
+var user = new User()
+// Add user to collection
+col.add(user);
+// Retrieving state value
+col.stateOf(user).isEditing() // Returns `true`
+// Setting state
+col.stateOf(user).isEditing(false) // Sets and returns `false`
+```
 
 ##### \#url()
 Get the url.
@@ -280,6 +313,44 @@ Disposes the object by `null`-ing all properties of the object. Note that this m
 
 - - - -
 
+## State
+As known as View-Model. See Mithril's view-model description for more info.
+```javascript
+// Create state factory
+var stateFactory = new md.State({
+   isLoading: false,
+   isEditing: false
+})
+// Creating states 
+stateFactory.set('A');
+stateFactory.set('B');
+// Using states
+var component = {
+   controller: function() {
+      this.stateA = stateFactory.get('A')
+      this.stateA.isEditing(true)
+   },
+   view: function(ctrl) {
+      return m('div', 'Is editing ' + ctrl.stateA.isEditing()) // Displays `Is editing true`
+   }
+}
+
+```
+
+##### \#\<State>(signature)
+`signature` can be object or array
+
+##### \#set(key)
+Internally creates a new state by `key`.
+
+##### \#get(key)
+Get the state by `key`.
+
+##### \#remove(key)
+Removes the state by `key`.
+
+- - - -
+
 ## Configure & Customize
 Configuration must be set before using any of `mithril-data`'s functionality.
 ```javascript
@@ -300,6 +371,8 @@ All available config options:
 * **storeConfigOptions** - (function) a function to `manipulate the options` before sending data to data-store
 * **storeConfigXHR** - (function) a function to `manipulate XHR` before sending data to data-store. see Mithril's `m.request` for more info
 * **storeExtract** - (function) a function to trigger after receiving data from data-store. see Mithril's `m.request` for more info
+* **storeSerializer** - (function) a function that overrides data-store serializer. see Mithril's `m.request` for more info
+* **storeDeserializer** - (function) a function that overrides data-store deserializer. see Mithril's `m.request` for more info
 * **store** - (function) a function that handles the storing or data. defaults to `m.request`
 
 ##### storeConfigOptions

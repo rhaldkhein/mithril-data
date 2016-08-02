@@ -21,7 +21,7 @@ gulp.task('bundle', function() {
 		.pipe(gulp.dest(''));
 });
 
-gulp.task('release', ['version', 'bundle'], function() {
+gulp.task('release', function() {
 	return gulp.src('mithril-data.js')
 		.pipe(uglify())
 		.pipe(rename({

@@ -7,6 +7,7 @@ var m = require('mithril');
 var util = require('./util');
 var config = require('./global').config;
 var BaseModel = require('./baseModel');
+var State = require('./state');
 
 function Collection(options) {
 	this.models = [];
@@ -15,6 +16,13 @@ function Collection(options) {
 	};
 	if (options)
 		this.opt(options);
+	var state = this.__options.state;
+	if (state) {
+		if (!(state instanceof State)) {
+			state = new State(state);
+		}
+		this.__state = state;
+	}
 	_.bindAll(this, _.union(collectionBindMethods, config.collectionBindMethods));
 }
 
@@ -42,6 +50,8 @@ Collection.prototype = {
 			else
 				this.models.push(model.getJson());
 			model.attachCollection(this);
+			if (this.__state)
+				this.__state.set(model.lid());
 			added = true;
 		}
 		if (added && !silent)
@@ -148,8 +158,12 @@ Collection.prototype = {
 				}));
 			}
 		}
+		var model;
 		for (i = 0; i < removedModels.length; i++) {
-			removedModels[i].__model.detachCollection(this);
+			model = removedModels[i].__model;
+			model.detachCollection(this);
+			if (this.__state)
+				this.__state.remove(model.lid());
 		}
 		if (lastLength !== this.size()) {
 			if (!silent)
@@ -178,9 +192,10 @@ Collection.prototype = {
 		return this.remove(this.toArray(), silent);
 	},
 	pluck: function(key) {
-		var plucked = [];
+		var plucked = [],
+			isId = (key === 'id');
 		for (var i = 0, models = this.models; i < models.length; i++) {
-			plucked.push(models[i][key]);
+			plucked.push(isId ? models[i].__model[key]() : models[i][key]);
 		}
 		return plucked;
 	},
@@ -196,6 +211,27 @@ Collection.prototype = {
 	destroy: function() {
 		this.clear(true);
 		this.dispose();
+	},
+	stateOf: function(mixed) {
+		if (this.__state) {
+			var model = this.get(mixed);
+			if (model)
+				return this.__state.get(model.lid());
+		}
+	},
+	contains: function(mixed) {
+		if (mixed instanceof BaseModel) {
+			// mixed is a model and is in this collection.
+			return this.indexOf(mixed.getJson()) > -1;
+		} else if (_.isObject(mixed)) {
+			// Use `isObject` to include functions.
+			// If mixed contains `keyId` then search by id
+			if (mixed[config.keyId])
+				mixed = mixed[config.keyId];
+			else
+				return this.findIndex(mixed) > -1;
+		}
+		return this.findIndex([config.keyId, mixed]) > -1;
 	},
 	hasModel: function() {
 		return this.__options.model ? true : false;

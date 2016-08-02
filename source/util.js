@@ -86,7 +86,7 @@ module.exports = _.create(null, {
 			_.extend(objSource, objInject);
 	},
 	addMethods: function(dist, src, methods, distProp, retProp) {
-		// Need to be this loop (each). To retain value of methods' arguments.
+		// Need to use _.each loop. To retain value of methods' arguments.
 		_.each(methods, function(length, method) {
 			if (src[method]) {
 				switch (length) {
