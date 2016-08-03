@@ -1,6 +1,6 @@
 {
   "name": "mithril-data",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "A rich model library for Mithril javascript framework.",
   "homepage": "https://github.com/rhaldkhein/mithril-data",
   "main": "index.js",
@@ -30,6 +30,7 @@
     "gulp-replace": "^0.5.4",
     "gulp-uglify": "^1.5.3",
     "mocha": "^2.4.5",
+    "run-sequence": "^1.2.2",
     "shortid": "^2.2.6",
     "webpack-stream": "^3.2.0"
   },
