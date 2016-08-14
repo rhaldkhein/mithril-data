@@ -3,11 +3,10 @@ var gulp = require('gulp'),
 	rename = require('gulp-rename'),
 	header = require('gulp-header'),
 	replace = require('gulp-replace'),
-	webpack = require('webpack-stream');
+	webpack = require('webpack-stream'),
+	sequence = require('run-sequence');
 
 var package = require('./package.json');
-
-gulp.task('default', ['test']);
 
 gulp.task('version', function() {
 	return gulp.src('source/md.js')
@@ -21,7 +20,7 @@ gulp.task('bundle', function() {
 		.pipe(gulp.dest(''));
 });
 
-gulp.task('release', function() {
+gulp.task('minify', function() {
 	return gulp.src('mithril-data.js')
 		.pipe(uglify())
 		.pipe(rename({
@@ -39,4 +38,8 @@ gulp.task('release', function() {
 			pkg: package
 		}))
 		.pipe(gulp.dest(''));
+});
+
+gulp.task('release', function(callback) {
+	sequence('version', 'bundle', 'minify', callback);
 });

@@ -1,5 +1,5 @@
 /*!
- * mithril-data v0.1.2
+ * mithril-data v0.2.0
  * A rich model library for Mithril javascript framework.
  * https://github.com/rhaldkhein/mithril-data
  * (c) 2016 Kevin Villanueva
@@ -128,7 +128,7 @@
 
 	// Return the current version.
 	exports.version = function() {
-		return 'v0.1.2';//version
+		return 'v0.2.0';//version
 	};
 
 	// Export class Collection.
@@ -1180,6 +1180,7 @@
 	 */
 	var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
+	var defaultKey = '__key__';
 
 	// Class
 	function State(signature) {
@@ -1197,9 +1198,20 @@
 	// Exports
 	module.exports = State;
 
+	// Single state
+	State.create = function(signature) {
+		var state = {};
+		for (var prop in signature) {
+			state[prop] = m.prop(signature[prop]);
+		}
+		return state;
+	};
+
 	// Prototype
 	State.prototype = {
 		set: function(key) {
+			if (!key)
+				key = defaultKey;
 			if (!this.map[key]) {
 				this.map[key] = {
 					factory: m.prop(this)
@@ -1213,13 +1225,17 @@
 			return this.map[key];
 		},
 		get: function(key) {
+			if (!key)
+				key = defaultKey;
 			if (!this.map[key]) {
 				this.set(key);
 			}
 			return this.map[key];
 		},
 		remove: function(key) {
-			if (this.map[key]){
+			if (!key)
+				key = defaultKey;
+			if (this.map[key]) {
 				var b, keys = _.keys(this.map[key]);
 				for (b = 0; b < keys.length; b++) {
 					this.map[key][keys[b]] = null;

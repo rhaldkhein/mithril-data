@@ -3,6 +3,7 @@
  */
 var _ = require('lodash');
 var m = require('mithril');
+var defaultKey = '__key__';
 
 // Class
 function State(signature) {
@@ -20,9 +21,20 @@ function State(signature) {
 // Exports
 module.exports = State;
 
+// Single state
+State.create = function(signature) {
+	var state = {};
+	for (var prop in signature) {
+		state[prop] = m.prop(signature[prop]);
+	}
+	return state;
+};
+
 // Prototype
 State.prototype = {
 	set: function(key) {
+		if (!key)
+			key = defaultKey;
 		if (!this.map[key]) {
 			this.map[key] = {
 				factory: m.prop(this)
@@ -36,13 +48,17 @@ State.prototype = {
 		return this.map[key];
 	},
 	get: function(key) {
+		if (!key)
+			key = defaultKey;
 		if (!this.map[key]) {
 			this.set(key);
 		}
 		return this.map[key];
 	},
 	remove: function(key) {
-		if (this.map[key]){
+		if (!key)
+			key = defaultKey;
+		if (this.map[key]) {
 			var b, keys = _.keys(this.map[key]);
 			for (b = 0; b < keys.length; b++) {
 				this.map[key][keys[b]] = null;
