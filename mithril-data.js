@@ -952,7 +952,7 @@
 			var jsonModel;
 			if (mixed instanceof BaseModel) {
 				// mixed is a model and is in this collection.
-				return (this.indexOf(mixed.getJson()) > -1) ? mixed : undefined;
+				return this.contains(mixed) ? mixed : undefined;
 			} else if (_.isObject(mixed)) {
 				// Use `isObject` to include functions.
 				if (mixed[config.keyId])
