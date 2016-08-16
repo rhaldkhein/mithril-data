@@ -1,7 +1,7 @@
 {
   "name": "mithril-data",
-  "version": "0.2.0",
-  "description": "A rich model library for Mithril javascript framework.",
+  "version": "0.2.1",
+  "description": "A rich data model library for Mithril javascript framework.",
   "homepage": "https://github.com/rhaldkhein/mithril-data",
   "main": "index.js",
   "scripts": {
