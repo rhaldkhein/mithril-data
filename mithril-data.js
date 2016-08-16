@@ -518,8 +518,14 @@
 					return value;
 				}
 				value = store[key];
-				if (value && value.__model instanceof BaseModel)
+				if (value && value.__model instanceof BaseModel) {
 					value = value.__model;
+				} else if (_.isNil(value) && this.options && !_.isNil(this.options.defaults[key])) {
+					// If value is null or undefined and a default value exist.
+					// Return that default value which was set in schema.
+					value = this.options.defaults[key];
+				}
+
 				return value;
 			}
 			// Add toJSON method to prop.

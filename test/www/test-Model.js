@@ -91,6 +91,22 @@ describe("Model Instance", function() {
 		expect(user.__options.test).to.be.equal('test');
 	});
 
+	it("return the default value set in schema if value of prop is `undefined` or `null`", function() {
+		var ModelUserTest = md.model({
+			name: 'ModelUserTest',
+			props: ['test'],
+			defaults: {
+				test: 'Foo'
+			}
+		});
+		var user = new ModelUserTest();
+		expect(user.test()).to.be.equal('Foo');
+		user.test(undefined);
+		expect(user.test()).to.be.equal('Foo');
+		user.test(null);
+		expect(user.test()).to.be.equal('Foo');
+	});
+
 });
 
 describe("Model.<properties>", function() {
@@ -184,7 +200,7 @@ describe("Model.<methods>", function() {
 			user.opt('key');
 			expect(user.__options.key).to.be.equal(true);
 		});
-		
+
 		it("can set falsy except `undefined`", function() {
 			var user = new Model.User();
 			user.opt('key', false);
