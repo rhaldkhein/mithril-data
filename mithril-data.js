@@ -1187,6 +1187,28 @@
 	var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
 	var defaultKey = '__key__';
+	var privateKeys = ['toJson', 'factory'];
+
+	function toJson() {
+		var json = {};
+		for (var prop in this) {
+			if (_.indexOf(privateKeys, prop) === -1) {
+				json[prop] = this[prop]();
+			}
+		}
+		return json;
+	}
+
+	function createState(signature, state) {
+		var propVal;
+		for (var prop in signature) {
+			if (_.indexOf(privateKeys, prop) > -1)
+				throw new Error('State key `' + prop + '` is not allowed.');
+			propVal = signature[prop];
+			state[prop] = _.isFunction(propVal) ? propVal : m.prop(propVal);
+		}
+		return state;
+	}
 
 	// Class
 	function State(signature) {
@@ -1206,11 +1228,9 @@
 
 	// Single state
 	State.create = function(signature) {
-		var state = {};
-		for (var prop in signature) {
-			state[prop] = m.prop(signature[prop]);
-		}
-		return state;
+		return createState(signature, {
+			toJson: toJson
+		});
 	};
 
 	// Prototype
@@ -1219,14 +1239,10 @@
 			if (!key)
 				key = defaultKey;
 			if (!this.map[key]) {
-				this.map[key] = {
-					factory: m.prop(this)
-				};
-				for (var prop in this.signature) {
-					if (prop === 'factory')
-						throw new Error('State key `factory` is not allowed.');
-					this.map[key][prop] = m.prop(this.signature[prop]);
-				}
+				this.map[key] = createState(this.signature, {
+					factory: m.prop(this),
+					toJson: toJson
+				});
 			}
 			return this.map[key];
 		},

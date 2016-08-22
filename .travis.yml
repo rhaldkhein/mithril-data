@@ -3,4 +3,7 @@ node_js:
   - stable
 before_script:
   - npm install -g mocha-phantomjs
+branches:
+  only:
+  - master
 sudo: false
