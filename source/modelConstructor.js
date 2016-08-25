@@ -60,11 +60,20 @@ ModelConstructor.prototype = {
 		var d = m.deferred();
 		store.get(url, data, options)
 			.then(function(data) {
-				// data = complete list of models.
-				var models = self.createModels(data);
+				// `data` can be either array of model or object with
+				// additional information (like total result and pagination)
+				// and a property with value of array of models
+				var models;
+				if (options && options.dataPath) {
+					models = self.createModels(_.get(data, options.dataPath));
+					data[options.dataPath] = models;
+				} else {
+					models = self.createModels(data);
+				}
 				self.__flagSaved(models);
-				d.resolve(models);
-				if (_.isFunction(callback)) callback(null, models);
+				// Resolve the raw data from server as it might contain additional information
+				d.resolve(data);
+				if (_.isFunction(callback)) callback(null, data);
 			}, function(err) {
 				d.reject(err);
 				if (_.isFunction(callback)) callback(err);

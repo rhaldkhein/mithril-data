@@ -255,10 +255,10 @@ Collection.prototype = {
 		var d = m.deferred();
 		if (this.hasModel) {
 			var self = this;
-			this.model().pull(this.url(), query, options).then(function(models) {
-				self.addAll(models);
-				d.resolve(self);
-				if (_.isFunction(callback)) callback(null, self);
+			this.model().pull(this.url(), query, options).then(function(data) {
+				self.addAll(options && options.dataPath ? _.get(data, options.dataPath) : data);
+				d.resolve(data);
+				if (_.isFunction(callback)) callback(null, data);
 			}, function(err) {
 				d.reject(err);
 				if (_.isFunction(callback)) callback(err);

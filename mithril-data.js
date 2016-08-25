@@ -387,31 +387,39 @@
 			}
 			return deep ? _.cloneDeep(copy) : copy;
 		},
-		save: function(callback) {
+		save: function(options, callback) {
+			if (_.isFunction(options)) {
+				callback = options;
+				options = undefined;
+			}
 			var self = this;
 			var d = m.deferred();
 			var req = this.id() ? store.put : store.post;
-			req.call(store, this.url(), this).then(function(data) {
-				self.set(data);
+			req.call(store, this.url(), this, options).then(function(data) {
+				self.set(options && options.dataPath ? _.get(data, options.dataPath) : data);
 				self.__saved = true;
-				d.resolve(self);
-				if (_.isFunction(callback)) callback(null, self);
+				d.resolve(data);
+				if (_.isFunction(callback)) callback(null, self, data);
 			}, function(err) {
 				d.reject(err);
 				if (_.isFunction(callback)) callback(err);
 			});
 			return d.promise;
 		},
-		fetch: function(callback) {
+		fetch: function(options, callback) {
+			if (_.isFunction(options)) {
+				callback = options;
+				options = undefined;
+			}
 			var self = this;
 			var d = m.deferred();
 			var id = this.__getDataId();
 			if (id[config.keyId]) {
-				store.get(this.url(), id).then(function(data) {
-					self.set(data);
+				store.get(this.url(), id, options).then(function(data) {
+					self.set(options && options.dataPath ? _.get(data, options.dataPath) : data);
 					self.__saved = true;
-					d.resolve(self);
-					if (_.isFunction(callback)) callback(null, self);
+					d.resolve(data);
+					if (_.isFunction(callback)) callback(null, self, data);
 				}, function(err) {
 					d.reject(err);
 					if (_.isFunction(callback)) callback(err);
@@ -422,13 +430,17 @@
 			}
 			return d.promise;
 		},
-		destroy: function(callback) {
+		destroy: function(options, callback) {
+			if (_.isFunction(options)) {
+				callback = options;
+				options = undefined;
+			}
 			// Destroy the model. Will sync to store.
 			var self = this;
 			var d = m.deferred();
 			var id = this.__getDataId();
 			if (id[config.keyId]) {
-				store.destroy(this.url(), id).then(function(data) {
+				store.destroy(this.url(), id, options).then(function() {
 					self.detach();
 					d.resolve();
 					if (_.isFunction(callback)) callback(null);
@@ -1113,10 +1125,10 @@
 			var d = m.deferred();
 			if (this.hasModel) {
 				var self = this;
-				this.model().pull(this.url(), query, options).then(function(models) {
-					self.addAll(models);
-					d.resolve(self);
-					if (_.isFunction(callback)) callback(null, self);
+				this.model().pull(this.url(), query, options).then(function(data) {
+					self.addAll(options && options.dataPath ? _.get(data, options.dataPath) : data);
+					d.resolve(data);
+					if (_.isFunction(callback)) callback(null, data);
 				}, function(err) {
 					d.reject(err);
 					if (_.isFunction(callback)) callback(err);
@@ -1348,11 +1360,20 @@
 			var d = m.deferred();
 			store.get(url, data, options)
 				.then(function(data) {
-					// data = complete list of models.
-					var models = self.createModels(data);
+					// `data` can be either array of model or object with
+					// additional information (like total result and pagination)
+					// and a property with value of array of models
+					var models;
+					if (options && options.dataPath) {
+						models = self.createModels(_.get(data, options.dataPath));
+						data[options.dataPath] = models;
+					} else {
+						models = self.createModels(data);
+					}
 					self.__flagSaved(models);
-					d.resolve(models);
-					if (_.isFunction(callback)) callback(null, models);
+					// Resolve the raw data from server as it might contain additional information
+					d.resolve(data);
+					if (_.isFunction(callback)) callback(null, data);
 				}, function(err) {
 					d.reject(err);
 					if (_.isFunction(callback)) callback(err);
