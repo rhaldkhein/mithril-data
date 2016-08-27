@@ -12,14 +12,14 @@ Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
 	return obj;
 };
 
-function createModelConstructor(options) {
+function createModelConstructor(schema) {
 	// Resolve model options. Mutates the object.
-	resolveModelOptions(options);
+	resolveSchemaOptions(schema);
 	// The model constructor.
 	function Model(vals, opts) {
 		var data = vals || {};
-		var refs = options.refs;
-		var props = options.props;
+		var refs = schema.refs;
+		var props = schema.props;
 		var initial;
 		// Make user id is in prop;
 		if (_.indexOf(props, config.keyId) === -1) {
@@ -39,7 +39,7 @@ function createModelConstructor(options) {
 			if (!_.hasIn(this, value) || value === 'id') {
 				// Use default if data is not available. Only `undefined` should change to default.
 				// In order to accept other falsy value. Like, `false` and `0`.
-				this[value] = this.__gettersetter(_.isUndefined(data[value]) ? options.defaults[value] : data[value], value);
+				this[value] = this.__gettersetter(_.isUndefined(data[value]) ? schema.defaults[value] : data[value], value);
 			} else {
 				throw new Error('`' + value + '` prop is not allowed.');
 			}
@@ -47,15 +47,15 @@ function createModelConstructor(options) {
 	}
 	// Make sure that it options.methods does not create
 	// conflict with internal methods.
-	var conflict = util.isConflictExtend(BaseModel.prototype, options.methods);
+	var conflict = util.isConflictExtend(BaseModel.prototype, schema.methods);
 	if (conflict) {
 		throw new Error('`' + conflict + '` method is not allowed.');
 	}
 	// Attach the options to model constructor.
-	Model.modelOptions = options;
+	Model.modelOptions = schema;
 	// Extend from base model prototype.
-	Model.prototype = _.create(BaseModel.prototype, _.assign(options.methods || {}, {
-		options: options,
+	Model.prototype = _.create(BaseModel.prototype, _.assign(schema.methods || {}, {
+		options: schema,
 	}));
 	// Link model controller prototype.
 	Object.setPrototypeOf(Model, ModelConstructor.prototype);
@@ -63,10 +63,11 @@ function createModelConstructor(options) {
 	return Model;
 }
 
-function resolveModelOptions(options) {
+function resolveSchemaOptions(options) {
 	options.defaults = options.defaults || {};
 	options.props = _.union(options.props || [], _.keys(options.defaults));
 	options.refs = options.refs || {};
+	options.parsers = options.parsers || {};
 }
 
 /**
@@ -75,7 +76,7 @@ function resolveModelOptions(options) {
 
 // Return the current version.
 exports.version = function() {
-	return 'v0.2.0';//version
+	return 'v0.0.0';//version
 };
 
 // Export class Collection.
@@ -88,12 +89,12 @@ exports.State = require('./state');
 exports.store = require('./store');
 
 // Export model instantiator.
-exports.model = function(modelOptions, ctrlOptions) {
-	modelOptions = modelOptions || {};
+exports.model = function(schemaOptions, ctrlOptions) {
+	schemaOptions = schemaOptions || {};
 	ctrlOptions = ctrlOptions || {};
-	if (!modelOptions.name)
+	if (!schemaOptions.name)
 		throw new Error('Model name must be set.');
-	var modelConstructor = modelConstructors[modelOptions.name] = createModelConstructor(modelOptions);
+	var modelConstructor = modelConstructors[schemaOptions.name] = createModelConstructor(schemaOptions);
 	modelConstructor.__init(ctrlOptions);
 	return modelConstructor;
 };

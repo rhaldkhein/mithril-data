@@ -90,6 +90,8 @@ BaseModel.prototype = {
 	set: function(obj, value, silent) {
 		var isModel = obj instanceof BaseModel;
 		if (isModel || _.isPlainObject(obj)) {
+			// console.log(this);
+			// var newObj = this.__options
 			var keys = _.keys(obj);
 			for (var i = keys.length - 1, key, val; i >= 0; i--) {
 				key = keys[i];
@@ -144,9 +146,9 @@ BaseModel.prototype = {
 		var d = m.deferred();
 		var req = this.id() ? store.put : store.post;
 		req.call(store, this.url(), this, options).then(function(data) {
-			self.set(options && options.dataPath ? _.get(data, options.dataPath) : data);
+			self.set(options && options.path ? _.get(data, options.path) : data);
 			self.__saved = true;
-			d.resolve(data);
+			d.resolve(self);
 			if (_.isFunction(callback)) callback(null, self, data);
 		}, function(err) {
 			d.reject(err);
@@ -164,9 +166,9 @@ BaseModel.prototype = {
 		var id = this.__getDataId();
 		if (id[config.keyId]) {
 			store.get(this.url(), id, options).then(function(data) {
-				self.set(options && options.dataPath ? _.get(data, options.dataPath) : data);
+				self.set(options && options.path ? _.get(data, options.path) : data);
 				self.__saved = true;
-				d.resolve(data);
+				d.resolve(self);
 				if (_.isFunction(callback)) callback(null, self, data);
 			}, function(err) {
 				d.reject(err);

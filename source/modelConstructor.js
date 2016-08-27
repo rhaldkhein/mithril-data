@@ -38,13 +38,19 @@ ModelConstructor.prototype = {
 			model: this
 		}, options));
 	},
-	createModels: function(data) {
+	createModels: function(data, options) {
 		if (!_.isArray(data))
 			data = [data];
+		var modelOpt;
+		if (options && options.parser) {
+			modelOpt = {
+				parser: options.parser
+			};
+		}
 		for (var i = 0; i < data.length; i++) {
 			if (!_.isPlainObject(data[i]))
 				throw new Error('Plain object required');
-			data[i] = new this(data[i]);
+			data[i] = new this(data[i], modelOpt);
 		}
 		return data;
 	},
@@ -63,17 +69,11 @@ ModelConstructor.prototype = {
 				// `data` can be either array of model or object with
 				// additional information (like total result and pagination)
 				// and a property with value of array of models
-				var models;
-				if (options && options.dataPath) {
-					models = self.createModels(_.get(data, options.dataPath));
-					data[options.dataPath] = models;
-				} else {
-					models = self.createModels(data);
-				}
+				var models = self.createModels(options && options.path ? _.get(data, options.path) : data, options);
 				self.__flagSaved(models);
 				// Resolve the raw data from server as it might contain additional information
-				d.resolve(data);
-				if (_.isFunction(callback)) callback(null, data);
+				d.resolve(models);
+				if (_.isFunction(callback)) callback(null, models, data);
 			}, function(err) {
 				d.reject(err);
 				if (_.isFunction(callback)) callback(err);
