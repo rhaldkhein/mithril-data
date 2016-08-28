@@ -253,8 +253,11 @@ Collection.prototype = {
 			options = undefined;
 		}
 		var d = m.deferred();
-		if (this.hasModel) {
+		if (this.hasModel()) {
 			var self = this;
+			options = options || {};
+			if (!options.parser && this.__options.parser)
+				options.parser = this.__options.parser;
 			this.model().pull(this.url(), query, options, function(err, response, models) {
 				if (err) {
 					d.reject(err);

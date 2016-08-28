@@ -43,9 +43,9 @@ var noteSchema = {
 }
 ```
 
-All available schema options:  (* required)
-* **name \*** - (string, required) name of the model
-* **props \*** - (string array, required) list of model props
+All available schema options:
+* **name** - (string, **required**) name of the model
+* **props** - (string array, **required**) list of model props
 * **defaults** - (object {prop:value}) default value of props
 * **refs** - (object {prop:model}) list of references to other models
 * **url** - (string) the specific url of the model. defaults to model's `name`
@@ -74,9 +74,11 @@ parsers : {
 // Then when you update a model
 note.setObject(responseObject, 'sourceA')
 // Or when you call `fetch()`
-collectionNotes.fetch({parser: 'sourceA'})
-// Or when you create a model. And no need to specify a parser in `set()` or `fetch()`
+collectionNotes.fetch({query: 'keyword'}, {parser: 'sourceA'})
+// Or when you create a model or collection.
+// And no need to specify a parser in `set()` or `fetch()`
 var note = new Note(null, {parser: 'sourceA'})
+var coll = new md.Collection({parser: 'sourceA'})
 ```
 
 - - - -
@@ -108,7 +110,8 @@ noteA.save().then(fnResolve, fnReject)
 Creates an instance of model.
 * **initials** - (object {prop:value}) initial values of props
 * **options** - (object) specific options to model instance
-  * **redraw** - (boolean) redraw 
+  * **redraw** - (boolean) redraw
+  * **parser** - (string) set the parser
 
 #### \#\<prop>([value, silent])
 Get or set value of prop. If auto-redraw is enabled, pass `true` at the end to set without redrawing.
@@ -238,6 +241,7 @@ All available collection options:
 * **url** - (string) the specific url of the collection. defaults to associated model's `name`
 * **redraw** - (boolean) trigger a redraw when the collection is updated. Defaults to `false`
 * **state** - (State | object | array) set a state factory (View-Model) for the collection. See `#stateOf()` method and `md.State()` for more info.
+* **parser** - (string) set the parser for contained models. Only applicable if model option is set
 
 > A collection with redraw = `true` will always trigger a `redraw` even though the contained model has redraw = `false`.
 
