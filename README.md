@@ -1,9 +1,11 @@
 # mithril-data
+
 A rich data model library for Mithril javascript framework.
 
 [![Build Status](https://travis-ci.org/rhaldkhein/mithril-data.svg?branch=master)](https://travis-ci.org/rhaldkhein/mithril-data)
 
 #### Features
+
 * Create brilliant application with **Schema**-based **Model** and **Collection**
 * Enriched with **Lodash** methods, integrated into Model & Collection
 * **Auto Redraw** on Model & Collection changes
@@ -12,12 +14,14 @@ A rich data model library for Mithril javascript framework.
 * and many more ...
 
 #### Prerequisite
+
 - [Mithril](http://mithril.js.org/)
 - [Lodash](http://lodash.com/)
 
 - - - -
 
 ## Schema
+
 ```javascript
 var userSchema = {
    name : 'User',
@@ -38,17 +42,42 @@ var noteSchema = {
    redraw : true
 }
 ```
-All available schema options:
-* **name** - (string, required) name of the model
-* **props** - (string array, required) list of model props
+
+All available schema options:  (* required)
+* **name \*** - (string, required) name of the model
+* **props \*** - (string array, required) list of model props
 * **defaults** - (object {prop:value}) default value of props
 * **refs** - (object {prop:model}) list of references to other models
 * **url** - (string) the specific url of the model. defaults to model's `name`
 * **redraw** - (boolean) trigger a redraw when a model with this schema is updated. defaults to `false`
-* **methods** - (object {name:function}) add custom methods to all models (by schema)
-* **parsers** - (object {name:function}) add parser methods
+* **methods** - (object {name:function}) add custom methods to model instances (by schema)
+* **parsers** - (object {name:function}) add data parser methods
 
--
+Additional information:
+
+**: parsers** - An option to parse different data object.
+
+```javascript
+// Parsers for Notes schema
+parsers : {
+  sourceA : function(obj) {
+    return {
+      title : obj.wrap.title,
+      body : obj.wrap.inner.body,
+      author : obj.wrap.inner.author
+    }
+  },
+  sourceB : function(obj) {
+    // Another obj format
+  }
+}
+// Then when you update a model
+note.setObject(responseObject, 'sourceA')
+// Or when you call `fetch()`
+collectionNotes.fetch({parser: 'sourceA'})
+// Or when you create a model. And no need to specify a parser in `set()` or `fetch()`
+var note = new Note(null, {parser: 'sourceA'})
+```
 
 - - - -
 
@@ -108,13 +137,20 @@ Get the local ID of model. This ID is generated automatically when model is crea
 Get the url. It return the combination of `baseUrl` and the models' `url`.
 
 #### \#set(key[, value, silent])
-Set a value or multiple values using object on the model. 
+Set a value to a prop of the model. 
 ```javascript
 user.set('name', 'Foo') // Sets single prop
+// Silent set, will NOT trigger the auto redraw
+user.set('age', 34, true) // Pass true at the end
+```
+
+#### \#setObject(obj[, parser, silent])
+Set multiple values at once using object. 
+```javascript
 user.set({name: 'Bar', age: 12}) // Sets multiple props using object
 user.set(existingModelInstance) // Sets multiple props user existing model instance
 // Silent set, will NOT trigger the auto redraw
-user.set('age', 34, true) // Pass true at the end
+user.set({age: 32}, 'parserName', true) // Pass true at the end
 ```
 
 #### \#get(key)
@@ -145,8 +181,8 @@ A flag to identify the save state. The model is considered saved if it's fresh f
 #### \#isNew()
 A flag to identify if the model is new or not. The model is considered new if it does not have ID and is not saved.
 
-#### \#save([callback])
-Saves the model to data store. To check for result, you can use either `callback` or `then`. Callback arguments are `(err, model)`.
+#### \#save([options, callback])
+Saves the model to data store. To check for result, you can use either `callback` or `then`. Callback arguments are `(err, response, model)`. Properties for `options` is the same with `m.request`'s options but with additional `path` string and `parser` string properties. `path` is the path to actual value for the model in the response object. Like in `response:{outer:{model:{}}}` will be `"outer.model"`.
 ```javascript
 user.save()
    .then(
@@ -158,15 +194,15 @@ user.save()
    )
 ```
 
-#### \#fetch([callback])
-Fetches the model from data store. Model ID required to fetch. This method also accept `callback` or `then`.
+#### \#fetch([options, callback])
+Fetches the model from data store. Model ID required to fetch. This method also accept `callback` or `then`. Properties for `options` is the same with `#save()`'s options.
 ```javascript
 user.id('abc123')
 user.fetch().then( function (model) { /* Success! model now have other prop values */ } );
 ```
 
-#### \#destroy([callback])
-Destroys the model from data store and triggers `remove` method. Also accept `callback` or `then`.
+#### \#destroy([options, callback])
+Destroys the model from data store and triggers `remove` method. Also accept `callback` or `then`. Parameter `options` is the same with `#save()`'s options.
 
 #### \#\<lodash methods>()
 Model includes few methods of Lodash. `has`, `keys`, `values`, `pick`, and `omit`. See **Lodash** for info.
@@ -289,7 +325,7 @@ col.stateOf(user).isEditing(false) // Sets and returns `false`
 Get the url.
 
 #### \#fetch(query[, options, callback])
-Query to data store and populate the collection.
+Query to data store and populate the collection. Callback arguments are `(err, response, models)`. Properties for `options` is the same with `m.request`'s options but with additional `path` string and `parser` string properties. `path` is the path to actual array of items for the collection in the response object. Like in `response:{outer:{items:[]}}` will be `"outer.items"`.
 ```javascript
 userCollection.fetch({ age : 30 }).then(function (){
    // Success! `userCollection` now have models with age 30
@@ -316,7 +352,7 @@ Disposes the object by `null`-ing all properties of the object. Note that this m
 
 - - - -
 
-## State `View-Model`
+## State
 Also known as View-Model. See Mithril's view-model description for more info.
 ```javascript
 // Create state factory
@@ -463,7 +499,3 @@ HTML: (`md` is automatically exposed to browser's global scope)
 
 ### License
 MIT
-
-
-
-
