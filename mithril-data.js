@@ -65,12 +65,21 @@
 		return obj;
 	};
 
+	/**
+	 * `this.__options` is instance options, registered in `new Model(<values>, <__options>)`.
+	 * `this.options` is schema options, registered in `m.model(schema)`.
+	 */
+
 	function createModelConstructor(schema) {
 		// Resolve model options. Mutates the object.
 		resolveSchemaOptions(schema);
 		// The model constructor.
 		function Model(vals, opts) {
-			var data = vals || {};
+			// Calling parent class.
+			BaseModel.call(this, opts);
+			// Local variables.
+			var parser = this.__options.parser;
+			var data = (parser ? this.options.parsers[parser](vals) : vals) || {};
 			var refs = schema.refs;
 			var props = schema.props;
 			var initial;
@@ -78,8 +87,6 @@
 			if (_.indexOf(props, config.keyId) === -1) {
 				props.push(config.keyId);
 			}
-			// Calling parent class.
-			BaseModel.call(this, opts);
 			// Adding props.
 			for (var i = 0, value; i < props.length; i++) {
 				value = props[i];
@@ -129,7 +136,7 @@
 
 	// Return the current version.
 	exports.version = function() {
-		return 'v0.0.0';//version
+		return 'v0.0.0'; //version
 	};
 
 	// Export class Collection.
@@ -343,9 +350,8 @@
 		set: function(obj, value, silent) {
 			var isModel = obj instanceof BaseModel;
 			if (isModel || _.isPlainObject(obj)) {
-				// console.log(this);
-				// var newObj = this.__options
-				var keys = _.keys(obj);
+				var parser = this.__options.parser;
+				var keys = _.keys(!isModel && parser ? this.options.parsers[parser](obj) : obj);
 				for (var i = keys.length - 1, key, val; i >= 0; i--) {
 					key = keys[i];
 					val = obj[key];
@@ -402,7 +408,7 @@
 				self.set(options && options.path ? _.get(data, options.path) : data);
 				self.__saved = true;
 				d.resolve(self);
-				if (_.isFunction(callback)) callback(null, self, data);
+				if (_.isFunction(callback)) callback(null, data, self);
 			}, function(err) {
 				d.reject(err);
 				if (_.isFunction(callback)) callback(err);
@@ -422,7 +428,7 @@
 					self.set(options && options.path ? _.get(data, options.path) : data);
 					self.__saved = true;
 					d.resolve(self);
-					if (_.isFunction(callback)) callback(null, self, data);
+					if (_.isFunction(callback)) callback(null, data, self);
 				}, function(err) {
 					d.reject(err);
 					if (_.isFunction(callback)) callback(err);
@@ -1128,14 +1134,14 @@
 			var d = m.deferred();
 			if (this.hasModel) {
 				var self = this;
-				this.model().pull(this.url(), query, options, function(err, models, response) {
+				this.model().pull(this.url(), query, options, function(err, response, models) {
 					if (err) {
-						d.reject(true);
-						if (_.isFunction(callback)) callback(true);
+						d.reject(err);
+						if (_.isFunction(callback)) callback(err);
 					} else {
 						self.addAll(models);
 						d.resolve(models);
-						if (_.isFunction(callback)) callback(null, models);
+						if (_.isFunction(callback)) callback(null, response, models);
 					}
 				});
 			} else {
@@ -1346,7 +1352,7 @@
 		createModels: function(data, options) {
 			if (!_.isArray(data))
 				data = [data];
-			var modelOpt;
+			var modelOpt, models = [];
 			if (options && options.parser) {
 				modelOpt = {
 					parser: options.parser
@@ -1355,9 +1361,9 @@
 			for (var i = 0; i < data.length; i++) {
 				if (!_.isPlainObject(data[i]))
 					throw new Error('Plain object required');
-				data[i] = new this(data[i], modelOpt);
+				models[i] = new this(data[i], modelOpt);
 			}
-			return data;
+			return models;
 		},
 		pull: function(url, data, options, callback) {
 			if (_.isFunction(data)) {
@@ -1378,7 +1384,7 @@
 					self.__flagSaved(models);
 					// Resolve the raw data from server as it might contain additional information
 					d.resolve(models);
-					if (_.isFunction(callback)) callback(null, models, data);
+					if (_.isFunction(callback)) callback(null, data, models);
 				}, function(err) {
 					d.reject(err);
 					if (_.isFunction(callback)) callback(err);

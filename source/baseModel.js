@@ -90,9 +90,8 @@ BaseModel.prototype = {
 	set: function(obj, value, silent) {
 		var isModel = obj instanceof BaseModel;
 		if (isModel || _.isPlainObject(obj)) {
-			// console.log(this);
-			// var newObj = this.__options
-			var keys = _.keys(obj);
+			var parser = this.__options.parser;
+			var keys = _.keys(!isModel && parser ? this.options.parsers[parser](obj) : obj);
 			for (var i = keys.length - 1, key, val; i >= 0; i--) {
 				key = keys[i];
 				val = obj[key];
@@ -149,7 +148,7 @@ BaseModel.prototype = {
 			self.set(options && options.path ? _.get(data, options.path) : data);
 			self.__saved = true;
 			d.resolve(self);
-			if (_.isFunction(callback)) callback(null, self, data);
+			if (_.isFunction(callback)) callback(null, data, self);
 		}, function(err) {
 			d.reject(err);
 			if (_.isFunction(callback)) callback(err);
@@ -169,7 +168,7 @@ BaseModel.prototype = {
 				self.set(options && options.path ? _.get(data, options.path) : data);
 				self.__saved = true;
 				d.resolve(self);
-				if (_.isFunction(callback)) callback(null, self, data);
+				if (_.isFunction(callback)) callback(null, data, self);
 			}, function(err) {
 				d.reject(err);
 				if (_.isFunction(callback)) callback(err);

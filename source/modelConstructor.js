@@ -41,7 +41,7 @@ ModelConstructor.prototype = {
 	createModels: function(data, options) {
 		if (!_.isArray(data))
 			data = [data];
-		var modelOpt;
+		var modelOpt, models = [];
 		if (options && options.parser) {
 			modelOpt = {
 				parser: options.parser
@@ -50,9 +50,9 @@ ModelConstructor.prototype = {
 		for (var i = 0; i < data.length; i++) {
 			if (!_.isPlainObject(data[i]))
 				throw new Error('Plain object required');
-			data[i] = new this(data[i], modelOpt);
+			models[i] = new this(data[i], modelOpt);
 		}
-		return data;
+		return models;
 	},
 	pull: function(url, data, options, callback) {
 		if (_.isFunction(data)) {
@@ -73,7 +73,7 @@ ModelConstructor.prototype = {
 				self.__flagSaved(models);
 				// Resolve the raw data from server as it might contain additional information
 				d.resolve(models);
-				if (_.isFunction(callback)) callback(null, models, data);
+				if (_.isFunction(callback)) callback(null, data, models);
 			}, function(err) {
 				d.reject(err);
 				if (_.isFunction(callback)) callback(err);

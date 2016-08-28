@@ -12,12 +12,21 @@ Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
 	return obj;
 };
 
+/**
+ * `this.__options` is instance options, registered in `new Model(<values>, <__options>)`.
+ * `this.options` is schema options, registered in `m.model(schema)`.
+ */
+
 function createModelConstructor(schema) {
 	// Resolve model options. Mutates the object.
 	resolveSchemaOptions(schema);
 	// The model constructor.
 	function Model(vals, opts) {
-		var data = vals || {};
+		// Calling parent class.
+		BaseModel.call(this, opts);
+		// Local variables.
+		var parser = this.__options.parser;
+		var data = (parser ? this.options.parsers[parser](vals) : vals) || {};
 		var refs = schema.refs;
 		var props = schema.props;
 		var initial;
@@ -25,8 +34,6 @@ function createModelConstructor(schema) {
 		if (_.indexOf(props, config.keyId) === -1) {
 			props.push(config.keyId);
 		}
-		// Calling parent class.
-		BaseModel.call(this, opts);
 		// Adding props.
 		for (var i = 0, value; i < props.length; i++) {
 			value = props[i];
@@ -76,7 +83,7 @@ function resolveSchemaOptions(options) {
 
 // Return the current version.
 exports.version = function() {
-	return 'v0.0.0';//version
+	return 'v0.0.0'; //version
 };
 
 // Export class Collection.

@@ -963,6 +963,36 @@ describe("Collection.<methods>", function() {
 			});
 		});
 
+		it("success fetch using callback", function(done) {
+			var colA = new md.Collection({
+				model: Model.User
+			});
+			colA.fetch([_ids[2], _ids[3]], function(err, response, models) {
+				if (err) {
+					done(err);
+					return;
+				} else {
+					try {
+						var moA = colA.models[0];
+						expect(moA.id).to.equal(_models[moA.id].id())
+						expect(moA.name).to.equal(_models[moA.id].name())
+						var moB = colA.models[1];
+						expect(moB.id).to.equal(_models[moB.id].id())
+						expect(moB.name).to.equal(_models[moB.id].name())
+						expect(response.length).to.equal(2);
+						expect(response[0].id).to.equal(moA.id);
+						expect(response[0].name).to.equal(moA.name);
+						expect(response[1].id).to.equal(moB.id);
+						expect(response[1].name).to.equal(moB.name);
+						done();
+					} catch (e) {
+						done(e);
+					}
+				}
+			});
+
+		});
+
 	});
 
 });
