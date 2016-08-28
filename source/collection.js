@@ -255,13 +255,15 @@ Collection.prototype = {
 		var d = m.deferred();
 		if (this.hasModel) {
 			var self = this;
-			this.model().pull(this.url(), query, options).then(function(models) {
-				self.addAll(models);
-				d.resolve(self);
-				if (_.isFunction(callback)) callback(null, self);
-			}, function(err) {
-				d.reject(err);
-				if (_.isFunction(callback)) callback(err);
+			this.model().pull(this.url(), query, options, function(err, response, models) {
+				if (err) {
+					d.reject(err);
+					if (_.isFunction(callback)) callback(err);
+				} else {
+					self.addAll(models);
+					d.resolve(models);
+					if (_.isFunction(callback)) callback(null, response, models);
+				}
 			});
 		} else {
 			d.reject(true);

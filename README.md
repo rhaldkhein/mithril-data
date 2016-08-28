@@ -46,6 +46,9 @@ All available schema options:
 * **url** - (string) the specific url of the model. defaults to model's `name`
 * **redraw** - (boolean) trigger a redraw when a model with this schema is updated. defaults to `false`
 * **methods** - (object {name:function}) add custom methods to all models (by schema)
+* **parsers** - (object {name:function}) add parser methods
+
+-
 
 - - - -
 

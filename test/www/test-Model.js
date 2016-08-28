@@ -50,6 +50,23 @@ describe("Model Instance", function() {
 		expect(noteB.author().name()).to.be.equal('TestUser');
 	});
 
+	it("create instance with parser", function() {
+		var noteA = new Model.Note({
+			wrap: {
+				title: 'Title',
+				inner: {
+					body: 'Body',
+					author: 'Author'
+				}
+			}
+		}, {
+			parser: 'parserFoo'
+		});
+		expect(noteA.title()).to.equal('Title');
+		expect(noteA.body()).to.equal('Body');
+		expect(noteA.author()).to.equal('Author');
+	});
+
 	it("prop defaults to `undefined`", function() {
 		var user = new Model.User();
 		expect(user.profile()).to.be.undefined;
@@ -316,6 +333,22 @@ describe("Model.<methods>", function() {
 			expect(note.author().name()).to.equal('Test');
 		});
 
+		it("set by object with parser", function() {
+			var note = new Model.Note();
+			note.set({
+				wrap: {
+					title: 'Foo',
+					inner: {
+						body: 'Bar',
+						author: 'Authx'
+					}
+				}
+			}, true, 'parserFoo');
+			expect(note.title()).to.equal('Foo');
+			expect(note.body()).to.equal('Bar');
+			expect(note.author()).to.equal('Authx');
+		});
+
 		it("set by key & value", function() {
 			var note = new Model.Note();
 			var user = new Model.User();
@@ -354,6 +387,37 @@ describe("Model.<methods>", function() {
 			expect(function() {
 				user.set('noprop', 'Foo');
 			}).to.throw(Error);
+		});
+
+	});
+
+	describe("#setObject()", function() {
+		"use strict";
+
+		it("successful set ", function() {
+			var user = new Model.User();
+			user.setObject({
+				name: 'Foo',
+				age: 32
+			});
+			expect(user.name()).to.equal('Foo');
+			expect(user.age()).to.equal(32);
+		});
+
+		it("successful set with parser", function() {
+			var note = new Model.Note();
+			note.setObject({
+				wrap: {
+					title: 'Foo',
+					inner: {
+						body: 'Bar',
+						author: 'Auth'
+					}
+				}
+			}, 'parserFoo');
+			expect(note.title()).to.equal('Foo');
+			expect(note.body()).to.equal('Bar');
+			expect(note.author()).to.equal('Auth');
 		});
 
 	});
@@ -576,12 +640,14 @@ describe("Model.<methods>", function() {
 		it("save result through callback", function(done) {
 			var user = new Model.User();
 			user.name("Callback");
-			user.save(function(err, model) {
+			user.save(function(err, response, model) {
 				if (err) {
 					done(err);
 					return;
 				}
 				try {
+					expect(response.id.length).to.be.above(0);
+					expect(response.name).to.equal("Callback");
 					expect(model).to.be.equal(user);
 					expect(user.id().length).to.be.above(0);
 					expect(user.name()).to.equal("Callback");
@@ -635,12 +701,15 @@ describe("Model.<methods>", function() {
 		it("fetch result through callback", function(done) {
 			var existingUser = new Model.User();
 			existingUser.id(user.id());
-			existingUser.fetch(function(err, model) {
+			existingUser.fetch(function(err, response, model) {
 				if (err) {
 					done(err);
 					return;
 				}
 				try {
+					expect(response.id.length).to.be.above(0);
+					expect(response.name).to.equal("Hello");
+					expect(response.profile).to.equal("World");
 					expect(model.id()).to.be.equal(user.id());
 					expect(model.name()).to.equal("Hello");
 					expect(model.profile()).to.equal("World");

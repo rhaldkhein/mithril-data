@@ -87,26 +87,39 @@ BaseModel.prototype = {
 			_.pull(this.__collections, collection);
 	},
 	// Sets all or a prop values from passed data.
-	set: function(obj, value, silent) {
-		var isModel = obj instanceof BaseModel;
-		if (isModel || _.isPlainObject(obj)) {
-			var keys = _.keys(obj);
-			for (var i = keys.length - 1, key, val; i >= 0; i--) {
-				key = keys[i];
-				val = obj[key];
-				if (!this.__isProp(key) || !_.isFunction(this[key]))
-					return;
-				if (isModel && _.isFunction(val)) {
-					this[key](val(), true);
-				} else {
-					this[key](val, true);
-				}
-			}
-			if (!value) // silent
-				this.__update();
+	set: function(key, value, silent) {
+		if (_.isString(key)) {
+			this[key](value, silent);
 		} else {
-			this[obj](arguments[1], silent);
+			// (ket, <parser>, <silent>)
+			this.setObject(key, silent, value);
 		}
+	},
+	// Sets props by object.
+	setObject: function(obj, parser, silent) {
+		if (_.isBoolean(parser)) {
+			silent = parser;
+			parser = undefined;
+		}
+		var isModel = obj instanceof BaseModel;
+		if (!isModel && !_.isPlainObject(obj))
+			throw new Error('Argument `obj` must be a model or plain object.');
+		var _parser = parser || this.__options.parser;
+		var _obj = (!isModel && _parser) ? this.options.parsers[_parser](obj) : obj;
+		var keys = _.keys(_obj);
+		for (var i = keys.length - 1, key, val; i >= 0; i--) {
+			key = keys[i];
+			val = _obj[key];
+			if (!this.__isProp(key) || !_.isFunction(this[key]))
+				return;
+			if (isModel && _.isFunction(val)) {
+				this[key](val(), true);
+			} else {
+				this[key](val, true);
+			}
+		}
+		if (!silent) // silent
+			this.__update();
 	},
 	// Get all or a prop values in object format. Creates a copy.
 	get: function(key) {
@@ -135,31 +148,39 @@ BaseModel.prototype = {
 		}
 		return deep ? _.cloneDeep(copy) : copy;
 	},
-	save: function(callback) {
+	save: function(options, callback) {
+		if (_.isFunction(options)) {
+			callback = options;
+			options = undefined;
+		}
 		var self = this;
 		var d = m.deferred();
 		var req = this.id() ? store.put : store.post;
-		req.call(store, this.url(), this).then(function(data) {
-			self.set(data);
+		req.call(store, this.url(), this, options).then(function(data) {
+			self.set(options && options.path ? _.get(data, options.path) : data);
 			self.__saved = true;
 			d.resolve(self);
-			if (_.isFunction(callback)) callback(null, self);
+			if (_.isFunction(callback)) callback(null, data, self);
 		}, function(err) {
 			d.reject(err);
 			if (_.isFunction(callback)) callback(err);
 		});
 		return d.promise;
 	},
-	fetch: function(callback) {
+	fetch: function(options, callback) {
+		if (_.isFunction(options)) {
+			callback = options;
+			options = undefined;
+		}
 		var self = this;
 		var d = m.deferred();
 		var id = this.__getDataId();
 		if (id[config.keyId]) {
-			store.get(this.url(), id).then(function(data) {
-				self.set(data);
+			store.get(this.url(), id, options).then(function(data) {
+				self.set(options && options.path ? _.get(data, options.path) : data);
 				self.__saved = true;
 				d.resolve(self);
-				if (_.isFunction(callback)) callback(null, self);
+				if (_.isFunction(callback)) callback(null, data, self);
 			}, function(err) {
 				d.reject(err);
 				if (_.isFunction(callback)) callback(err);
@@ -170,13 +191,17 @@ BaseModel.prototype = {
 		}
 		return d.promise;
 	},
-	destroy: function(callback) {
+	destroy: function(options, callback) {
+		if (_.isFunction(options)) {
+			callback = options;
+			options = undefined;
+		}
 		// Destroy the model. Will sync to store.
 		var self = this;
 		var d = m.deferred();
 		var id = this.__getDataId();
 		if (id[config.keyId]) {
-			store.destroy(this.url(), id).then(function(data) {
+			store.destroy(this.url(), id, options).then(function() {
 				self.detach();
 				d.resolve();
 				if (_.isFunction(callback)) callback(null);
