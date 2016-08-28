@@ -143,6 +143,22 @@ describe("Model Constructor", function() {
 			})
 		});
 
+		it("pull using callback function", function(done) {
+			Model.User.pull('/user', function(err, response, models) {
+				if (err) {
+					done(err);
+					return;
+				}
+				try {
+					expect(response).to.exist;
+					expect(models).to.exist;
+					done();
+				} catch (e) {
+					done(e);
+				}
+			});
+		});
+
 	});
 
 });

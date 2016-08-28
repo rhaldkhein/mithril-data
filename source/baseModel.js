@@ -90,7 +90,8 @@ BaseModel.prototype = {
 	set: function(obj, value, silent) {
 		var isModel = obj instanceof BaseModel;
 		if (isModel || _.isPlainObject(obj)) {
-			var keys = _.keys(obj);
+			var parser = this.__options.parser;
+			var keys = _.keys(!isModel && parser ? this.options.parsers[parser](obj) : obj);
 			for (var i = keys.length - 1, key, val; i >= 0; i--) {
 				key = keys[i];
 				val = obj[key];
@@ -135,31 +136,39 @@ BaseModel.prototype = {
 		}
 		return deep ? _.cloneDeep(copy) : copy;
 	},
-	save: function(callback) {
+	save: function(options, callback) {
+		if (_.isFunction(options)) {
+			callback = options;
+			options = undefined;
+		}
 		var self = this;
 		var d = m.deferred();
 		var req = this.id() ? store.put : store.post;
-		req.call(store, this.url(), this).then(function(data) {
-			self.set(data);
+		req.call(store, this.url(), this, options).then(function(data) {
+			self.set(options && options.path ? _.get(data, options.path) : data);
 			self.__saved = true;
 			d.resolve(self);
-			if (_.isFunction(callback)) callback(null, self);
+			if (_.isFunction(callback)) callback(null, data, self);
 		}, function(err) {
 			d.reject(err);
 			if (_.isFunction(callback)) callback(err);
 		});
 		return d.promise;
 	},
-	fetch: function(callback) {
+	fetch: function(options, callback) {
+		if (_.isFunction(options)) {
+			callback = options;
+			options = undefined;
+		}
 		var self = this;
 		var d = m.deferred();
 		var id = this.__getDataId();
 		if (id[config.keyId]) {
-			store.get(this.url(), id).then(function(data) {
-				self.set(data);
+			store.get(this.url(), id, options).then(function(data) {
+				self.set(options && options.path ? _.get(data, options.path) : data);
 				self.__saved = true;
 				d.resolve(self);
-				if (_.isFunction(callback)) callback(null, self);
+				if (_.isFunction(callback)) callback(null, data, self);
 			}, function(err) {
 				d.reject(err);
 				if (_.isFunction(callback)) callback(err);
@@ -170,13 +179,17 @@ BaseModel.prototype = {
 		}
 		return d.promise;
 	},
-	destroy: function(callback) {
+	destroy: function(options, callback) {
+		if (_.isFunction(options)) {
+			callback = options;
+			options = undefined;
+		}
 		// Destroy the model. Will sync to store.
 		var self = this;
 		var d = m.deferred();
 		var id = this.__getDataId();
 		if (id[config.keyId]) {
-			store.destroy(this.url(), id).then(function(data) {
+			store.destroy(this.url(), id, options).then(function() {
 				self.detach();
 				d.resolve();
 				if (_.isFunction(callback)) callback(null);

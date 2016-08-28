@@ -65,21 +65,28 @@
 		return obj;
 	};
 
-	function createModelConstructor(options) {
+	/**
+	 * `this.__options` is instance options, registered in `new Model(<values>, <__options>)`.
+	 * `this.options` is schema options, registered in `m.model(schema)`.
+	 */
+
+	function createModelConstructor(schema) {
 		// Resolve model options. Mutates the object.
-		resolveModelOptions(options);
+		resolveSchemaOptions(schema);
 		// The model constructor.
 		function Model(vals, opts) {
-			var data = vals || {};
-			var refs = options.refs;
-			var props = options.props;
+			// Calling parent class.
+			BaseModel.call(this, opts);
+			// Local variables.
+			var parser = this.__options.parser;
+			var data = (parser ? this.options.parsers[parser](vals) : vals) || {};
+			var refs = schema.refs;
+			var props = schema.props;
 			var initial;
 			// Make user id is in prop;
 			if (_.indexOf(props, config.keyId) === -1) {
 				props.push(config.keyId);
 			}
-			// Calling parent class.
-			BaseModel.call(this, opts);
 			// Adding props.
 			for (var i = 0, value; i < props.length; i++) {
 				value = props[i];
@@ -92,7 +99,7 @@
 				if (!_.hasIn(this, value) || value === 'id') {
 					// Use default if data is not available. Only `undefined` should change to default.
 					// In order to accept other falsy value. Like, `false` and `0`.
-					this[value] = this.__gettersetter(_.isUndefined(data[value]) ? options.defaults[value] : data[value], value);
+					this[value] = this.__gettersetter(_.isUndefined(data[value]) ? schema.defaults[value] : data[value], value);
 				} else {
 					throw new Error('`' + value + '` prop is not allowed.');
 				}
@@ -100,15 +107,15 @@
 		}
 		// Make sure that it options.methods does not create
 		// conflict with internal methods.
-		var conflict = util.isConflictExtend(BaseModel.prototype, options.methods);
+		var conflict = util.isConflictExtend(BaseModel.prototype, schema.methods);
 		if (conflict) {
 			throw new Error('`' + conflict + '` method is not allowed.');
 		}
 		// Attach the options to model constructor.
-		Model.modelOptions = options;
+		Model.modelOptions = schema;
 		// Extend from base model prototype.
-		Model.prototype = _.create(BaseModel.prototype, _.assign(options.methods || {}, {
-			options: options,
+		Model.prototype = _.create(BaseModel.prototype, _.assign(schema.methods || {}, {
+			options: schema,
 		}));
 		// Link model controller prototype.
 		Object.setPrototypeOf(Model, ModelConstructor.prototype);
@@ -116,10 +123,11 @@
 		return Model;
 	}
 
-	function resolveModelOptions(options) {
+	function resolveSchemaOptions(options) {
 		options.defaults = options.defaults || {};
 		options.props = _.union(options.props || [], _.keys(options.defaults));
 		options.refs = options.refs || {};
+		options.parsers = options.parsers || {};
 	}
 
 	/**
@@ -128,7 +136,7 @@
 
 	// Return the current version.
 	exports.version = function() {
-		return 'v0.2.0';//version
+		return 'v0.0.0'; //version
 	};
 
 	// Export class Collection.
@@ -141,12 +149,12 @@
 	exports.store = __webpack_require__(5);
 
 	// Export model instantiator.
-	exports.model = function(modelOptions, ctrlOptions) {
-		modelOptions = modelOptions || {};
+	exports.model = function(schemaOptions, ctrlOptions) {
+		schemaOptions = schemaOptions || {};
 		ctrlOptions = ctrlOptions || {};
-		if (!modelOptions.name)
+		if (!schemaOptions.name)
 			throw new Error('Model name must be set.');
-		var modelConstructor = modelConstructors[modelOptions.name] = createModelConstructor(modelOptions);
+		var modelConstructor = modelConstructors[schemaOptions.name] = createModelConstructor(schemaOptions);
 		modelConstructor.__init(ctrlOptions);
 		return modelConstructor;
 	};
@@ -342,7 +350,8 @@
 		set: function(obj, value, silent) {
 			var isModel = obj instanceof BaseModel;
 			if (isModel || _.isPlainObject(obj)) {
-				var keys = _.keys(obj);
+				var parser = this.__options.parser;
+				var keys = _.keys(!isModel && parser ? this.options.parsers[parser](obj) : obj);
 				for (var i = keys.length - 1, key, val; i >= 0; i--) {
 					key = keys[i];
 					val = obj[key];
@@ -387,31 +396,39 @@
 			}
 			return deep ? _.cloneDeep(copy) : copy;
 		},
-		save: function(callback) {
+		save: function(options, callback) {
+			if (_.isFunction(options)) {
+				callback = options;
+				options = undefined;
+			}
 			var self = this;
 			var d = m.deferred();
 			var req = this.id() ? store.put : store.post;
-			req.call(store, this.url(), this).then(function(data) {
-				self.set(data);
+			req.call(store, this.url(), this, options).then(function(data) {
+				self.set(options && options.path ? _.get(data, options.path) : data);
 				self.__saved = true;
 				d.resolve(self);
-				if (_.isFunction(callback)) callback(null, self);
+				if (_.isFunction(callback)) callback(null, data, self);
 			}, function(err) {
 				d.reject(err);
 				if (_.isFunction(callback)) callback(err);
 			});
 			return d.promise;
 		},
-		fetch: function(callback) {
+		fetch: function(options, callback) {
+			if (_.isFunction(options)) {
+				callback = options;
+				options = undefined;
+			}
 			var self = this;
 			var d = m.deferred();
 			var id = this.__getDataId();
 			if (id[config.keyId]) {
-				store.get(this.url(), id).then(function(data) {
-					self.set(data);
+				store.get(this.url(), id, options).then(function(data) {
+					self.set(options && options.path ? _.get(data, options.path) : data);
 					self.__saved = true;
 					d.resolve(self);
-					if (_.isFunction(callback)) callback(null, self);
+					if (_.isFunction(callback)) callback(null, data, self);
 				}, function(err) {
 					d.reject(err);
 					if (_.isFunction(callback)) callback(err);
@@ -422,13 +439,17 @@
 			}
 			return d.promise;
 		},
-		destroy: function(callback) {
+		destroy: function(options, callback) {
+			if (_.isFunction(options)) {
+				callback = options;
+				options = undefined;
+			}
 			// Destroy the model. Will sync to store.
 			var self = this;
 			var d = m.deferred();
 			var id = this.__getDataId();
 			if (id[config.keyId]) {
-				store.destroy(this.url(), id).then(function(data) {
+				store.destroy(this.url(), id, options).then(function() {
 					self.detach();
 					d.resolve();
 					if (_.isFunction(callback)) callback(null);
@@ -1113,13 +1134,15 @@
 			var d = m.deferred();
 			if (this.hasModel) {
 				var self = this;
-				this.model().pull(this.url(), query, options).then(function(models) {
-					self.addAll(models);
-					d.resolve(self);
-					if (_.isFunction(callback)) callback(null, self);
-				}, function(err) {
-					d.reject(err);
-					if (_.isFunction(callback)) callback(err);
+				this.model().pull(this.url(), query, options, function(err, response, models) {
+					if (err) {
+						d.reject(err);
+						if (_.isFunction(callback)) callback(err);
+					} else {
+						self.addAll(models);
+						d.resolve(models);
+						if (_.isFunction(callback)) callback(null, response, models);
+					}
 				});
 			} else {
 				d.reject(true);
@@ -1326,15 +1349,21 @@
 				model: this
 			}, options));
 		},
-		createModels: function(data) {
+		createModels: function(data, options) {
 			if (!_.isArray(data))
 				data = [data];
+			var modelOpt, models = [];
+			if (options && options.parser) {
+				modelOpt = {
+					parser: options.parser
+				};
+			}
 			for (var i = 0; i < data.length; i++) {
 				if (!_.isPlainObject(data[i]))
 					throw new Error('Plain object required');
-				data[i] = new this(data[i]);
+				models[i] = new this(data[i], modelOpt);
 			}
-			return data;
+			return models;
 		},
 		pull: function(url, data, options, callback) {
 			if (_.isFunction(data)) {
@@ -1348,11 +1377,14 @@
 			var d = m.deferred();
 			store.get(url, data, options)
 				.then(function(data) {
-					// data = complete list of models.
-					var models = self.createModels(data);
+					// `data` can be either array of model or object with
+					// additional information (like total result and pagination)
+					// and a property with value of array of models
+					var models = self.createModels(options && options.path ? _.get(data, options.path) : data, options);
 					self.__flagSaved(models);
+					// Resolve the raw data from server as it might contain additional information
 					d.resolve(models);
-					if (_.isFunction(callback)) callback(null, models);
+					if (_.isFunction(callback)) callback(null, data, models);
 				}, function(err) {
 					d.reject(err);
 					if (_.isFunction(callback)) callback(err);
