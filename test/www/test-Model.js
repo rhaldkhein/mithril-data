@@ -333,6 +333,22 @@ describe("Model.<methods>", function() {
 			expect(note.author().name()).to.equal('Test');
 		});
 
+		it("set by object with parser", function() {
+			var note = new Model.Note();
+			note.set({
+				wrap: {
+					title: 'Foo',
+					inner: {
+						body: 'Bar',
+						author: 'Authx'
+					}
+				}
+			}, true, 'parserFoo');
+			expect(note.title()).to.equal('Foo');
+			expect(note.body()).to.equal('Bar');
+			expect(note.author()).to.equal('Authx');
+		});
+
 		it("set by key & value", function() {
 			var note = new Model.Note();
 			var user = new Model.User();
@@ -371,6 +387,37 @@ describe("Model.<methods>", function() {
 			expect(function() {
 				user.set('noprop', 'Foo');
 			}).to.throw(Error);
+		});
+
+	});
+
+	describe("#setObject()", function() {
+		"use strict";
+
+		it("successful set ", function() {
+			var user = new Model.User();
+			user.setObject({
+				name: 'Foo',
+				age: 32
+			});
+			expect(user.name()).to.equal('Foo');
+			expect(user.age()).to.equal(32);
+		});
+
+		it("successful set with parser", function() {
+			var note = new Model.Note();
+			note.setObject({
+				wrap: {
+					title: 'Foo',
+					inner: {
+						body: 'Bar',
+						author: 'Auth'
+					}
+				}
+			}, 'parserFoo');
+			expect(note.title()).to.equal('Foo');
+			expect(note.body()).to.equal('Bar');
+			expect(note.author()).to.equal('Auth');
 		});
 
 	});

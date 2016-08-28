@@ -347,27 +347,39 @@
 				_.pull(this.__collections, collection);
 		},
 		// Sets all or a prop values from passed data.
-		set: function(obj, value, silent) {
-			var isModel = obj instanceof BaseModel;
-			if (isModel || _.isPlainObject(obj)) {
-				var parser = this.__options.parser;
-				var keys = _.keys(!isModel && parser ? this.options.parsers[parser](obj) : obj);
-				for (var i = keys.length - 1, key, val; i >= 0; i--) {
-					key = keys[i];
-					val = obj[key];
-					if (!this.__isProp(key) || !_.isFunction(this[key]))
-						return;
-					if (isModel && _.isFunction(val)) {
-						this[key](val(), true);
-					} else {
-						this[key](val, true);
-					}
-				}
-				if (!value) // silent
-					this.__update();
+		set: function(key, value, silent) {
+			if (_.isString(key)) {
+				this[key](value, silent);
 			} else {
-				this[obj](arguments[1], silent);
+				// (ket, <parser>, <silent>)
+				this.setObject(key, silent, value);
 			}
+		},
+		// Sets props by object.
+		setObject: function(obj, parser, silent) {
+			if (_.isBoolean(parser)) {
+				silent = parser;
+				parser = undefined;
+			}
+			var isModel = obj instanceof BaseModel;
+			if (!isModel && !_.isPlainObject(obj))
+				throw new Error('Argument `obj` must be a model or plain object.');
+			var _parser = parser || this.__options.parser;
+			var _obj = (!isModel && _parser) ? this.options.parsers[_parser](obj) : obj;
+			var keys = _.keys(_obj);
+			for (var i = keys.length - 1, key, val; i >= 0; i--) {
+				key = keys[i];
+				val = _obj[key];
+				if (!this.__isProp(key) || !_.isFunction(this[key]))
+					return;
+				if (isModel && _.isFunction(val)) {
+					this[key](val(), true);
+				} else {
+					this[key](val, true);
+				}
+			}
+			if (!silent) // silent
+				this.__update();
 		},
 		// Get all or a prop values in object format. Creates a copy.
 		get: function(key) {
