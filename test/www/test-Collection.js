@@ -990,7 +990,6 @@ describe("Collection.<methods>", function() {
 					}
 				}
 			});
-
 		});
 
 	});
