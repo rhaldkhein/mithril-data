@@ -80,6 +80,16 @@
 							d.reject(new Error('ID is required!'));
 						}
 						break;
+					case 'GET:/users/wrap':
+						// Return all users
+						d.resolve({
+							outer: {
+								inner: {
+									items: rawData.deserialize(JSON.stringify(_.values(STORE.users)))
+								}
+							}
+						});
+						break;
 					default:
 						d.reject(new Error('Unknown request'));
 				}

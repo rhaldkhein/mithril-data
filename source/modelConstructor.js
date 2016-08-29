@@ -60,7 +60,8 @@ ModelConstructor.prototype = {
 			data = undefined;
 		} else if (_.isFunction(options)) {
 			callback = options;
-			options = undefined;
+			options = data;
+			data = undefined;
 		}
 		var self = this;
 		var d = m.deferred();

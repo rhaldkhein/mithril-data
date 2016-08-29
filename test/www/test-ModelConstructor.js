@@ -159,6 +159,27 @@ describe("Model Constructor", function() {
 			});
 		});
 
+		it("pull with path", function(done) {
+			Model.User.pull('/users/wrap', {
+				path: 'outer.inner.items'
+			}, function(err, response, models) {
+				if (err) {
+					done(err)
+					return;
+				}
+				try {
+					expect(response.outer.inner.items).to.exist;
+					expect(models.length).to.be.above(3);
+					expect(models[0].id()).to.be.not.empty;
+					expect(models[0].name()).to.be.not.empty;
+					expect(models[0].age()).to.be.not.empty;
+					done();
+				} catch (e) {
+					done(e);
+				}
+			});
+		});
+
 	});
 
 });
