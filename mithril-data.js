@@ -1329,6 +1329,7 @@
 	 */
 
 	var store = __webpack_require__(5);
+	var config = __webpack_require__(3).config;
 	var Collection = __webpack_require__(8);
 
 	function ModelConstructor() {}
@@ -1341,11 +1342,20 @@
 		__init: function(options) {
 			if (this.__options)
 				return;
+			// Set defaults
 			this.__options = {
-				redraw: false
+				redraw: false,
+				cache: config.cache === true
 			};
+			// Inject schema level options
 			if (options)
 				this.opt(options);
+			// Check cache enabled
+			if (this.__options.cache) {
+				this.__cacheCollection = new md.Collection({
+					model: this
+				});
+			}
 		},
 		__flagSaved: function(models) {
 			for (var i = 0; i < models.length; i++)
@@ -1367,16 +1377,25 @@
 		createModels: function(data, options) {
 			if (!_.isArray(data))
 				data = [data];
-			var modelOpt, models = [];
-			if (options && options.parser) {
-				modelOpt = {
-					parser: options.parser
-				};
-			}
+			var cachedModel, model, models = [];
 			for (var i = 0; i < data.length; i++) {
-				if (!_.isPlainObject(data[i]))
+				model = data[i];
+				if (!_.isPlainObject(model))
 					throw new Error('Plain object required');
-				models[i] = new this(data[i], modelOpt);
+				cachedModel = undefined;
+				if (options && options.parser) {
+					model = this.modelOptions.parsers[options.parser](model);
+				}
+				if (this.__options.cache && model[config.keyId]) {
+					cachedModel = this.__cacheCollection.get(model);
+					if (!cachedModel) {
+						cachedModel = new this(model);
+						this.__cacheCollection.add(cachedModel);
+					}
+				} else {
+					cachedModel = new this(model);
+				}
+				models[i] = cachedModel;
 			}
 			return models;
 		},

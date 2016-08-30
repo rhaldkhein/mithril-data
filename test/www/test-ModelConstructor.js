@@ -59,6 +59,61 @@ describe("Model Constructor", function() {
 			expect(models[1].name()).to.equal("Bar");
 		});
 
+		it("create with parser", function() {
+			var models = Model.Note.createModels([{
+				wrap: {
+					title: "Foo",
+					inner: {
+						body: "Bar",
+						author: "Baz"
+					}
+				}
+			}], {
+				parser: "parserFoo"
+			});
+			expect(models[0].title()).to.equal("Foo");
+			expect(models[0].body()).to.equal("Bar");
+			expect(models[0].author()).to.equal("Baz");
+		});
+
+		it("cache", function() {
+			var CacheNoteModel = md.model({
+				name: 'CacheNoteModel',
+				prop: ['title', 'body']
+			}, {
+				cache: true
+			});
+			var modelsA = CacheNoteModel.createModels([{
+				id: '123',
+				name: 'Foo',
+				body: 'Bar'
+			}, {
+				id: '456',
+				name: 'Foo',
+				body: 'Bar'
+			}]);
+			var modelsB = CacheNoteModel.createModels([{
+				id: '123',
+				name: 'Foo',
+				body: 'Bar'
+			}, {
+				id: '456',
+				name: 'Baz',
+				body: 'Tes'
+			}, {
+				id: '789',
+				name: 'Zzz',
+				body: 'Xxx'
+			}]);
+			expect(modelsA.length).to.equal(2);
+			expect(modelsB.length).to.equal(3);
+			expect(modelsB[0]).to.equal(modelsA[0]);
+			expect(modelsB[1]).to.equal(modelsA[1]);
+			expect(modelsB[0].lid()).to.equal(modelsA[0].lid());
+			expect(modelsB[1].lid()).to.equal(modelsA[1].lid());
+			expect(modelsB[2].id()).to.equal('789');
+		});
+
 	});
 
 	describe("#pull()", function() {
