@@ -19,21 +19,15 @@ before(function(done) {
 			refs: {
 				author: 'User'
 			},
-			parsers: {
-				parserFoo: function(rawFoo) {
+			parser: function(data) {
+				if (data && data.wrap) {
 					return {
-						title: rawFoo.wrap.title,
-						body: rawFoo.wrap.inner.body,
-						author: rawFoo.wrap.inner.author
-					};
-				},
-				parserBar: function(rawBar) {
-					return {
-						title: rawBar.bar.title,
-						body: rawBar.bar.body,
-						author: rawBar.bar.author
+						title: data.wrap.title,
+						body: data.wrap.inner.body,
+						author: data.wrap.inner.author
 					};
 				}
+				return data;
 			}
 		});
 

@@ -78,8 +78,7 @@
 			// Calling parent class.
 			BaseModel.call(this, opts);
 			// Local variables.
-			var parser = this.__options.parser;
-			var data = (parser ? this.options.parsers[parser](vals) : vals) || {};
+			var data = (this.__options.parse ? this.options.parser(vals) : vals) || {};
 			var refs = schema.refs;
 			var props = schema.props;
 			var initial;
@@ -127,7 +126,9 @@
 		options.defaults = options.defaults || {};
 		options.props = _.union(options.props || [], _.keys(options.defaults));
 		options.refs = options.refs || {};
-		options.parsers = options.parsers || {};
+		options.parser = options.parser || function(data) {
+			return data;
+		};
 	}
 
 	/**
@@ -269,7 +270,8 @@
 
 	function BaseModel(opts) {
 		this.__options = {
-			redraw: false
+			redraw: false,
+			parse: true
 		};
 		this.__collections = [];
 		this.__lid = _.uniqueId('model');
@@ -351,21 +353,15 @@
 			if (_.isString(key)) {
 				this[key](value, silent);
 			} else {
-				// (ket, <parser>, <silent>)
-				this.setObject(key, silent, value);
+				this.setObject(key, silent);
 			}
 		},
 		// Sets props by object.
-		setObject: function(obj, parser, silent) {
-			if (_.isBoolean(parser)) {
-				silent = parser;
-				parser = undefined;
-			}
+		setObject: function(obj, silent) {
 			var isModel = obj instanceof BaseModel;
 			if (!isModel && !_.isPlainObject(obj))
 				throw new Error('Argument `obj` must be a model or plain object.');
-			var _parser = parser || this.__options.parser;
-			var _obj = (!isModel && _parser) ? this.options.parsers[_parser](obj) : obj;
+			var _obj = (!isModel && this.__options.parse) ? this.options.parser(obj) : obj;
 			var keys = _.keys(_obj);
 			for (var i = keys.length - 1, key, val; i >= 0; i--) {
 				key = keys[i];
@@ -540,7 +536,9 @@
 					// 1 = silent
 					value = arguments[0];
 					if (_.isPlainObject(value) && ref) {
-						value = new modelConstructors[ref](value);
+						// TODO: Check to use cache
+						value = modelConstructors[ref].create(value);
+						// value = new modelConstructors[ref](value);
 					}
 					if (value instanceof BaseModel) {
 						value = value.getJson();
@@ -962,7 +960,7 @@
 				this.__update();
 			return added;
 		},
-		create: function(data) {
+		create: function(data, opts) {
 			if (!_.isArray(data))
 				data = [data];
 			var newModels = [];
@@ -977,8 +975,10 @@
 				if (existingModel) {
 					existingModel.set(modelData, true);
 				} else {
+					// TODO: Check to use cache
 					if (this.__options.model)
-						newModels.push(new this.__options.model(modelData));
+						newModels.push(this.__options.model.create(modelData, opts));
+					// newModels.push(new this.__options.model(modelData));
 				}
 			}
 			this.addAll(newModels);
@@ -1147,8 +1147,6 @@
 			if (this.hasModel()) {
 				var self = this;
 				options = options || {};
-				if (!options.parser && this.__options.parser)
-					options.parser = this.__options.parser;
 				this.model().pull(this.url(), query, options, function(err, response, models) {
 					if (err) {
 						d.reject(err);
@@ -1369,6 +1367,25 @@
 			else
 				this.__options[key] = _.isUndefined(value) ? true : value;
 		},
+		// Creates a model. Comply with parsing and caching.
+		create: function(values, options) {
+			if (!_.isPlainObject(values))
+				throw new Error('Plain object required');
+			var cachedModel;
+			if (this.modelOptions.parser) {
+				values = this.modelOptions.parser(values);
+			}
+			if (this.__options.cache && values[config.keyId]) {
+				cachedModel = this.__cacheCollection.get(values);
+				if (!cachedModel) {
+					cachedModel = new this(values, options);
+					this.__cacheCollection.add(cachedModel);
+				}
+			} else {
+				cachedModel = new this(values, options);
+			}
+			return cachedModel;
+		},
 		createCollection: function(options) {
 			return new Collection(_.assign({
 				model: this
@@ -1377,25 +1394,9 @@
 		createModels: function(data, options) {
 			if (!_.isArray(data))
 				data = [data];
-			var cachedModel, model, models = [];
+			var model, models = [];
 			for (var i = 0; i < data.length; i++) {
-				model = data[i];
-				if (!_.isPlainObject(model))
-					throw new Error('Plain object required');
-				cachedModel = undefined;
-				if (options && options.parser) {
-					model = this.modelOptions.parsers[options.parser](model);
-				}
-				if (this.__options.cache && model[config.keyId]) {
-					cachedModel = this.__cacheCollection.get(model);
-					if (!cachedModel) {
-						cachedModel = new this(model);
-						this.__cacheCollection.add(cachedModel);
-					}
-				} else {
-					cachedModel = new this(model);
-				}
-				models[i] = cachedModel;
+				models[i] = this.create(data[i], options);
 			}
 			return models;
 		},

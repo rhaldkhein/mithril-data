@@ -60,7 +60,7 @@ describe("Model Instance", function() {
 				}
 			}
 		}, {
-			parser: 'parserFoo'
+			parse: true
 		});
 		expect(noteA.title()).to.equal('Title');
 		expect(noteA.body()).to.equal('Body');
@@ -334,7 +334,9 @@ describe("Model.<methods>", function() {
 		});
 
 		it("set by object with parser", function() {
-			var note = new Model.Note();
+			var note = new Model.Note(null, {
+				parse: true
+			});
 			note.set({
 				wrap: {
 					title: 'Foo',
@@ -343,7 +345,7 @@ describe("Model.<methods>", function() {
 						author: 'Authx'
 					}
 				}
-			}, true, 'parserFoo');
+			});
 			expect(note.title()).to.equal('Foo');
 			expect(note.body()).to.equal('Bar');
 			expect(note.author()).to.equal('Authx');
@@ -405,7 +407,9 @@ describe("Model.<methods>", function() {
 		});
 
 		it("successful set with parser", function() {
-			var note = new Model.Note();
+			var note = new Model.Note(null, {
+				parse: true
+			});
 			note.setObject({
 				wrap: {
 					title: 'Foo',
@@ -414,7 +418,7 @@ describe("Model.<methods>", function() {
 						author: 'Auth'
 					}
 				}
-			}, 'parserFoo');
+			});
 			expect(note.title()).to.equal('Foo');
 			expect(note.body()).to.equal('Bar');
 			expect(note.author()).to.equal('Auth');

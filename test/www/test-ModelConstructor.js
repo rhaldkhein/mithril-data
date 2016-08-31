@@ -68,9 +68,7 @@ describe("Model Constructor", function() {
 						author: "Baz"
 					}
 				}
-			}], {
-				parser: "parserFoo"
-			});
+			}]);
 			expect(models[0].title()).to.equal("Foo");
 			expect(models[0].body()).to.equal("Bar");
 			expect(models[0].author()).to.equal("Baz");

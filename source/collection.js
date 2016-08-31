@@ -71,7 +71,7 @@ Collection.prototype = {
 			this.__update();
 		return added;
 	},
-	create: function(data) {
+	create: function(data, opts) {
 		if (!_.isArray(data))
 			data = [data];
 		var newModels = [];
@@ -86,8 +86,10 @@ Collection.prototype = {
 			if (existingModel) {
 				existingModel.set(modelData, true);
 			} else {
+				// TODO: Check to use cache
 				if (this.__options.model)
-					newModels.push(new this.__options.model(modelData));
+					newModels.push(this.__options.model.create(modelData, opts));
+				// newModels.push(new this.__options.model(modelData));
 			}
 		}
 		this.addAll(newModels);
@@ -256,8 +258,6 @@ Collection.prototype = {
 		if (this.hasModel()) {
 			var self = this;
 			options = options || {};
-			if (!options.parser && this.__options.parser)
-				options.parser = this.__options.parser;
 			this.model().pull(this.url(), query, options, function(err, response, models) {
 				if (err) {
 					d.reject(err);

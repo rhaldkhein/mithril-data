@@ -9,7 +9,8 @@ var modelConstructors = require('./global').modelConstructors;
 
 function BaseModel(opts) {
 	this.__options = {
-		redraw: false
+		redraw: false,
+		parse: true
 	};
 	this.__collections = [];
 	this.__lid = _.uniqueId('model');
@@ -91,21 +92,15 @@ BaseModel.prototype = {
 		if (_.isString(key)) {
 			this[key](value, silent);
 		} else {
-			// (ket, <parser>, <silent>)
-			this.setObject(key, silent, value);
+			this.setObject(key, silent);
 		}
 	},
 	// Sets props by object.
-	setObject: function(obj, parser, silent) {
-		if (_.isBoolean(parser)) {
-			silent = parser;
-			parser = undefined;
-		}
+	setObject: function(obj, silent) {
 		var isModel = obj instanceof BaseModel;
 		if (!isModel && !_.isPlainObject(obj))
 			throw new Error('Argument `obj` must be a model or plain object.');
-		var _parser = parser || this.__options.parser;
-		var _obj = (!isModel && _parser) ? this.options.parsers[_parser](obj) : obj;
+		var _obj = (!isModel && this.__options.parse) ? this.options.parser(obj) : obj;
 		var keys = _.keys(_obj);
 		for (var i = keys.length - 1, key, val; i >= 0; i--) {
 			key = keys[i];
@@ -280,7 +275,9 @@ BaseModel.prototype = {
 				// 1 = silent
 				value = arguments[0];
 				if (_.isPlainObject(value) && ref) {
-					value = new modelConstructors[ref](value);
+					// TODO: Check to use cache
+					value = modelConstructors[ref].create(value);
+					// value = new modelConstructors[ref](value);
 				}
 				if (value instanceof BaseModel) {
 					value = value.getJson();
