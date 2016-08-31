@@ -78,8 +78,7 @@
 			// Calling parent class.
 			BaseModel.call(this, opts);
 			// Local variables.
-			var parser = this.__options.parser;
-			var data = (parser ? this.options.parsers[parser](vals) : vals) || {};
+			var data = (this.__options.parse ? this.options.parser(vals) : vals) || {};
 			var refs = schema.refs;
 			var props = schema.props;
 			var initial;
@@ -127,7 +126,9 @@
 		options.defaults = options.defaults || {};
 		options.props = _.union(options.props || [], _.keys(options.defaults));
 		options.refs = options.refs || {};
-		options.parsers = options.parsers || {};
+		options.parser = options.parser || function(data) {
+			return data;
+		};
 	}
 
 	/**
@@ -136,7 +137,7 @@
 
 	// Return the current version.
 	exports.version = function() {
-		return 'v0.2.5';//version
+		return 'v0.2.5'; //version
 	};
 
 	// Export class Collection.
@@ -269,7 +270,8 @@
 
 	function BaseModel(opts) {
 		this.__options = {
-			redraw: false
+			redraw: false,
+			parse: true
 		};
 		this.__collections = [];
 		this.__lid = _.uniqueId('model');
@@ -351,21 +353,15 @@
 			if (_.isString(key)) {
 				this[key](value, silent);
 			} else {
-				// (ket, <parser>, <silent>)
-				this.setObject(key, silent, value);
+				this.setObject(key, silent);
 			}
 		},
 		// Sets props by object.
-		setObject: function(obj, parser, silent) {
-			if (_.isBoolean(parser)) {
-				silent = parser;
-				parser = undefined;
-			}
+		setObject: function(obj, silent) {
 			var isModel = obj instanceof BaseModel;
 			if (!isModel && !_.isPlainObject(obj))
 				throw new Error('Argument `obj` must be a model or plain object.');
-			var _parser = parser || this.__options.parser;
-			var _obj = (!isModel && _parser) ? this.options.parsers[_parser](obj) : obj;
+			var _obj = (!isModel && this.__options.parse) ? this.options.parser(obj) : obj;
 			var keys = _.keys(_obj);
 			for (var i = keys.length - 1, key, val; i >= 0; i--) {
 				key = keys[i];
@@ -964,7 +960,7 @@
 				this.__update();
 			return added;
 		},
-		create: function(data, modelOptions) {
+		create: function(data, opts) {
 			if (!_.isArray(data))
 				data = [data];
 			var newModels = [];
@@ -981,7 +977,7 @@
 				} else {
 					// TODO: Check to use cache
 					if (this.__options.model)
-						newModels.push(this.__options.model.create(modelData, modelOptions));
+						newModels.push(this.__options.model.create(modelData, opts));
 					// newModels.push(new this.__options.model(modelData));
 				}
 			}
@@ -1151,8 +1147,6 @@
 			if (this.hasModel()) {
 				var self = this;
 				options = options || {};
-				if (!options.parser && this.__options.parser)
-					options.parser = this.__options.parser;
 				this.model().pull(this.url(), query, options, function(err, response, models) {
 					if (err) {
 						d.reject(err);
@@ -1378,9 +1372,8 @@
 			if (!_.isPlainObject(values))
 				throw new Error('Plain object required');
 			var cachedModel;
-			if (options && options.parser) {
-				values = this.modelOptions.parsers[options.parser](values);
-				delete options.parser;
+			if (this.modelOptions.parser) {
+				values = this.modelOptions.parser(values);
 			}
 			if (this.__options.cache && values[config.keyId]) {
 				cachedModel = this.__cacheCollection.get(values);

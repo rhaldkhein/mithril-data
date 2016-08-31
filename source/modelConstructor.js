@@ -48,9 +48,8 @@ ModelConstructor.prototype = {
 		if (!_.isPlainObject(values))
 			throw new Error('Plain object required');
 		var cachedModel;
-		if (options && options.parser) {
-			values = this.modelOptions.parsers[options.parser](values);
-			delete options.parser;
+		if (this.modelOptions.parser) {
+			values = this.modelOptions.parser(values);
 		}
 		if (this.__options.cache && values[config.keyId]) {
 			cachedModel = this.__cacheCollection.get(values);

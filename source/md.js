@@ -25,8 +25,7 @@ function createModelConstructor(schema) {
 		// Calling parent class.
 		BaseModel.call(this, opts);
 		// Local variables.
-		var parser = this.__options.parser;
-		var data = (parser ? this.options.parsers[parser](vals) : vals) || {};
+		var data = (this.__options.parse ? this.options.parser(vals) : vals) || {};
 		var refs = schema.refs;
 		var props = schema.props;
 		var initial;
@@ -74,7 +73,9 @@ function resolveSchemaOptions(options) {
 	options.defaults = options.defaults || {};
 	options.props = _.union(options.props || [], _.keys(options.defaults));
 	options.refs = options.refs || {};
-	options.parsers = options.parsers || {};
+	options.parser = options.parser || function(data) {
+		return data;
+	};
 }
 
 /**
@@ -83,7 +84,7 @@ function resolveSchemaOptions(options) {
 
 // Return the current version.
 exports.version = function() {
-	return 'v0.2.5';//version
+	return 'v0.2.5'; //version
 };
 
 // Export class Collection.

@@ -9,9 +9,9 @@ A rich data model library for Mithril javascript framework.
 * Create brilliant application with **Schema**-based **Model** and **Collection**
 * Enriched with **Lodash** methods, integrated into Model & Collection
 * **Auto Redraw** on Model & Collection changes
-* **State** (View-Model)
+* **State** (View-Model) features
 * Extensible, Configurable and Customizable
-* and many more ...
+* And many more ...
 
 #### Prerequisite
 
@@ -51,34 +51,30 @@ All available schema options:
 * **url** - (string) the specific url of the model. defaults to model's `name`
 * **redraw** - (boolean) trigger a redraw when a model with this schema is updated. defaults to `false`
 * **methods** - (object {name:function}) add custom methods to model instances (by schema)
-* **parsers** - (object {name:function}) add data parser methods
+* **parser** - (function) add data parser to automatically parse data storing to model
 
-Additional information:
+Additional option information:
 
-**: parsers** - An option to parse different data object.
+**parser** - An option to parse different data objects.
 
 ```javascript
 // Parsers for Notes schema
-parsers : {
-  sourceA : function(obj) {
+parser : function(obj) {
+  if(obj.kind === '3rd#party') {
     return {
       title : obj.wrap.title,
       body : obj.wrap.inner.body,
       author : obj.wrap.inner.author
     }
-  },
-  sourceB : function(obj) {
-    // Another obj format
+  } else {
+    // Another source
   }
 }
-// Then when you update a model
-note.setObject(responseObject, 'sourceA')
-// Or when you call `fetch()`
-collectionNotes.fetch({query: 'keyword'}, {parser: 'sourceA'})
-// Or when you create a model or collection.
-// And no need to specify a parser in `set()` or `fetch()`
-var note = new Note(null, {parser: 'sourceA'})
-var coll = new md.Collection({parser: 'sourceA'})
+// This auto parse wrapped data. Also parsed with `setObject()`.
+var note = new Note({wrapped: 'data'})
+note.setObject({wrapped: 'data'})
+// To disable parsing. Set `parse: false` in the options.
+var note = new Note({unwrapped: 'data'}, {parse: false})
 ```
 
 - - - -
@@ -111,7 +107,7 @@ Creates an instance of model.
 * **initials** - (object {prop:value}) initial values of props
 * **options** - (object) specific options to model instance
   * **redraw** - (boolean) redraw
-  * **parser** - (string) set the parser
+  * **parse** - (boolean) set `false` to disable parsing. defaults to `true`
 
 #### \#\<prop>([value, silent])
 Get or set value of prop. If auto-redraw is enabled, pass `true` at the end to set without redrawing.
@@ -147,13 +143,13 @@ user.set('name', 'Foo') // Sets single prop
 user.set('age', 34, true) // Pass true at the end
 ```
 
-#### \#setObject(obj[, parser, silent])
+#### \#setObject(obj[, silent])
 Set multiple values at once using object. 
 ```javascript
 user.set({name: 'Bar', age: 12}) // Sets multiple props using object
 user.set(existingModelInstance) // Sets multiple props user existing model instance
 // Silent set, will NOT trigger the auto redraw
-user.set({age: 32}, 'parserName', true) // Pass true at the end
+user.set({age: 32}, true) // Pass true at the end
 ```
 
 #### \#get(key)
@@ -185,7 +181,7 @@ A flag to identify the save state. The model is considered saved if it's fresh f
 A flag to identify if the model is new or not. The model is considered new if it does not have ID and is not saved.
 
 #### \#save([options, callback])
-Saves the model to data store. To check for result, you can use either `callback` or `then`. Callback arguments are `(err, response, model)`. Properties for `options` is the same with `m.request`'s options but with additional `path` string and `parser` string properties. `path` is the path to actual value for the model in the response object. Like in `response:{outer:{model:{}}}` will be `"outer.model"`.
+Saves the model to data store. To check for result, you can use either `callback` or `then`. Callback arguments are `(err, response, model)`. Properties for `options` is the same with `m.request`'s options but with additional `path` string property. `path` is the path to actual value for the model in the response object. Like in `response:{outer:{model:{}}}` will be `"outer.model"`.
 ```javascript
 user.save()
    .then(
@@ -241,7 +237,6 @@ All available collection options:
 * **url** - (string) the specific url of the collection. defaults to associated model's `name`
 * **redraw** - (boolean) trigger a redraw when the collection is updated. Defaults to `false`
 * **state** - (State | object | array) set a state factory (View-Model) for the collection. See `#stateOf()` method and `md.State()` for more info.
-* **parser** - (string) set the parser for contained models. Only applicable if model option is set
 
 > A collection with redraw = `true` will always trigger a `redraw` even though the contained model has redraw = `false`.
 
@@ -329,7 +324,7 @@ col.stateOf(user).isEditing(false) // Sets and returns `false`
 Get the url.
 
 #### \#fetch(query[, options, callback])
-Query to data store and populate the collection. Callback arguments are `(err, response, models)`. Properties for `options` is the same with `m.request`'s options but with additional `path` string and `parser` string properties. `path` is the path to actual array of items for the collection in the response object. Like in `response:{outer:{items:[]}}` will be `"outer.items"`.
+Query to data store and populate the collection. Callback arguments are `(err, response, models)`. Properties for `options` is the same with `m.request`'s options but with additional `path` property. `path` is the path to actual array of items for the collection in the response object. Like in `response:{outer:{items:[]}}` will be `"outer.items"`.
 ```javascript
 userCollection.fetch({ age : 30 }).then(function (){
    // Success! `userCollection` now have models with age 30
