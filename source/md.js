@@ -84,7 +84,7 @@ function resolveSchemaOptions(options) {
 
 // Return the current version.
 exports.version = function() {
-	return 'v0.2.6';//version
+	return 'v0.2.7';//version
 };
 
 // Export class Collection.
