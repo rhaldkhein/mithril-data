@@ -43,6 +43,26 @@ ModelConstructor.prototype = {
 		else
 			this.__options[key] = _.isUndefined(value) ? true : value;
 	},
+	// Creates a model. Comply with parsing and caching.
+	create: function(values, options) {
+		if (!_.isPlainObject(values))
+			throw new Error('Plain object required');
+		var cachedModel;
+		if (options && options.parser) {
+			values = this.modelOptions.parsers[options.parser](values);
+			delete options.parser;
+		}
+		if (this.__options.cache && values[config.keyId]) {
+			cachedModel = this.__cacheCollection.get(values);
+			if (!cachedModel) {
+				cachedModel = new this(values, options);
+				this.__cacheCollection.add(cachedModel);
+			}
+		} else {
+			cachedModel = new this(values, options);
+		}
+		return cachedModel;
+	},
 	createCollection: function(options) {
 		return new Collection(_.assign({
 			model: this
@@ -51,25 +71,9 @@ ModelConstructor.prototype = {
 	createModels: function(data, options) {
 		if (!_.isArray(data))
 			data = [data];
-		var cachedModel, model, models = [];
+		var model, models = [];
 		for (var i = 0; i < data.length; i++) {
-			model = data[i];
-			if (!_.isPlainObject(model))
-				throw new Error('Plain object required');
-			cachedModel = undefined;
-			if (options && options.parser) {
-				model = this.modelOptions.parsers[options.parser](model);
-			}
-			if (this.__options.cache && model[config.keyId]) {
-				cachedModel = this.__cacheCollection.get(model);
-				if (!cachedModel) {
-					cachedModel = new this(model);
-					this.__cacheCollection.add(cachedModel);
-				}
-			} else {
-				cachedModel = new this(model);
-			}
-			models[i] = cachedModel;
+			models[i] = this.create(data[i], options);
 		}
 		return models;
 	},

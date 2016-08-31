@@ -280,7 +280,9 @@ BaseModel.prototype = {
 				// 1 = silent
 				value = arguments[0];
 				if (_.isPlainObject(value) && ref) {
-					value = new modelConstructors[ref](value);
+					// TODO: Check to use cache
+					value = modelConstructors[ref].create(value);
+					// value = new modelConstructors[ref](value);
 				}
 				if (value instanceof BaseModel) {
 					value = value.getJson();

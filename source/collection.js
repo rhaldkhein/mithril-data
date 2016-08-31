@@ -71,7 +71,7 @@ Collection.prototype = {
 			this.__update();
 		return added;
 	},
-	create: function(data) {
+	create: function(data, modelOptions) {
 		if (!_.isArray(data))
 			data = [data];
 		var newModels = [];
@@ -86,8 +86,10 @@ Collection.prototype = {
 			if (existingModel) {
 				existingModel.set(modelData, true);
 			} else {
+				// TODO: Check to use cache
 				if (this.__options.model)
-					newModels.push(new this.__options.model(modelData));
+					newModels.push(this.__options.model.create(modelData, modelOptions));
+				// newModels.push(new this.__options.model(modelData));
 			}
 		}
 		this.addAll(newModels);
