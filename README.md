@@ -287,6 +287,17 @@ Removes the model at the end.
 #### \#clear([silent])
 Removes ALL models.
 
+#### \#sort(props[, orders])
+Sort the collection. Argument `props` is an array of props to sort and `orders` is an array of `asc` or `desc`. Optioanally, if you're sorting only single prop, you can pass a string instread of array.
+```javascript
+// Sort the collection by `name` in default order `asc`
+userCollection.sort('name')
+// Sort the collection by `name` in `desc` order
+userCollection.sort('name', 'desc')
+// Sort the collection by `age` first starting from old (desc) and then `name`
+userCollection.sort(['age', 'name'], ['desc', 'asc'])
+```
+
 #### \#pluck()
 Pluck a prop from each model.
 ```javascript

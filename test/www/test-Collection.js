@@ -811,6 +811,82 @@ describe("Collection.<methods>", function() {
 
 	});
 
+	describe("#sort()", function() {
+		"use strict";
+
+		var col = new md.Collection();
+
+		before(function() {
+			col.add(new Model.User({
+				name: 'Foo',
+				age: 2,
+				active: true
+			}));
+			col.add(new Model.User({
+				name: 'Bar',
+				age: 3,
+				active: false
+			}));
+			col.add(new Model.User({
+				name: 'Zoo',
+				age: 1,
+				active: true
+			}));
+			col.add(new Model.User({
+				name: 'Jar',
+				age: 5,
+				active: false
+			}));
+			col.add(new Model.User({
+				name: 'Dog',
+				age: 4,
+				active: true
+			}));
+		});
+
+		it("no order specified - used default order", function() {
+			col.sort('name');
+			expect(col.size()).to.be.equal(5);
+			expect(col.nth(0).name()).to.be.equal('Bar');
+			expect(col.nth(1).name()).to.be.equal('Dog');
+			expect(col.nth(2).name()).to.be.equal('Foo');
+			expect(col.nth(3).name()).to.be.equal('Jar');
+			expect(col.nth(4).name()).to.be.equal('Zoo');
+		});
+
+		it("order is specified", function() {
+			// Note that age is used, but name is used to compare
+			col.sort('age', 'desc');
+			expect(col.size()).to.be.equal(5);
+			expect(col.nth(0).name()).to.be.equal('Jar');
+			expect(col.nth(1).name()).to.be.equal('Dog');
+			expect(col.nth(2).name()).to.be.equal('Bar');
+			expect(col.nth(3).name()).to.be.equal('Foo');
+			expect(col.nth(4).name()).to.be.equal('Zoo');
+		});
+
+		it("multiple fields with default order", function() {
+			col.sort(['active', 'age']);
+			expect(col.size()).to.be.equal(5);
+			expect(col.nth(0).name()).to.be.equal('Bar');
+			expect(col.nth(1).name()).to.be.equal('Jar');
+			expect(col.nth(2).name()).to.be.equal('Zoo');
+			expect(col.nth(3).name()).to.be.equal('Foo');
+			expect(col.nth(4).name()).to.be.equal('Dog');
+		});
+
+		it("multiple fields with `specified` order", function() {
+			col.sort(['active', 'age'], ['desc', 'asc']);
+			expect(col.size()).to.be.equal(5);
+			expect(col.nth(0).name()).to.be.equal('Zoo');
+			expect(col.nth(1).name()).to.be.equal('Foo');
+			expect(col.nth(2).name()).to.be.equal('Dog');
+			expect(col.nth(3).name()).to.be.equal('Bar');
+			expect(col.nth(4).name()).to.be.equal('Jar');
+		});
+
+	});
+
 
 	describe("#dispose()", function() {
 		"use strict";
