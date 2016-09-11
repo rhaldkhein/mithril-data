@@ -235,6 +235,24 @@ Collection.prototype = {
 		}
 		return this.findIndex([config.keyId, mixed]) > -1;
 	},
+	sort: function(fields, orders) {
+		if (!_.isArray(fields))
+			fields = [fields];
+		var sorted;
+		if (orders) {
+			if (!_.isArray(orders))
+				orders = [orders];
+			sorted = this.orderBy(fields, orders);
+		} else {
+			sorted = this.orderBy(fields);
+		}
+		for (var i = sorted.length - 1; i >= 0; i--) {
+			sorted[i] = sorted[i].__json;
+			// unref old array
+			this.models[i] = null;
+		}
+		this.models = sorted;
+	},
 	hasModel: function() {
 		return this.__options.model ? true : false;
 	},
