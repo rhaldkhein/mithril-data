@@ -246,15 +246,13 @@ Collection.prototype = {
 		} else {
 			sorted = this.orderBy(fields);
 		}
-		for (var i = sorted.length - 1; i >= 0; i--) {
-			sorted[i] = sorted[i].__json;
-			// unref old array
-			this.models[i] = null;
-		}
-		this.models = sorted;
+		this.__replaceModels(sorted);
+	},
+	randomize: function() {
+		this.__replaceModels(this.shuffle());
 	},
 	hasModel: function() {
-		return this.__options.model ? true : false;
+		return !!this.__options.model;
 	},
 	model: function() {
 		return this.__options.model;
@@ -292,6 +290,11 @@ Collection.prototype = {
 		}
 		return d.promise;
 	},
+	__replaceModels: function(models) {
+		for (var i = models.length - 1; i >= 0; i--) {
+			this.models[i] = models[i].__json;
+		}
+	},
 	__update: function() {
 		// Levels: instance || global
 		if (this.__options.redraw || config.redraw) {
@@ -307,36 +310,36 @@ var collectionBindMethods = [];
 
 // Lodash methods to add.
 var collectionMethods = {
-	forEach: 1,
-	map: 1,
+	difference: 1,
+	every: 1,
 	find: 1,
 	findIndex: 1,
 	findLastIndex: 1,
 	filter: 1,
-	reject: 1,
-	every: 1,
-	some: 1,
+	first: 0,
+	forEach: 1,
+	indexOf: 2,
+	initial: 0,
 	invoke: 3,
+	groupBy: 1,
+	last: 0,
+	lastIndexOf: 2,
+	map: 1,
 	maxBy: 1,
 	minBy: 1,
-	sortBy: 1,
-	groupBy: 1,
+	nth: 1,
+	orderBy: 2,
+	reject: 1,
+	reverse: 0,
+	sample: 0,
 	shuffle: 0,
 	size: 0,
-	initial: 0,
-	without: 1,
-	indexOf: 2,
-	lastIndexOf: 2,
-	difference: 1,
-	sample: 0,
-	reverse: 0,
-	nth: 1,
-	first: 0,
-	last: 0,
-	toArray: 0,
 	slice: 1,
-	orderBy: 2,
-	transform: 2
+	sortBy: 1,
+	some: 1,
+	transform: 2,
+	toArray: 0,
+	without: 1
 };
 
 // Inject lodash method.
