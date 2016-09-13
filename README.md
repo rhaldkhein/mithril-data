@@ -308,6 +308,12 @@ userCollection.pluck('id')
 #### \#contains(mixed)
 Returns `true` if the model contains in the collection, otherwise `false`. Argument `mixed` is the same with `get()` method.
 
+#### \#reserve()
+Reverse the order of the collection.
+
+#### \#randomize()
+Randomize the order of the collection.
+
 #### \#model()
 Get the associated model constructor.
 

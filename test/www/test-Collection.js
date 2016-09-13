@@ -811,7 +811,7 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#sort()", function() {
+	describe("#sort(), #reverse(), #randomize()", function() {
 		"use strict";
 
 		var col = new md.Collection();
@@ -844,7 +844,7 @@ describe("Collection.<methods>", function() {
 			}));
 		});
 
-		it("no order specified - used default order", function() {
+		it("sort with no order specified - used default order", function() {
 			col.sort('name');
 			expect(col.size()).to.be.equal(5);
 			expect(col.nth(0).name()).to.be.equal('Bar');
@@ -854,7 +854,7 @@ describe("Collection.<methods>", function() {
 			expect(col.nth(4).name()).to.be.equal('Zoo');
 		});
 
-		it("order is specified", function() {
+		it("sort with order is specified", function() {
 			// Note that age is used, but name is used to compare
 			col.sort('age', 'desc');
 			expect(col.size()).to.be.equal(5);
@@ -865,7 +865,7 @@ describe("Collection.<methods>", function() {
 			expect(col.nth(4).name()).to.be.equal('Zoo');
 		});
 
-		it("multiple fields with default order", function() {
+		it("sort by multiple fields with default order", function() {
 			col.sort(['active', 'age']);
 			expect(col.size()).to.be.equal(5);
 			expect(col.nth(0).name()).to.be.equal('Bar');
@@ -875,7 +875,7 @@ describe("Collection.<methods>", function() {
 			expect(col.nth(4).name()).to.be.equal('Dog');
 		});
 
-		it("multiple fields with `specified` order", function() {
+		it("sort by multiple fields with `specified` order", function() {
 			col.sort(['active', 'age'], ['desc', 'asc']);
 			expect(col.size()).to.be.equal(5);
 			expect(col.nth(0).name()).to.be.equal('Zoo');
@@ -883,6 +883,36 @@ describe("Collection.<methods>", function() {
 			expect(col.nth(2).name()).to.be.equal('Dog');
 			expect(col.nth(3).name()).to.be.equal('Bar');
 			expect(col.nth(4).name()).to.be.equal('Jar');
+		});
+
+		it("reverse", function() {
+			// col.sort(['active', 'age'], ['desc', 'asc']);
+			var v0 = col.nth(0).name();
+			var v1 = col.nth(1).name();
+			var v2 = col.nth(2).name();
+			var v3 = col.nth(3).name();
+			var v4 = col.nth(4).name();
+			col.reverse();
+			expect(col.size()).to.be.equal(5);
+			expect(col.nth(0).name()).to.be.equal(v4);
+			expect(col.nth(1).name()).to.be.equal(v3);
+			expect(col.nth(2).name()).to.be.equal(v2);
+			expect(col.nth(3).name()).to.be.equal(v1);
+			expect(col.nth(4).name()).to.be.equal(v0);
+		});
+
+		it("randomize", function() {
+			var oldOrder = col.toArray();
+			col.randomize();
+			var newOrder = col.toArray();
+			var countNotEqual = 0;
+			for (var i = newOrder.length - 1; i >= 0; i--) {
+				if (oldOrder[i].lid() !== newOrder[i].lid()) {
+					countNotEqual++;
+				}
+			}
+			expect(col.size()).to.be.equal(5);
+			expect(countNotEqual).to.be.above(0);
 		});
 
 	});
