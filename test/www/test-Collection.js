@@ -886,7 +886,6 @@ describe("Collection.<methods>", function() {
 		});
 
 		it("reverse", function() {
-			// col.sort(['active', 'age'], ['desc', 'asc']);
 			var v0 = col.nth(0).name();
 			var v1 = col.nth(1).name();
 			var v2 = col.nth(2).name();
