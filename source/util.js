@@ -68,7 +68,7 @@ module.exports = _.create(null, {
 		}
 		return false;
 	},
-	isConflictExtend: function(objSource, objInject, callback) {
+	isConflictExtend: function(objSource, objInject) {
 		var keys = _.keys(objInject);
 		var i = 0;
 		for (; i < keys.length; i++) {

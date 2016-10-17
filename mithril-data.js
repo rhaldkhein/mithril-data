@@ -79,9 +79,9 @@
 			BaseModel.call(this, opts);
 			// Local variables.
 			var data = (this.__options.parse ? this.options.parser(vals) : vals) || {};
-			var refs = schema.refs;
+			// var refs = schema.refs;
 			var props = schema.props;
-			var initial;
+			// var initial;
 			// Make user id is in prop;
 			if (_.indexOf(props, config.keyId) === -1) {
 				props.push(config.keyId);
@@ -213,6 +213,7 @@
 
 	// Export for browser's global.
 	if (typeof window !== 'undefined') {
+		var oldObject;
 		// Return back old md.
 		exports.noConflict = function() {
 			if (oldObject) {
@@ -502,7 +503,7 @@
 		isNew: function() {
 			return !(this.id() && this.__saved);
 		},
-		__update: function(key) {
+		__update: function() {
 			// Redraw by self.
 			var redrawing;
 			// Levels: instance || schema || global
@@ -721,7 +722,7 @@
 			}
 			return false;
 		},
-		isConflictExtend: function(objSource, objInject, callback) {
+		isConflictExtend: function(objSource, objInject) {
 			var keys = _.keys(objInject);
 			var i = 0;
 			for (; i < keys.length; i++) {
@@ -788,74 +789,8 @@
 /***/ function(module, exports) {
 
 	// shim for using process in browser
+
 	var process = module.exports = {};
-
-	// cached from whatever global is present so that test runners that stub it
-	// don't break things.  But we need to wrap it in a try catch in case it is
-	// wrapped in strict mode code which doesn't define any globals.  It's inside a
-	// function because try/catches deoptimize in certain engines.
-
-	var cachedSetTimeout;
-	var cachedClearTimeout;
-
-	(function () {
-	    try {
-	        cachedSetTimeout = setTimeout;
-	    } catch (e) {
-	        cachedSetTimeout = function () {
-	            throw new Error('setTimeout is not defined');
-	        }
-	    }
-	    try {
-	        cachedClearTimeout = clearTimeout;
-	    } catch (e) {
-	        cachedClearTimeout = function () {
-	            throw new Error('clearTimeout is not defined');
-	        }
-	    }
-	} ())
-	function runTimeout(fun) {
-	    if (cachedSetTimeout === setTimeout) {
-	        //normal enviroments in sane situations
-	        return setTimeout(fun, 0);
-	    }
-	    try {
-	        // when when somebody has screwed with setTimeout but no I.E. maddness
-	        return cachedSetTimeout(fun, 0);
-	    } catch(e){
-	        try {
-	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-	            return cachedSetTimeout.call(null, fun, 0);
-	        } catch(e){
-	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-	            return cachedSetTimeout.call(this, fun, 0);
-	        }
-	    }
-
-
-	}
-	function runClearTimeout(marker) {
-	    if (cachedClearTimeout === clearTimeout) {
-	        //normal enviroments in sane situations
-	        return clearTimeout(marker);
-	    }
-	    try {
-	        // when when somebody has screwed with setTimeout but no I.E. maddness
-	        return cachedClearTimeout(marker);
-	    } catch (e){
-	        try {
-	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-	            return cachedClearTimeout.call(null, marker);
-	        } catch (e){
-	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-	            return cachedClearTimeout.call(this, marker);
-	        }
-	    }
-
-
-
-	}
 	var queue = [];
 	var draining = false;
 	var currentQueue;
@@ -880,7 +815,7 @@
 	    if (draining) {
 	        return;
 	    }
-	    var timeout = runTimeout(cleanUpNextTick);
+	    var timeout = setTimeout(cleanUpNextTick);
 	    draining = true;
 
 	    var len = queue.length;
@@ -897,7 +832,7 @@
 	    }
 	    currentQueue = null;
 	    draining = false;
-	    runClearTimeout(timeout);
+	    clearTimeout(timeout);
 	}
 
 	process.nextTick = function (fun) {
@@ -909,7 +844,7 @@
 	    }
 	    queue.push(new Item(fun, args));
 	    if (queue.length === 1 && !draining) {
-	        runTimeout(drainQueue);
+	        setTimeout(drainQueue, 0);
 	    }
 	};
 
@@ -1412,7 +1347,9 @@
 	/**
 	 * Model Constructor
 	 */
-
+	 
+	var _ = __webpack_require__(1);
+	var m = __webpack_require__(2);
 	var store = __webpack_require__(5);
 	var config = __webpack_require__(3).config;
 	var Collection = __webpack_require__(8);
@@ -1481,7 +1418,7 @@
 		createModels: function(data, options) {
 			if (!_.isArray(data))
 				data = [data];
-			var model, models = [];
+			var models = [];
 			for (var i = 0; i < data.length; i++) {
 				models[i] = this.create(data[i], options);
 			}

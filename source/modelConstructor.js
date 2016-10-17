@@ -1,7 +1,9 @@
 /**
  * Model Constructor
  */
-
+ 
+var _ = require('lodash');
+var m = require('mithril');
 var store = require('./store');
 var config = require('./global').config;
 var Collection = require('./collection');
@@ -70,7 +72,7 @@ ModelConstructor.prototype = {
 	createModels: function(data, options) {
 		if (!_.isArray(data))
 			data = [data];
-		var model, models = [];
+		var models = [];
 		for (var i = 0; i < data.length; i++) {
 			models[i] = this.create(data[i], options);
 		}
