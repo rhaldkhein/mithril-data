@@ -26,9 +26,9 @@ function createModelConstructor(schema) {
 		BaseModel.call(this, opts);
 		// Local variables.
 		var data = (this.__options.parse ? this.options.parser(vals) : vals) || {};
-		var refs = schema.refs;
+		// var refs = schema.refs;
 		var props = schema.props;
-		var initial;
+		// var initial;
 		// Make user id is in prop;
 		if (_.indexOf(props, config.keyId) === -1) {
 			props.push(config.keyId);
@@ -148,7 +148,9 @@ exports.defaultConfig({
 	baseUrl: '',
 	keyId: 'id',
 	store: m.request,
-	redraw: false
+	redraw: false,
+	cache: false,
+	cacheLimit: 100
 });
 
 // Export for AMD & browser's global.
@@ -160,6 +162,7 @@ if (typeof define === 'function' && define.amd) {
 
 // Export for browser's global.
 if (typeof window !== 'undefined') {
+	var oldObject;
 	// Return back old md.
 	exports.noConflict = function() {
 		if (oldObject) {

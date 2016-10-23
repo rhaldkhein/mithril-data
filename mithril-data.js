@@ -79,9 +79,9 @@
 			BaseModel.call(this, opts);
 			// Local variables.
 			var data = (this.__options.parse ? this.options.parser(vals) : vals) || {};
-			var refs = schema.refs;
+			// var refs = schema.refs;
 			var props = schema.props;
-			var initial;
+			// var initial;
 			// Make user id is in prop;
 			if (_.indexOf(props, config.keyId) === -1) {
 				props.push(config.keyId);
@@ -201,7 +201,9 @@
 		baseUrl: '',
 		keyId: 'id',
 		store: m.request,
-		redraw: false
+		redraw: false,
+		cache: false,
+		cacheLimit: 100
 	});
 
 	// Export for AMD & browser's global.
@@ -213,6 +215,7 @@
 
 	// Export for browser's global.
 	if (typeof window !== 'undefined') {
+		var oldObject;
 		// Return back old md.
 		exports.noConflict = function() {
 			if (oldObject) {
@@ -502,7 +505,7 @@
 		isNew: function() {
 			return !(this.id() && this.__saved);
 		},
-		__update: function(key) {
+		__update: function() {
 			// Redraw by self.
 			var redrawing;
 			// Levels: instance || schema || global
@@ -721,7 +724,7 @@
 			}
 			return false;
 		},
-		isConflictExtend: function(objSource, objInject, callback) {
+		isConflictExtend: function(objSource, objInject) {
 			var keys = _.keys(objInject);
 			var i = 0;
 			for (; i < keys.length; i++) {
@@ -1168,6 +1171,8 @@
 						d.reject(err);
 						if (_.isFunction(callback)) callback(err);
 					} else {
+						if (options.clear)
+							self.clear(true);
 						self.addAll(models);
 						d.resolve(models);
 						if (_.isFunction(callback)) callback(null, response, models);
@@ -1347,6 +1352,8 @@
 	 * Model Constructor
 	 */
 
+	var _ = __webpack_require__(1);
+	var m = __webpack_require__(2);
 	var store = __webpack_require__(5);
 	var config = __webpack_require__(3).config;
 	var Collection = __webpack_require__(8);
@@ -1366,7 +1373,7 @@
 				redraw: false,
 				cache: config.cache === true
 			};
-			// Inject schema level options
+			// Inject schema level options to "__options"
 			if (options)
 				this.opt(options);
 			// Check cache enabled
@@ -1374,6 +1381,8 @@
 				this.__cacheCollection = new md.Collection({
 					model: this
 				});
+				if (!this.__options.cacheLimit)
+					this.__options.cacheLimit = config.cacheLimit;
 			}
 		},
 		__flagSaved: function(models) {
@@ -1401,6 +1410,9 @@
 				if (!cachedModel) {
 					cachedModel = new this(values, options);
 					this.__cacheCollection.add(cachedModel);
+					if (this.__cacheCollection.size() > this.__options.cacheLimit) {
+						this.__cacheCollection.shift();
+					}
 				}
 			} else {
 				cachedModel = new this(values, options);
@@ -1415,7 +1427,7 @@
 		createModels: function(data, options) {
 			if (!_.isArray(data))
 				data = [data];
-			var model, models = [];
+			var models = [];
 			for (var i = 0; i < data.length; i++) {
 				models[i] = this.create(data[i], options);
 			}

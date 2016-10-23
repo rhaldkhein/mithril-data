@@ -2,6 +2,8 @@
  * Model Constructor
  */
 
+var _ = require('lodash');
+var m = require('mithril');
 var store = require('./store');
 var config = require('./global').config;
 var Collection = require('./collection');
@@ -21,7 +23,7 @@ ModelConstructor.prototype = {
 			redraw: false,
 			cache: config.cache === true
 		};
-		// Inject schema level options
+		// Inject schema level options to "__options"
 		if (options)
 			this.opt(options);
 		// Check cache enabled
@@ -29,6 +31,8 @@ ModelConstructor.prototype = {
 			this.__cacheCollection = new md.Collection({
 				model: this
 			});
+			if (!this.__options.cacheLimit)
+				this.__options.cacheLimit = config.cacheLimit;
 		}
 	},
 	__flagSaved: function(models) {
@@ -56,6 +60,9 @@ ModelConstructor.prototype = {
 			if (!cachedModel) {
 				cachedModel = new this(values, options);
 				this.__cacheCollection.add(cachedModel);
+				if (this.__cacheCollection.size() > this.__options.cacheLimit) {
+					this.__cacheCollection.shift();
+				}
 			}
 		} else {
 			cachedModel = new this(values, options);
@@ -70,7 +77,7 @@ ModelConstructor.prototype = {
 	createModels: function(data, options) {
 		if (!_.isArray(data))
 			data = [data];
-		var model, models = [];
+		var models = [];
 		for (var i = 0; i < data.length; i++) {
 			models[i] = this.create(data[i], options);
 		}

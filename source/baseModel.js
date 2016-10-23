@@ -241,7 +241,7 @@ BaseModel.prototype = {
 	isNew: function() {
 		return !(this.id() && this.__saved);
 	},
-	__update: function(key) {
+	__update: function() {
 		// Redraw by self.
 		var redrawing;
 		// Levels: instance || schema || global
