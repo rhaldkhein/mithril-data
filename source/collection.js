@@ -279,6 +279,8 @@ Collection.prototype = {
 					d.reject(err);
 					if (_.isFunction(callback)) callback(err);
 				} else {
+					if (options.clear)
+						self.clear(true);
 					self.addAll(models);
 					d.resolve(models);
 					if (_.isFunction(callback)) callback(null, response, models);

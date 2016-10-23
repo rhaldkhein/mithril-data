@@ -74,12 +74,13 @@ describe("Model Constructor", function() {
 			expect(models[0].author()).to.equal("Baz");
 		});
 
-		it("cache", function() {
+		it("cache and cache limit", function() {
 			var CacheNoteModel = md.model({
 				name: 'CacheNoteModel',
 				prop: ['title', 'body']
 			}, {
-				cache: true
+				cache: true,
+				cacheLimit: 2
 			});
 			var modelsA = CacheNoteModel.createModels([{
 				id: '123',
@@ -110,7 +111,11 @@ describe("Model Constructor", function() {
 			expect(modelsB[0].lid()).to.equal(modelsA[0].lid());
 			expect(modelsB[1].lid()).to.equal(modelsA[1].lid());
 			expect(modelsB[2].id()).to.equal('789');
+			expect(CacheNoteModel.__cacheCollection.size()).to.equal(2);
+			expect(CacheNoteModel.__cacheCollection.contains('123')).to.be.false;
+			expect(CacheNoteModel.__cacheCollection.contains('789')).to.be.true;
 		});
+
 
 	});
 

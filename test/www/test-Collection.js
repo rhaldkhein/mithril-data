@@ -1097,6 +1097,33 @@ describe("Collection.<methods>", function() {
 			});
 		});
 
+		it("clear option", function(done) {
+			var colA = new md.Collection({
+				model: Model.User
+			});
+			var userA;
+			colA.add(userA = new Model.User({
+				name: 'UserA'
+			}));
+			colA.add(new Model.User({
+				name: 'UserB'
+			}));
+
+			expect(colA.size()).to.equal(2);
+
+			colA.fetch([_ids[2], _ids[3]], {
+				clear: true
+			}).then(function() {
+				try {
+					expect(colA.size()).to.equal(2);
+					expect(colA.contains(userA)).to.be.false;
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, done);
+		});
+
 	});
 
 });

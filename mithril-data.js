@@ -201,7 +201,9 @@
 		baseUrl: '',
 		keyId: 'id',
 		store: m.request,
-		redraw: false
+		redraw: false,
+		cache: false,
+		cacheLimit: 100
 	});
 
 	// Export for AMD & browser's global.
@@ -1169,6 +1171,8 @@
 						d.reject(err);
 						if (_.isFunction(callback)) callback(err);
 					} else {
+						if (options.clear)
+							self.clear(true);
 						self.addAll(models);
 						d.resolve(models);
 						if (_.isFunction(callback)) callback(null, response, models);
@@ -1347,7 +1351,7 @@
 	/**
 	 * Model Constructor
 	 */
-	 
+
 	var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
 	var store = __webpack_require__(5);
@@ -1369,7 +1373,7 @@
 				redraw: false,
 				cache: config.cache === true
 			};
-			// Inject schema level options
+			// Inject schema level options to "__options"
 			if (options)
 				this.opt(options);
 			// Check cache enabled
@@ -1377,6 +1381,8 @@
 				this.__cacheCollection = new md.Collection({
 					model: this
 				});
+				if (!this.__options.cacheLimit)
+					this.__options.cacheLimit = config.cacheLimit;
 			}
 		},
 		__flagSaved: function(models) {
@@ -1404,6 +1410,9 @@
 				if (!cachedModel) {
 					cachedModel = new this(values, options);
 					this.__cacheCollection.add(cachedModel);
+					if (this.__cacheCollection.size() > this.__options.cacheLimit) {
+						this.__cacheCollection.shift();
+					}
 				}
 			} else {
 				cachedModel = new this(values, options);

@@ -148,7 +148,9 @@ exports.defaultConfig({
 	baseUrl: '',
 	keyId: 'id',
 	store: m.request,
-	redraw: false
+	redraw: false,
+	cache: false,
+	cacheLimit: 100
 });
 
 // Export for AMD & browser's global.
