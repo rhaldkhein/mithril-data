@@ -206,6 +206,8 @@ Collection.prototype = {
 		var i = 0;
 		if (this.__options.model)
 			this.__options.model = null;
+		if(this.__state)
+			this.__state.dispose();
 		for (; i < keys.length; i++) {
 			this[keys[i]] = null;
 		}
