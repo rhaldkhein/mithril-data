@@ -341,7 +341,7 @@ col.stateOf(user).isEditing(false) // Sets and returns `false`
 Get the url.
 
 #### \#fetch(query[, options, callback])
-Query to data store and populate the collection. Callback arguments are `(err, response, models)`. Properties for `options` is the same with `m.request`'s options but with additional `path` property. `path` is the path to actual array of items for the collection in the response object. Like in `response:{outer:{items:[]}}` will be `"outer.items"`.
+Query to data store and populate the collection. Callback arguments are `(err, response, models)`. Properties for `options` is the same with `m.request`'s options but with additional `path` and `clear` property. `path` is the path to actual array of items for the collection in the response object. Like in `response:{outer:{items:[]}}` will be `"outer.items"`. And `clear` will clear the collection before placing the fetched data.
 ```javascript
 userCollection.fetch({ age : 30 }).then(function (){
    // Success! `userCollection` now have models with age 30
@@ -391,8 +391,12 @@ var component = {
 }
 ```
 
-#### new State(signature)
-Creates a new State factory. `signature` can be object or array
+#### new State(signature[, options])
+Creates a new State factory. `signature` can be object or array.
+
+All available state options:
+* **store** - (function) the custom store function (it must return a function). defaults to `m.prop`
+* **prefix** - (string) the string prefix for custom store
 
 #### \#set(key)
 Internally creates a new state by `key`.
@@ -403,8 +407,8 @@ Get the state by `key`.
 #### \#remove(key)
 Removes the state by `key`.
 
-#### md.State.create(signature)
-Creates a state without instantiating new State factory.
+#### md.State.create(signature[, options])
+Creates a state without instantiating new State factory. `options` is same with state factory constructor.
 ```javascript
 // Create state factory
 var state = md.State.create({
@@ -439,6 +443,8 @@ All available config options:
 * **storeSerializer** - (function) a function that overrides data-store serializer. see Mithril's `m.request` for more info
 * **storeDeserializer** - (function) a function that overrides data-store deserializer. see Mithril's `m.request` for more info
 * **store** - (function) a function that handles the storing or data. defaults to `m.request`
+* **cache** - (boolean) should use cache or not in all collections. defaults to `false`
+* **cacheLimit** - (number) limit of cache. defaults to `100`
 
 #### storeConfigOptions
 This is useful when you want to modify the `options` object before sending to data-store. One scenario is to create custom url instead of default generated url.
