@@ -1,6 +1,23 @@
 describe("State", function() {
 	"use strict";
 
+	var customStoreData = {};
+	var customStore = function(initVal, key, factorykey) {
+		var prefix = this.prefix || '';
+		factorykey = factorykey ? (factorykey + '.') : '';
+		key = prefix + factorykey + key;
+		var prop = function(valNew) {
+			if (valNew) {
+				customStoreData[key] = valNew;
+			} else {
+				return customStoreData[key];
+			}
+		};
+		if (!(key in customStoreData))
+			prop(initVal);
+		return prop;
+	};
+
 	it("Single instance", function() {
 		var state = md.State.create({
 			isEditing: false,
@@ -39,6 +56,42 @@ describe("State", function() {
 		var json = state.toJson();
 		expect(json.isDone).to.be.false;
 		expect(json.test).to.be.equal('Foo');
+	});
+
+	it("Custom store / prop (non factory)", function() {
+		var state = md.State.create({
+			name: 'Foo',
+			age: 25
+		}, {
+			store: customStore
+		});
+		expect(state.name()).to.equal(customStoreData.name).and.to.equal('Foo');
+		expect(state.age()).to.equal(customStoreData.age).and.to.equal(25);
+	});
+
+	it("Custom store / prop with prefix (non factory)", function() {
+		var state = md.State.create({
+			name: 'Foo',
+			age: 25
+		}, {
+			prefix: 'pref.',
+			store: customStore
+		});
+		expect(state.name()).to.equal(customStoreData['pref.name']).and.to.equal('Foo');
+		expect(state.age()).to.equal(customStoreData['pref.age']).and.to.equal(25);
+	});
+
+	it("Custom store / prop with prefix (factory)", function() {
+		var stateFactory = new md.State({
+			name: 'Foo',
+			age: 25
+		}, {
+			prefix: 'pref.',
+			store: customStore
+		});
+		var stateA = stateFactory.set('a');
+		expect(stateA.name()).to.equal(customStoreData['pref.a.name']).and.to.equal('Foo');
+		expect(stateA.age()).to.equal(customStoreData['pref.a.age']).and.to.equal(25);
 	});
 
 });

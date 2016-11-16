@@ -1098,6 +1098,8 @@
 			var i = 0;
 			if (this.__options.model)
 				this.__options.model = null;
+			if(this.__state)
+				this.__state.dispose();
 			for (; i < keys.length; i++) {
 				this[keys[i]] = null;
 			}
@@ -1249,9 +1251,9 @@
 	var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
 	var defaultKey = '__key__';
-	var privateKeys = ['toJson', 'factory'];
+	var privateKeys = ['factory', 'toJson', '_options'];
 
-	function toJson() {
+	function _toJson() {
 		var json = {};
 		for (var prop in this) {
 			if (_.indexOf(privateKeys, prop) === -1) {
@@ -1261,19 +1263,22 @@
 		return json;
 	}
 
-	function createState(signature, state) {
+	function createState(signature, state, options, factoryKey) {
 		var propVal;
+		state._options = _.assign({
+			store: m.prop
+		}, options);
 		for (var prop in signature) {
 			if (_.indexOf(privateKeys, prop) > -1)
 				throw new Error('State key `' + prop + '` is not allowed.');
 			propVal = signature[prop];
-			state[prop] = _.isFunction(propVal) ? propVal : m.prop(propVal);
+			state[prop] = _.isFunction(propVal) ? propVal : state._options.store(propVal, prop, factoryKey);
 		}
 		return state;
 	}
 
 	// Class
-	function State(signature) {
+	function State(signature, options) {
 		if (_.isArray(signature)) {
 			this.signature = _.invert(signature);
 			for (var prop in this.signature) {
@@ -1282,6 +1287,7 @@
 		} else {
 			this.signature = signature;
 		}
+		this._options = options;
 		this.map = {};
 	}
 
@@ -1289,10 +1295,10 @@
 	module.exports = State;
 
 	// Single state
-	State.create = function(signature) {
+	State.create = function(signature, options) {
 		return createState(signature, {
-			toJson: toJson
-		});
+			toJson: _toJson
+		}, options);
 	};
 
 	// Prototype
@@ -1303,8 +1309,8 @@
 			if (!this.map[key]) {
 				this.map[key] = createState(this.signature, {
 					factory: m.prop(this),
-					toJson: toJson
-				});
+					toJson: _toJson
+				}, this._options, key);
 			}
 			return this.map[key];
 		},
