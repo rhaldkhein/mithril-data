@@ -7,7 +7,7 @@ describe("State", function() {
 		factorykey = factorykey ? (factorykey + '.') : '';
 		key = prefix + factorykey + key;
 		var prop = function(valNew) {
-			if (valNew) {
+			if (arguments.length) {
 				customStoreData[key] = valNew;
 			} else {
 				return customStoreData[key];
@@ -61,12 +61,14 @@ describe("State", function() {
 	it("Custom store / prop (non factory)", function() {
 		var state = md.State.create({
 			name: 'Foo',
-			age: 25
+			age: 25,
+			active: false
 		}, {
 			store: customStore
 		});
 		expect(state.name()).to.equal(customStoreData.name).and.to.equal('Foo');
 		expect(state.age()).to.equal(customStoreData.age).and.to.equal(25);
+		expect(state.active()).to.equal(customStoreData.active).and.to.equal(false);
 	});
 
 	it("Custom store / prop with prefix (non factory)", function() {
