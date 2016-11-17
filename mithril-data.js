@@ -604,6 +604,7 @@
 
 	function __serializer(data) {
 		data = data instanceof BaseModel ? data.getCopy() : data;
+		__dereference(data);
 		if (config.storeSerializer)
 			return config.storeSerializer(data);
 		else
@@ -618,6 +619,16 @@
 				return JSON.parse(data);
 			} catch (e) {
 				return data;
+			}
+		}
+	}
+
+	function __dereference(data) {
+		var value;
+		for (var key in data) {
+			value = data[key];
+			if (_.isObject(value)) {
+				data[key] = value[config.keyId] || value;
 			}
 		}
 	}
