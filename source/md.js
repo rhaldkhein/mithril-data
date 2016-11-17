@@ -26,7 +26,6 @@ function createModelConstructor(schema) {
 		BaseModel.call(this, opts);
 		// Local variables.
 		var data = (this.__options.parse ? this.options.parser(vals) : vals) || {};
-		// var refs = schema.refs;
 		var props = schema.props;
 		// var initial;
 		// Make user id is in prop;

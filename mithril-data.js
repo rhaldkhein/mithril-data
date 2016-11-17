@@ -79,7 +79,6 @@
 			BaseModel.call(this, opts);
 			// Local variables.
 			var data = (this.__options.parse ? this.options.parser(vals) : vals) || {};
-			// var refs = schema.refs;
 			var props = schema.props;
 			// var initial;
 			// Make user id is in prop;
@@ -538,10 +537,14 @@
 					// 0 = value
 					// 1 = silent
 					value = arguments[0];
-					if (_.isPlainObject(value) && ref) {
-						// TODO: Check to use cache
-						value = modelConstructors[ref].create(value);
-						// value = new modelConstructors[ref](value);
+					if (ref) {
+						var refConstructor = modelConstructors[ref];
+						if (_.isPlainObject(value)) {
+							value = refConstructor.create(value);
+						} else if ((_.isString(value) || _.isNumber(value)) && refConstructor.__cacheCollection) {
+							// Try to find the model in the cache
+							value = refConstructor.__cacheCollection.get(value) || value;
+						}
 					}
 					if (value instanceof BaseModel) {
 						value = value.getJson();

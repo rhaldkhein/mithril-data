@@ -77,7 +77,7 @@ describe("Model Constructor", function() {
 		it("cache and cache limit", function() {
 			var CacheNoteModel = md.model({
 				name: 'CacheNoteModel',
-				prop: ['title', 'body']
+				props: ['title', 'body']
 			}, {
 				cache: true,
 				cacheLimit: 2

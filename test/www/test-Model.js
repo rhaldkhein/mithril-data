@@ -124,6 +124,49 @@ describe("Model Instance", function() {
 		expect(user.test()).to.be.equal('Foo');
 	});
 
+	it("finds the reference if value is string or number (only for enabled cache)", function() {
+		
+		var CacheSenderModel = md.model({
+			name: 'CacheSenderModel',
+			props: ['name', 'age']
+		}, {
+			cache: true
+		});
+
+		var CacheEmailModel = md.model({
+			name: 'CacheEmailModel',
+			props: ['subject', 'body', 'sender'],
+			refs: {
+				sender: 'CacheSenderModel'
+			}
+		}, {
+			cache: true
+		});
+
+		var modelsSender = CacheSenderModel.createModels([{
+			id: 123,
+			name: 'Foo'
+		}, {
+			id: '456',
+			name: 'Bar'
+		}]);
+
+		var modelsEmail = CacheEmailModel.createModels([{
+			subject: 'Baz',
+			sender: '456'
+		}, {
+			subject: 'Test',
+			sender: 123
+		}]);
+
+		// Note that the `first email` is referencing the `second sender`. Check the ID!
+		expect(modelsEmail[0].sender()).to.be.equal(modelsSender[1]);
+		expect(modelsEmail[1].sender()).to.be.equal(modelsSender[0]);
+		expect(modelsEmail[0].sender().name()).to.be.equal('Bar');
+		expect(modelsEmail[1].sender().name()).to.be.equal('Foo');
+
+	});
+
 });
 
 describe("Model.<properties>", function() {
