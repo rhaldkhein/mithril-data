@@ -371,10 +371,11 @@ Disposes the object by `null`-ing all properties of the object. Note that this m
 ## State
 Also known as View-Model. See Mithril's view-model description for more info.
 ```javascript
+var _isEditing = m.prop(false)
 // Create state factory
 var stateFactory = new md.State({
    isLoading: false,
-   isEditing: false
+   isEditing: _isEditing // Add exisiting prop created somewhere
 })
 // Creating states 
 stateFactory.set('A');
