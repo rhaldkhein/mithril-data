@@ -92,4 +92,30 @@ describe("Collection.<lodash>", function() {
 		expect(result[1]).to.be.equal(userC);
 	});
 
+	it("reduce", function() {
+		var col = new md.Collection();
+		var userA = new Model.User();
+		userA.name('Foo');
+		userA.active(true);
+		col.add(userA);
+		var userB = new Model.User();
+		userB.name('Bar');
+		userB.active(false);
+		col.add(userB);
+		var userC = new Model.User();
+		userC.name('Baz');
+		userC.active(true);
+		col.add(userC);
+		var result = col.reduce(function(arr, item) {
+			if (item.active()) {
+				arr.push(item);
+			}
+			return arr;
+		}, []);
+		expect(result).to.be.a("array");
+		expect(result.length).to.equal(2);
+		expect(result[0]).to.be.equal(userA);
+		expect(result[1]).to.be.equal(userC);
+	});
+
 });
