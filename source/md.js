@@ -148,6 +148,7 @@ exports.defaultConfig({
 	keyId: 'id',
 	store: m.request,
 	redraw: false,
+	storeBackground: false,
 	cache: false,
 	cacheLimit: 100
 });
