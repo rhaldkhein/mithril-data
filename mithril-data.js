@@ -370,7 +370,7 @@
 				key = keys[i];
 				val = _obj[key];
 				if (!this.__isProp(key) || !_.isFunction(this[key]))
-					return;
+					continue;
 				if (isModel && _.isFunction(val)) {
 					this[key](val(), true);
 				} else {
