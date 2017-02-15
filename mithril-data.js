@@ -450,6 +450,58 @@
 			}
 			return d.promise;
 		},
+		populate: function(options, callback) {
+			if (_.isFunction(options)) {
+				callback = options;
+				options = undefined;
+			}
+			var self = this;
+			var d = m.deferred();
+			var refs = this.options.refs;
+			var error;
+			var countFetch = 0;
+			_.forEach(refs, function(refName, refKey) {
+				var value = self.__json[refKey];
+				if (_.isString(value) || _.isNumber(value)) {
+					var data = {};
+					data[config.keyId] = value;
+					var model = modelConstructors[refName].create(data);
+					if (model.isSaved()) {
+						// Ok to link reference
+						self[refKey](model);
+					} else {
+						// Fetch and link
+						countFetch++;
+						model.fetch(
+							(options && options.fetchOptions && options.fetchOptions[refKey] ? options.fetchOptions[refKey] : null),
+							function(err, data, mdl) {
+								countFetch--;
+								if (err) {
+									error = err;
+								} else {
+									self[refKey](mdl);
+								}
+								if (!countFetch) {
+									if (error) {
+										d.reject(error);
+										if (_.isFunction(callback)) callback(null, error);
+									} else {
+										// All fetched
+										d.resolve(self);
+										if (_.isFunction(callback)) callback(null, self);
+									}
+								}
+							}
+						);
+					}
+				}
+			});
+			if (!countFetch) {
+				d.resolve(this);
+				if (_.isFunction(callback)) callback(null, this);
+			}
+			return d.promise;
+		},
 		destroy: function(options, callback) {
 			if (_.isFunction(options)) {
 				callback = options;
