@@ -3,7 +3,7 @@
  */
 
 var _ = require('lodash');
-var m = require('mithril');
+// var m = require('mithril');
 var store = require('./store');
 var config = require('./global').config;
 var Collection = require('./collection');
@@ -28,7 +28,7 @@ ModelConstructor.prototype = {
 			this.opt(options);
 		// Check cache enabled
 		if (this.__options.cache) {
-			this.__cacheCollection = new md.Collection({
+			this.__cacheCollection = new Collection({
 				model: this
 			});
 			if (!this.__options.cacheLimit)
@@ -93,21 +93,21 @@ ModelConstructor.prototype = {
 			data = undefined;
 		}
 		var self = this;
-		var d = m.deferred();
-		store.get(url, data, options)
-			.then(function(data) {
-				// `data` can be either array of model or object with
-				// additional information (like total result and pagination)
-				// and a property with value of array of models
-				var models = self.createModels(options && options.path ? _.get(data, options.path) : data, options);
-				self.__flagSaved(models);
-				// Resolve the raw data from server as it might contain additional information
-				d.resolve(models);
-				if (_.isFunction(callback)) callback(null, data, models);
-			}, function(err) {
-				d.reject(err);
-				if (_.isFunction(callback)) callback(err);
-			});
-		return d.promise;
+		return new Promise(function(resolve, reject) {
+			store.get(url, data, options)
+				.then(function(data) {
+					// `data` can be either array of model or object with
+					// additional information (like total result and pagination)
+					// and a property with value of array of models
+					var models = self.createModels(options && options.path ? _.get(data, options.path) : data, options);
+					self.__flagSaved(models);
+					// Resolve the raw data from server as it might contain additional information
+					resolve(models);
+					if (_.isFunction(callback)) callback(null, data, models);
+				}, function(err) {
+					reject(err);
+					if (_.isFunction(callback)) callback(err);
+				});
+		});
 	}
 };

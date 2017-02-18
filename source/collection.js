@@ -272,27 +272,27 @@ Collection.prototype = {
 			callback = options;
 			options = undefined;
 		}
-		var d = m.deferred();
-		if (this.hasModel()) {
-			var self = this;
-			options = options || {};
-			this.model().pull(this.url(), query, options, function(err, response, models) {
-				if (err) {
-					d.reject(err);
-					if (_.isFunction(callback)) callback(err);
-				} else {
-					if (options.clear)
-						self.clear(true);
-					self.addAll(models);
-					d.resolve(models);
-					if (_.isFunction(callback)) callback(null, response, models);
-				}
-			});
-		} else {
-			d.reject(true);
-			if (_.isFunction(callback)) callback(true);
-		}
-		return d.promise;
+		var self = this;
+		return new Promise(function(resolve, reject) {
+			if (self.hasModel()) {
+				options = options || {};
+				self.model().pull(self.url(), query, options, function(err, response, models) {
+					if (err) {
+						reject(err);
+						if (_.isFunction(callback)) callback(err);
+					} else {
+						if (options.clear)
+							self.clear(true);
+						self.addAll(models);
+						resolve(models);
+						if (_.isFunction(callback)) callback(null, response, models);
+					}
+				});
+			} else {
+				reject(true);
+				if (_.isFunction(callback)) callback(true);
+			}
+		});
 	},
 	__replaceModels: function(models) {
 		for (var i = models.length - 1; i >= 0; i--) {
@@ -302,8 +302,9 @@ Collection.prototype = {
 	__update: function() {
 		// Levels: instance || global
 		if (this.__options.redraw || config.redraw) {
-			m.startComputation();
-			util.nextTick(m.endComputation);
+			// m.startComputation();
+			// util.nextTick(m.endComputation);
+			m.redraw();
 		}
 	}
 };
@@ -345,7 +346,7 @@ var collectionMethods = {
 	transform: 2,
 	toArray: 0,
 	without: 1
-}; 
+};
 
 
 // Inject lodash method.

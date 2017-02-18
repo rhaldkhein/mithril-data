@@ -56,9 +56,9 @@
 	var config = __webpack_require__(3).config;
 	var modelConstructors = __webpack_require__(3).modelConstructors;
 	var BaseModel = __webpack_require__(4);
-	var ModelConstructor = __webpack_require__(10);
-	var util = __webpack_require__(6);
-	var Collection = __webpack_require__(8);
+	var ModelConstructor = __webpack_require__(13);
+	var util = __webpack_require__(9);
+	var Collection = __webpack_require__(11);
 
 	Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
 		obj.__proto__ = proto;
@@ -140,13 +140,13 @@
 	};
 
 	// Export class Collection.
-	exports.Collection = __webpack_require__(8);
+	exports.Collection = __webpack_require__(11);
 
 	// Export class State.
-	exports.State = __webpack_require__(9);
+	exports.State = __webpack_require__(12);
 
 	// Export our own store controller.
-	exports.store = __webpack_require__(5);
+	exports.store = __webpack_require__(8);
 
 	// Export model instantiator.
 	exports.model = function(schemaOptions, ctrlOptions) {
@@ -268,6 +268,7 @@
 
 	var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
+	var stream = __webpack_require__(5);
 	var config = __webpack_require__(3).config;
 	var modelConstructors = __webpack_require__(3).modelConstructors;
 
@@ -291,9 +292,9 @@
 	module.exports = BaseModel;
 
 	// Need to require after export. To fix the circular dependencies issue.
-	var store = __webpack_require__(5);
-	var util = __webpack_require__(6);
-	var Collection = __webpack_require__(8);
+	var store = __webpack_require__(8);
+	var util = __webpack_require__(9);
+	var Collection = __webpack_require__(11);
 
 	// Method to bind to Model object. Use by _.bindAll().
 	var modelBindMethods = [];
@@ -413,18 +414,18 @@
 				options = undefined;
 			}
 			var self = this;
-			var d = m.deferred();
-			var req = this.id() ? store.put : store.post;
-			req.call(store, this.url(), this, options).then(function(data) {
-				self.set(options && options.path ? _.get(data, options.path) : data);
-				self.__saved = true;
-				d.resolve(self);
-				if (_.isFunction(callback)) callback(null, data, self);
-			}, function(err) {
-				d.reject(err);
-				if (_.isFunction(callback)) callback(err);
+			return new Promise(function(resolve, reject) {
+				var req = self.id() ? store.put : store.post;
+				req.call(store, self.url(), self, options).then(function(data) {
+					self.set(options && options.path ? _.get(data, options.path) : data);
+					self.__saved = true;
+					resolve(self);
+					if (_.isFunction(callback)) callback(null, data, self);
+				}, function(err) {
+					reject(err);
+					if (_.isFunction(callback)) callback(err);
+				});
 			});
-			return d.promise;
 		},
 		fetch: function(options, callback) {
 			if (_.isFunction(options)) {
@@ -432,23 +433,23 @@
 				options = undefined;
 			}
 			var self = this;
-			var d = m.deferred();
-			var id = this.__getDataId();
-			if (id[config.keyId]) {
-				store.get(this.url(), id, options).then(function(data) {
-					self.set(options && options.path ? _.get(data, options.path) : data);
-					self.__saved = true;
-					d.resolve(self);
-					if (_.isFunction(callback)) callback(null, data, self);
-				}, function(err) {
-					d.reject(err);
-					if (_.isFunction(callback)) callback(err);
-				});
-			} else {
-				d.reject(true);
-				if (_.isFunction(callback)) callback(true);
-			}
-			return d.promise;
+			return new Promise(function(resolve, reject) {
+				var id = self.__getDataId();
+				if (id[config.keyId]) {
+					store.get(self.url(), id, options).then(function(data) {
+						self.set(options && options.path ? _.get(data, options.path) : data);
+						self.__saved = true;
+						resolve(self);
+						if (_.isFunction(callback)) callback(null, data, self);
+					}, function(err) {
+						reject(err);
+						if (_.isFunction(callback)) callback(err);
+					});
+				} else {
+					reject(true);
+					if (_.isFunction(callback)) callback(true);
+				}
+			});
 		},
 		populate: function(options, callback) {
 			if (_.isFunction(options)) {
@@ -456,51 +457,51 @@
 				options = undefined;
 			}
 			var self = this;
-			var d = m.deferred();
-			var refs = this.options.refs;
-			var error;
-			var countFetch = 0;
-			_.forEach(refs, function(refName, refKey) {
-				var value = self.__json[refKey];
-				if (_.isString(value) || _.isNumber(value)) {
-					var data = {};
-					data[config.keyId] = value;
-					var model = modelConstructors[refName].create(data);
-					if (model.isSaved()) {
-						// Ok to link reference
-						self[refKey](model);
-					} else {
-						// Fetch and link
-						countFetch++;
-						model.fetch(
-							(options && options.fetchOptions && options.fetchOptions[refKey] ? options.fetchOptions[refKey] : null),
-							function(err, data, mdl) {
-								countFetch--;
-								if (err) {
-									error = err;
-								} else {
-									self[refKey](mdl);
-								}
-								if (!countFetch) {
-									if (error) {
-										d.reject(error);
-										if (_.isFunction(callback)) callback(null, error);
+			return new Promise(function(resolve, reject) {
+				var refs = self.options.refs;
+				var error;
+				var countFetch = 0;
+				_.forEach(refs, function(refName, refKey) {
+					var value = self.__json[refKey];
+					if (_.isString(value) || _.isNumber(value)) {
+						var data = {};
+						data[config.keyId] = value;
+						var model = modelConstructors[refName].create(data);
+						if (model.isSaved()) {
+							// Ok to link reference
+							self[refKey](model);
+						} else {
+							// Fetch and link
+							countFetch++;
+							model.fetch(
+								(options && options.fetchOptions && options.fetchOptions[refKey] ? options.fetchOptions[refKey] : null),
+								function(err, data, mdl) {
+									countFetch--;
+									if (err) {
+										error = err;
 									} else {
-										// All fetched
-										d.resolve(self);
-										if (_.isFunction(callback)) callback(null, self);
+										self[refKey](mdl);
+									}
+									if (!countFetch) {
+										if (error) {
+											reject(error);
+											if (_.isFunction(callback)) callback(null, error);
+										} else {
+											// All fetched
+											resolve(self);
+											if (_.isFunction(callback)) callback(null, self);
+										}
 									}
 								}
-							}
-						);
+							);
+						}
 					}
+				});
+				if (!countFetch) {
+					resolve(self);
+					if (_.isFunction(callback)) callback(null, self);
 				}
 			});
-			if (!countFetch) {
-				d.resolve(this);
-				if (_.isFunction(callback)) callback(null, this);
-			}
-			return d.promise;
 		},
 		destroy: function(options, callback) {
 			if (_.isFunction(options)) {
@@ -509,23 +510,23 @@
 			}
 			// Destroy the model. Will sync to store.
 			var self = this;
-			var d = m.deferred();
-			var id = this.__getDataId();
-			if (id[config.keyId]) {
-				store.destroy(this.url(), id, options).then(function() {
-					self.detach();
-					d.resolve();
-					if (_.isFunction(callback)) callback(null);
-					self.dispose();
-				}, function(err) {
-					d.reject(err);
-					if (_.isFunction(callback)) callback(err);
-				});
-			} else {
-				d.reject(true);
-				if (_.isFunction(callback)) callback(true);
-			}
-			return d.promise;
+			return new Promise(function(resolve, reject) {
+				var id = self.__getDataId();
+				if (id[config.keyId]) {
+					store.destroy(self.url(), id, options).then(function() {
+						self.detach();
+						resolve();
+						if (_.isFunction(callback)) callback(null);
+						self.dispose();
+					}, function(err) {
+						reject(err);
+						if (_.isFunction(callback)) callback(err);
+					});
+				} else {
+					reject(true);
+					if (_.isFunction(callback)) callback(true);
+				}
+			});
 		},
 		remove: function() {
 			this.detach();
@@ -559,18 +560,21 @@
 		},
 		__update: function() {
 			// Redraw by self.
-			var redrawing;
+			// var redrawing;
 			// Levels: instance || schema || global
-			if (this.__options.redraw || this.options.redraw || config.redraw) {
-				m.startComputation();
-				redrawing = true;
-			}
+			// if (this.__options.redraw || this.options.redraw || config.redraw) {
+			// 	m.startComputation();
+			// 	redrawing = true;
+			// }
 			// Propagate change to model's collections.
 			for (var i = 0; i < this.__collections.length; i++) {
 				this.__collections[i].__update(this);
 			}
-			if (redrawing)
-				util.nextTick(m.endComputation);
+			// if (redrawing)
+			// 	util.nextTick(m.endComputation);
+			if (this.__options.redraw || this.options.redraw || config.redraw) {
+				m.redraw();
+			}
 		},
 		__isProp: function(key) {
 			return _.indexOf(this.options.props, key) > -1;
@@ -581,6 +585,47 @@
 			return dataId;
 		},
 		__gettersetter: function(initial, key) {
+			var _stream = stream();
+			// Wrapper
+			function prop() {
+				var value;
+				if (arguments.length) {
+					// Write
+					value = arguments[0];
+					var ref = this.options.refs[key];
+					if (ref) {
+						var refConstructor = modelConstructors[ref];
+						if (_.isPlainObject(value)) {
+							value = refConstructor.create(value);
+						} else if ((_.isString(value) || _.isNumber(value)) && refConstructor.__cacheCollection) {
+							// Try to find the model in the cache
+							value = refConstructor.__cacheCollection.get(value) || value;
+						}
+					}
+					if (value instanceof BaseModel) {
+						value = value.getJson();
+					}
+					_stream(value);
+					this.__json[key] = _stream._state.value;
+					if (!arguments[1])
+						this.__update(key);
+					return value;
+				}
+				value = _stream();
+				if (value && value.__model instanceof BaseModel) {
+					value = value.__model;
+				} else if (_.isNil(value) && this.options && !_.isNil(this.options.defaults[key])) {
+					// If value is null or undefined and a default value exist.
+					// Return that default value which was set in schema.
+					value = this.options.defaults[key];
+				}
+				return value;
+			}
+			prop.stream = _stream;
+			prop.call(this, initial, true);
+			return prop;
+		},
+		__gettersetter__: function(initial, key) {
 			var store = this.__json;
 			var ref = this.options.refs[key];
 			// Getter and setter function.
@@ -633,6 +678,151 @@
 
 /***/ },
 /* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__(6)
+
+/***/ },
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(module) {"use strict"
+
+	var guid = 0, HALT = {}
+	function createStream() {
+		function stream() {
+			if (arguments.length > 0 && arguments[0] !== HALT) updateStream(stream, arguments[0])
+			return stream._state.value
+		}
+		initStream(stream)
+
+		if (arguments.length > 0 && arguments[0] !== HALT) updateStream(stream, arguments[0])
+
+		return stream
+	}
+	function initStream(stream) {
+		stream.constructor = createStream
+		stream._state = {id: guid++, value: undefined, state: 0, derive: undefined, recover: undefined, deps: {}, parents: [], endStream: undefined}
+		stream.map = stream["fantasy-land/map"] = map, stream["fantasy-land/ap"] = ap, stream["fantasy-land/of"] = createStream
+		stream.valueOf = valueOf, stream.toJSON = toJSON, stream.toString = valueOf
+
+		Object.defineProperties(stream, {
+			end: {get: function() {
+				if (!stream._state.endStream) {
+					var endStream = createStream()
+					endStream.map(function(value) {
+						if (value === true) unregisterStream(stream), unregisterStream(endStream)
+						return value
+					})
+					stream._state.endStream = endStream
+				}
+				return stream._state.endStream
+			}}
+		})
+	}
+	function updateStream(stream, value) {
+		updateState(stream, value)
+		for (var id in stream._state.deps) updateDependency(stream._state.deps[id], false)
+		finalize(stream)
+	}
+	function updateState(stream, value) {
+		stream._state.value = value
+		stream._state.changed = true
+		if (stream._state.state !== 2) stream._state.state = 1
+	}
+	function updateDependency(stream, mustSync) {
+		var state = stream._state, parents = state.parents
+		if (parents.length > 0 && parents.every(active) && (mustSync || parents.some(changed))) {
+			var value = stream._state.derive()
+			if (value === HALT) return false
+			updateState(stream, value)
+		}
+	}
+	function finalize(stream) {
+		stream._state.changed = false
+		for (var id in stream._state.deps) stream._state.deps[id]._state.changed = false
+	}
+
+	function combine(fn, streams) {
+		if (!streams.every(valid)) throw new Error("Ensure that each item passed to m.prop.combine/m.prop.merge is a stream")
+		return initDependency(createStream(), streams, function() {
+			return fn.apply(this, streams.concat([streams.filter(changed)]))
+		})
+	}
+
+	function initDependency(dep, streams, derive) {
+		var state = dep._state
+		state.derive = derive
+		state.parents = streams.filter(notEnded)
+
+		registerDependency(dep, state.parents)
+		updateDependency(dep, true)
+
+		return dep
+	}
+	function registerDependency(stream, parents) {
+		for (var i = 0; i < parents.length; i++) {
+			parents[i]._state.deps[stream._state.id] = stream
+			registerDependency(stream, parents[i]._state.parents)
+		}
+	}
+	function unregisterStream(stream) {
+		for (var i = 0; i < stream._state.parents.length; i++) {
+			var parent = stream._state.parents[i]
+			delete parent._state.deps[stream._state.id]
+		}
+		for (var id in stream._state.deps) {
+			var dependent = stream._state.deps[id]
+			var index = dependent._state.parents.indexOf(stream)
+			if (index > -1) dependent._state.parents.splice(index, 1)
+		}
+		stream._state.state = 2 //ended
+		stream._state.deps = {}
+	}
+
+	function map(fn) {return combine(function(stream) {return fn(stream())}, [this])}
+	function ap(stream) {return combine(function(s1, s2) {return s1()(s2())}, [stream, this])}
+	function valueOf() {return this._state.value}
+	function toJSON() {return this._state.value != null && typeof this._state.value.toJSON === "function" ? this._state.value.toJSON() : this._state.value}
+
+	function valid(stream) {return stream._state }
+	function active(stream) {return stream._state.state === 1}
+	function changed(stream) {return stream._state.changed}
+	function notEnded(stream) {return stream._state.state !== 2}
+
+	function merge(streams) {
+		return combine(function() {
+			return streams.map(function(s) {return s()})
+		}, streams)
+	}
+	createStream["fantasy-land/of"] = createStream
+	createStream.merge = merge
+	createStream.combine = combine
+	createStream.HALT = HALT
+
+	if (true) module["exports"] = createStream
+	else window.stream = createStream
+
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7)(module)))
+
+/***/ },
+/* 7 */
+/***/ function(module, exports) {
+
+	module.exports = function(module) {
+		if(!module.webpackPolyfill) {
+			module.deprecate = function() {};
+			module.paths = [];
+			// module.parent = undefined by default
+			module.children = [];
+			module.webpackPolyfill = 1;
+		}
+		return module;
+	}
+
+
+/***/ },
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var _ = __webpack_require__(1);
@@ -719,7 +909,7 @@
 	});
 
 /***/ },
-/* 6 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {var _ = __webpack_require__(1);
@@ -852,10 +1042,10 @@
 			});
 		}
 	});
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(10)))
 
 /***/ },
-/* 7 */
+/* 10 */
 /***/ function(module, exports) {
 
 	// shim for using process in browser
@@ -955,7 +1145,7 @@
 
 
 /***/ },
-/* 8 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -964,10 +1154,10 @@
 
 	var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
-	var util = __webpack_require__(6);
+	var util = __webpack_require__(9);
 	var config = __webpack_require__(3).config;
 	var BaseModel = __webpack_require__(4);
-	var State = __webpack_require__(9);
+	var State = __webpack_require__(12);
 
 	function Collection(options) {
 		this.models = [];
@@ -1232,27 +1422,27 @@
 				callback = options;
 				options = undefined;
 			}
-			var d = m.deferred();
-			if (this.hasModel()) {
-				var self = this;
-				options = options || {};
-				this.model().pull(this.url(), query, options, function(err, response, models) {
-					if (err) {
-						d.reject(err);
-						if (_.isFunction(callback)) callback(err);
-					} else {
-						if (options.clear)
-							self.clear(true);
-						self.addAll(models);
-						d.resolve(models);
-						if (_.isFunction(callback)) callback(null, response, models);
-					}
-				});
-			} else {
-				d.reject(true);
-				if (_.isFunction(callback)) callback(true);
-			}
-			return d.promise;
+			var self = this;
+			return new Promise(function(resolve, reject) {
+				if (self.hasModel()) {
+					options = options || {};
+					self.model().pull(self.url(), query, options, function(err, response, models) {
+						if (err) {
+							reject(err);
+							if (_.isFunction(callback)) callback(err);
+						} else {
+							if (options.clear)
+								self.clear(true);
+							self.addAll(models);
+							resolve(models);
+							if (_.isFunction(callback)) callback(null, response, models);
+						}
+					});
+				} else {
+					reject(true);
+					if (_.isFunction(callback)) callback(true);
+				}
+			});
 		},
 		__replaceModels: function(models) {
 			for (var i = models.length - 1; i >= 0; i--) {
@@ -1262,8 +1452,9 @@
 		__update: function() {
 			// Levels: instance || global
 			if (this.__options.redraw || config.redraw) {
-				m.startComputation();
-				util.nextTick(m.endComputation);
+				// m.startComputation();
+				// util.nextTick(m.endComputation);
+				m.redraw();
 			}
 		}
 	};
@@ -1305,21 +1496,21 @@
 		transform: 2,
 		toArray: 0,
 		without: 1
-	}; 
+	};
 
 
 	// Inject lodash method.
 	util.addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
 
 /***/ },
-/* 9 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * State
 	 */
 	var _ = __webpack_require__(1);
-	var m = __webpack_require__(2);
+	var stream = __webpack_require__(5);
 	var defaultKey = '__key__';
 	var privateKeys = ['factory', 'toJson', '_options'];
 
@@ -1336,7 +1527,7 @@
 	function createState(signature, state, options, factoryKey) {
 		var propVal;
 		state._options = _.assign({
-			store: m.prop
+			store: stream
 		}, options);
 		for (var prop in signature) {
 			if (_.indexOf(privateKeys, prop) > -1)
@@ -1378,7 +1569,7 @@
 				key = defaultKey;
 			if (!this.map[key]) {
 				this.map[key] = createState(this.signature, {
-					factory: m.prop(this),
+					factory: stream(this),
 					toJson: _toJson
 				}, this._options, key);
 			}
@@ -1421,7 +1612,7 @@
 	};
 
 /***/ },
-/* 10 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -1429,10 +1620,10 @@
 	 */
 
 	var _ = __webpack_require__(1);
-	var m = __webpack_require__(2);
-	var store = __webpack_require__(5);
+	// var m = require('mithril');
+	var store = __webpack_require__(8);
 	var config = __webpack_require__(3).config;
-	var Collection = __webpack_require__(8);
+	var Collection = __webpack_require__(11);
 
 	function ModelConstructor() {}
 
@@ -1454,7 +1645,7 @@
 				this.opt(options);
 			// Check cache enabled
 			if (this.__options.cache) {
-				this.__cacheCollection = new md.Collection({
+				this.__cacheCollection = new Collection({
 					model: this
 				});
 				if (!this.__options.cacheLimit)
@@ -1519,22 +1710,22 @@
 				data = undefined;
 			}
 			var self = this;
-			var d = m.deferred();
-			store.get(url, data, options)
-				.then(function(data) {
-					// `data` can be either array of model or object with
-					// additional information (like total result and pagination)
-					// and a property with value of array of models
-					var models = self.createModels(options && options.path ? _.get(data, options.path) : data, options);
-					self.__flagSaved(models);
-					// Resolve the raw data from server as it might contain additional information
-					d.resolve(models);
-					if (_.isFunction(callback)) callback(null, data, models);
-				}, function(err) {
-					d.reject(err);
-					if (_.isFunction(callback)) callback(err);
-				});
-			return d.promise;
+			return new Promise(function(resolve, reject) {
+				store.get(url, data, options)
+					.then(function(data) {
+						// `data` can be either array of model or object with
+						// additional information (like total result and pagination)
+						// and a property with value of array of models
+						var models = self.createModels(options && options.path ? _.get(data, options.path) : data, options);
+						self.__flagSaved(models);
+						// Resolve the raw data from server as it might contain additional information
+						resolve(models);
+						if (_.isFunction(callback)) callback(null, data, models);
+					}, function(err) {
+						reject(err);
+						if (_.isFunction(callback)) callback(err);
+					});
+			});
 		}
 	};
 

@@ -4,6 +4,7 @@
 
 var _ = require('lodash');
 var m = require('mithril');
+var stream = require('mithril/stream');
 var config = require('./global').config;
 var modelConstructors = require('./global').modelConstructors;
 
@@ -149,18 +150,18 @@ BaseModel.prototype = {
 			options = undefined;
 		}
 		var self = this;
-		var d = m.deferred();
-		var req = this.id() ? store.put : store.post;
-		req.call(store, this.url(), this, options).then(function(data) {
-			self.set(options && options.path ? _.get(data, options.path) : data);
-			self.__saved = true;
-			d.resolve(self);
-			if (_.isFunction(callback)) callback(null, data, self);
-		}, function(err) {
-			d.reject(err);
-			if (_.isFunction(callback)) callback(err);
+		return new Promise(function(resolve, reject) {
+			var req = self.id() ? store.put : store.post;
+			req.call(store, self.url(), self, options).then(function(data) {
+				self.set(options && options.path ? _.get(data, options.path) : data);
+				self.__saved = true;
+				resolve(self);
+				if (_.isFunction(callback)) callback(null, data, self);
+			}, function(err) {
+				reject(err);
+				if (_.isFunction(callback)) callback(err);
+			});
 		});
-		return d.promise;
 	},
 	fetch: function(options, callback) {
 		if (_.isFunction(options)) {
@@ -168,23 +169,23 @@ BaseModel.prototype = {
 			options = undefined;
 		}
 		var self = this;
-		var d = m.deferred();
-		var id = this.__getDataId();
-		if (id[config.keyId]) {
-			store.get(this.url(), id, options).then(function(data) {
-				self.set(options && options.path ? _.get(data, options.path) : data);
-				self.__saved = true;
-				d.resolve(self);
-				if (_.isFunction(callback)) callback(null, data, self);
-			}, function(err) {
-				d.reject(err);
-				if (_.isFunction(callback)) callback(err);
-			});
-		} else {
-			d.reject(true);
-			if (_.isFunction(callback)) callback(true);
-		}
-		return d.promise;
+		return new Promise(function(resolve, reject) {
+			var id = self.__getDataId();
+			if (id[config.keyId]) {
+				store.get(self.url(), id, options).then(function(data) {
+					self.set(options && options.path ? _.get(data, options.path) : data);
+					self.__saved = true;
+					resolve(self);
+					if (_.isFunction(callback)) callback(null, data, self);
+				}, function(err) {
+					reject(err);
+					if (_.isFunction(callback)) callback(err);
+				});
+			} else {
+				reject(true);
+				if (_.isFunction(callback)) callback(true);
+			}
+		});
 	},
 	populate: function(options, callback) {
 		if (_.isFunction(options)) {
@@ -192,51 +193,51 @@ BaseModel.prototype = {
 			options = undefined;
 		}
 		var self = this;
-		var d = m.deferred();
-		var refs = this.options.refs;
-		var error;
-		var countFetch = 0;
-		_.forEach(refs, function(refName, refKey) {
-			var value = self.__json[refKey];
-			if (_.isString(value) || _.isNumber(value)) {
-				var data = {};
-				data[config.keyId] = value;
-				var model = modelConstructors[refName].create(data);
-				if (model.isSaved()) {
-					// Ok to link reference
-					self[refKey](model);
-				} else {
-					// Fetch and link
-					countFetch++;
-					model.fetch(
-						(options && options.fetchOptions && options.fetchOptions[refKey] ? options.fetchOptions[refKey] : null),
-						function(err, data, mdl) {
-							countFetch--;
-							if (err) {
-								error = err;
-							} else {
-								self[refKey](mdl);
-							}
-							if (!countFetch) {
-								if (error) {
-									d.reject(error);
-									if (_.isFunction(callback)) callback(null, error);
+		return new Promise(function(resolve, reject) {
+			var refs = self.options.refs;
+			var error;
+			var countFetch = 0;
+			_.forEach(refs, function(refName, refKey) {
+				var value = self.__json[refKey];
+				if (_.isString(value) || _.isNumber(value)) {
+					var data = {};
+					data[config.keyId] = value;
+					var model = modelConstructors[refName].create(data);
+					if (model.isSaved()) {
+						// Ok to link reference
+						self[refKey](model);
+					} else {
+						// Fetch and link
+						countFetch++;
+						model.fetch(
+							(options && options.fetchOptions && options.fetchOptions[refKey] ? options.fetchOptions[refKey] : null),
+							function(err, data, mdl) {
+								countFetch--;
+								if (err) {
+									error = err;
 								} else {
-									// All fetched
-									d.resolve(self);
-									if (_.isFunction(callback)) callback(null, self);
+									self[refKey](mdl);
+								}
+								if (!countFetch) {
+									if (error) {
+										reject(error);
+										if (_.isFunction(callback)) callback(null, error);
+									} else {
+										// All fetched
+										resolve(self);
+										if (_.isFunction(callback)) callback(null, self);
+									}
 								}
 							}
-						}
-					);
+						);
+					}
 				}
+			});
+			if (!countFetch) {
+				resolve(self);
+				if (_.isFunction(callback)) callback(null, self);
 			}
 		});
-		if (!countFetch) {
-			d.resolve(this);
-			if (_.isFunction(callback)) callback(null, this);
-		}
-		return d.promise;
 	},
 	destroy: function(options, callback) {
 		if (_.isFunction(options)) {
@@ -245,23 +246,23 @@ BaseModel.prototype = {
 		}
 		// Destroy the model. Will sync to store.
 		var self = this;
-		var d = m.deferred();
-		var id = this.__getDataId();
-		if (id[config.keyId]) {
-			store.destroy(this.url(), id, options).then(function() {
-				self.detach();
-				d.resolve();
-				if (_.isFunction(callback)) callback(null);
-				self.dispose();
-			}, function(err) {
-				d.reject(err);
-				if (_.isFunction(callback)) callback(err);
-			});
-		} else {
-			d.reject(true);
-			if (_.isFunction(callback)) callback(true);
-		}
-		return d.promise;
+		return new Promise(function(resolve, reject) {
+			var id = self.__getDataId();
+			if (id[config.keyId]) {
+				store.destroy(self.url(), id, options).then(function() {
+					self.detach();
+					resolve();
+					if (_.isFunction(callback)) callback(null);
+					self.dispose();
+				}, function(err) {
+					reject(err);
+					if (_.isFunction(callback)) callback(err);
+				});
+			} else {
+				reject(true);
+				if (_.isFunction(callback)) callback(true);
+			}
+		});
 	},
 	remove: function() {
 		this.detach();
@@ -295,18 +296,21 @@ BaseModel.prototype = {
 	},
 	__update: function() {
 		// Redraw by self.
-		var redrawing;
+		// var redrawing;
 		// Levels: instance || schema || global
-		if (this.__options.redraw || this.options.redraw || config.redraw) {
-			m.startComputation();
-			redrawing = true;
-		}
+		// if (this.__options.redraw || this.options.redraw || config.redraw) {
+		// 	m.startComputation();
+		// 	redrawing = true;
+		// }
 		// Propagate change to model's collections.
 		for (var i = 0; i < this.__collections.length; i++) {
 			this.__collections[i].__update(this);
 		}
-		if (redrawing)
-			util.nextTick(m.endComputation);
+		// if (redrawing)
+		// 	util.nextTick(m.endComputation);
+		if (this.__options.redraw || this.options.redraw || config.redraw) {
+			m.redraw();
+		}
 	},
 	__isProp: function(key) {
 		return _.indexOf(this.options.props, key) > -1;
@@ -317,6 +321,47 @@ BaseModel.prototype = {
 		return dataId;
 	},
 	__gettersetter: function(initial, key) {
+		var _stream = stream();
+		// Wrapper
+		function prop() {
+			var value;
+			if (arguments.length) {
+				// Write
+				value = arguments[0];
+				var ref = this.options.refs[key];
+				if (ref) {
+					var refConstructor = modelConstructors[ref];
+					if (_.isPlainObject(value)) {
+						value = refConstructor.create(value);
+					} else if ((_.isString(value) || _.isNumber(value)) && refConstructor.__cacheCollection) {
+						// Try to find the model in the cache
+						value = refConstructor.__cacheCollection.get(value) || value;
+					}
+				}
+				if (value instanceof BaseModel) {
+					value = value.getJson();
+				}
+				_stream(value);
+				this.__json[key] = _stream._state.value;
+				if (!arguments[1])
+					this.__update(key);
+				return value;
+			}
+			value = _stream();
+			if (value && value.__model instanceof BaseModel) {
+				value = value.__model;
+			} else if (_.isNil(value) && this.options && !_.isNil(this.options.defaults[key])) {
+				// If value is null or undefined and a default value exist.
+				// Return that default value which was set in schema.
+				value = this.options.defaults[key];
+			}
+			return value;
+		}
+		prop.stream = _stream;
+		prop.call(this, initial, true);
+		return prop;
+	},
+	__gettersetter__: function(initial, key) {
 		var store = this.__json;
 		var ref = this.options.refs[key];
 		// Getter and setter function.
