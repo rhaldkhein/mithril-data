@@ -1,5 +1,7 @@
 (function() {
 
+	var redrawCount = 0;
+
 	var PostA = md.model({
 		name: 'PostA',
 		props: ['name'],
@@ -19,6 +21,7 @@
 		modelB2: new PostB(),
 		collection: PostB.createCollection(),
 		view: function() {
+			console.info('Redraw ' + (++redrawCount));
 			return m("div", [
 				m("h2", "count = " + (++this.count)),
 				m("h2", [

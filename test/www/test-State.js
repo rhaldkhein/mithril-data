@@ -31,9 +31,9 @@ describe("State", function() {
 		expect(state.test()).to.be.equal('Bar');
 	});
 
-	it("Accepts fuctions initialized with m.prop()", function() {
-		var _isDone = m.prop(false);
-		var _test = m.prop('Foo');
+	it("Accepts fuctions initialized with md.stream()", function() {
+		var _isDone = md.stream(false);
+		var _test = md.stream('Foo');
 		var state = md.State.create({
 			isDone: _isDone,
 			test: _test
@@ -44,11 +44,13 @@ describe("State", function() {
 		state.test('Bar');
 		expect(state.isDone()).to.be.true;
 		expect(state.test()).to.be.equal('Bar');
+		expect(state.isDone.constructor).to.be.equal(md.stream);
+
 	});
 
 	it("`toJson()` method", function() {
-		var _isDone = m.prop(false);
-		var _test = m.prop('Foo');
+		var _isDone = md.stream(false);
+		var _test = md.stream('Foo');
 		var state = md.State.create({
 			isDone: _isDone,
 			test: _test

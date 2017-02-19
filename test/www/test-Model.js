@@ -90,6 +90,13 @@ describe("Model Instance", function() {
 		expect(user.name()).to.equal("test");
 	});
 
+	it("with stream property", function() {
+		var user = new Model.User();
+		user.name("Foo");
+		expect(user.name).to.have.property("stream");
+		expect(user.name.stream.constructor).to.be.equal(md.stream);
+	});
+
 	it("have all properties that was set in `props` with values of type function", function() {
 		var props = Model.User.modelOptions.props;
 		var user = new Model.User();
@@ -125,7 +132,7 @@ describe("Model Instance", function() {
 	});
 
 	it("finds the reference if value is string or number (only for enabled cache)", function() {
-		
+
 		var CacheSenderModel = md.model({
 			name: 'CacheSenderModel',
 			props: ['name', 'age']
@@ -911,6 +918,40 @@ describe("Model.<methods>", function() {
 			}, function(err) {
 				done(err)
 			});
+		});
+
+	});
+
+	describe("#populate()", function() {
+		"use strict";
+
+		it("successful populate", function(done) {
+			var note = new Model.Note({
+				folder: 'fold001',
+				author: 'user001'
+			});
+			var populate = note.populate();
+			populate.then(function(model) {
+				expect(model).to.containSubset({
+					__json: {
+						folder: {
+							name: 'System'
+						}
+					}
+				});
+				expect(model).to.containSubset({
+					__json: {
+						author: {
+							name: 'UserFoo'
+						}
+					}
+				});
+				done();
+			}).catch(function(err) {
+				done(err);
+			});
+			expect(populate).to.be.fulfilled;
+			expect(populate).to.eventually.deep.equal(note);
 		});
 
 	});

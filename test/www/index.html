@@ -14,11 +14,16 @@
 	<body>
 		<div id="mocha">
 			<div>
-				<h1>Redraw</h1>
-				<div id="redraw"></div>
+				<h1>
+					Redraw
+				</h1>
+				<div id="redraw">
+				</div>
 			</div>
-			<hr>
-			<h1>Test Results</h1>
+			<hr/>
+			<h1>
+				Test Results
+			</h1>
 		</div>
 		<script>
 			// Force mithril-data to export private objects for testing.
@@ -29,7 +34,10 @@
 		<script type="text/javascript" src="../../node_modules/lodash/lodash.min.js"></script>
 		<script type="text/javascript" src="../../node_modules/mithril/mithril.min.js"></script>
 		<script type="text/javascript" src="../../mithril-data.js"></script>
-		<script>
+		<script type="text/javascript" src="./bundles/chai/chai-plugins.bundle.js"></script>
+		<script type="text/javascript">
+			chai.use(chaiPromise);
+			chai.use(chaiSubset);
 			mocha.setup('bdd');
 			mocha.reporter('html');
 			var expect = chai.expect;
@@ -37,7 +45,7 @@
 		<!-- Test files here -->
 		<script type="text/javascript" src="./configure.js"></script>
 		<script type="text/javascript" src="./test-md.js"></script>
-		<!-- <script type="text/javascript" src="./test-ModelConstructor.js"></script>
+		<script type="text/javascript" src="./test-ModelConstructor.js"></script>
 		<script type="text/javascript" src="./test-Model.js"></script>
 		<script type="text/javascript" src="./test-ModelLodash.js"></script>
 		<script type="text/javascript" src="./test-State.js"></script>
@@ -45,8 +53,8 @@
 		<script type="text/javascript" src="./test-CollectionLodash.js"></script>
 		<script type="text/javascript" src="./test-md.config.js"></script>
 		<script type="text/javascript" src="./test-md.store.js"></script>
-		<script type="text/javascript" src="./test-redraw.js"></script> -->
-		<script>
+		<script type="text/javascript" src="./test-redraw.js"></script>
+		<script type="text/javascript">
 			if (window.mochaPhantomJS) { 
 				//mochaPhantomJS.checkLeaks();
 				mochaPhantomJS.run();

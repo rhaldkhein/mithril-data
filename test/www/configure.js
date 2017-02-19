@@ -6,95 +6,107 @@
 
 	function reset() {
 		STORE = {};
-		STORE.users = {};
-		STORE.notes = {};
+		STORE.user = {};
+		STORE.note = {};
+		STORE.folder = {};
 	}
 
 	reset();
 
 	md.defaultConfig({
 		store: function(rawData) {
-			var d = m.deferred();
-			setTimeout(function() {
-				switch (rawData.method + ':' + rawData.url) {
-					case 'GET:/exist':
-						d.resolve('ok');
-						break;
-					case 'GET:/clear':
-						reset();
-						d.resolve('ok');
-						break;
-					case 'POST:/user':
-						var data = _.assign({
-							id: _.uniqueId('mdl')
-						}, JSON.parse(rawData.serialize(rawData.data)));
-						STORE.users[data.id] = data;
-						d.resolve(rawData.deserialize(JSON.stringify(STORE.users[data.id])));
-						break;
-					case 'PUT:/user':
-						var data = JSON.parse(rawData.serialize(rawData.data));
-						if (_.has(STORE.users, data.id)) {
-							STORE.users[data.id] = data;
-							d.resolve(rawData.deserialize(JSON.stringify(STORE.users[data.id])));
-						} else {
-							d.reject(new Error('Model does not exist!'));
-						}
-						break;
-					case 'GET:/user':
-						var data = rawData.data;
-						if (_.isPlainObject(data) && data.id) {
-							// Single user
-							if (_.has(STORE.users, data.id)) {
-								d.resolve(rawData.deserialize(STORE.users[data.id]));
+			return new Promise(function(resolve, reject) {
+				setTimeout(function() {
+					// console.log(rawData.method + ':' + rawData.url, rawData.data);
+					var model = rawData.url.replace('/', '');
+					// console.log(model);
+					switch (rawData.method + ':' + rawData.url) {
+						case 'GET:/exist':
+							resolve('ok');
+							break;
+						case 'GET:/clear':
+							reset();
+							resolve('ok');
+							break;
+						case 'POST:/user':
+						case 'POST:/folder':
+							var data = _.assign({
+								id: _.uniqueId('mdl')
+							}, JSON.parse(rawData.serialize(rawData.data)));
+							STORE[model][data.id] = data;
+							resolve(rawData.deserialize(JSON.stringify(STORE[model][data.id])));
+							break;
+						case 'PUT:/user':
+						case 'PUT:/folder':
+							var data = JSON.parse(rawData.serialize(rawData.data));
+							if (_.has(STORE[model], data.id)) {
+								STORE[model][data.id] = data;
+								resolve(rawData.deserialize(JSON.stringify(STORE[model][data.id])));
+							} else if (data.id) {
+								var data = _.assign({}, JSON.parse(rawData.serialize(rawData.data)));
+								STORE[model][data.id] = data;
+								resolve(rawData.deserialize(JSON.stringify(STORE[model][data.id])));
 							} else {
-								d.reject(new Error('Model does not exist!'));
+								reject(new Error('Model does not exist!'));
 							}
-						} else {
-							if (!_.isEmpty(data)) {
-								// Selected users
-								d.resolve(rawData.deserialize(
-									JSON.stringify(
-										_.transform(data, function(result, id) {
-											if (STORE.users[id])
-												result.push(STORE.users[id]);
-										}, []))));
+							break;
+						case 'GET:/user':
+						case 'GET:/folder':
+							var data = rawData.data;
+							if (_.isPlainObject(data) && data.id) {
+								// Single user
+								if (_.has(STORE[model], data.id)) {
+									resolve(rawData.deserialize(STORE[model][data.id]));
+								} else {
+									reject(new Error('Model does not exist!'));
+								}
 							} else {
-								// Return all users
-								d.resolve(
-									rawData.deserialize(
+								if (!_.isEmpty(data)) {
+									// Selected users
+									resolve(rawData.deserialize(
 										JSON.stringify(
-											_.values(STORE.users))));
-							}
-						}
-						break;
-					case 'DELETE:/user':
-						var data = JSON.parse(rawData.serialize(rawData.data));
-						if (data && data.id) {
-							delete STORE.users[data.id];
-							d.resolve(
-								rawData.deserialize(
-									JSON.stringify({
-										err: false
-									})));
-						} else {
-							d.reject(new Error('ID is required!'));
-						}
-						break;
-					case 'GET:/users/wrap':
-						// Return all users
-						d.resolve({
-							outer: {
-								inner: {
-									items: rawData.deserialize(JSON.stringify(_.values(STORE.users)))
+											_.transform(data, function(result, id) {
+												if (STORE[model][id])
+													result.push(STORE[model][id]);
+											}, []))));
+								} else {
+									// Return all users
+									resolve(
+										rawData.deserialize(
+											JSON.stringify(
+												_.values(STORE[model]))));
 								}
 							}
-						});
-						break;
-					default:
-						d.reject(new Error('Unknown request'));
-				}
-			}, 0);
-			return d.promise;
+							break;
+						case 'DELETE:/user':
+						case 'DELETE:/folder':
+							var data = JSON.parse(rawData.serialize(rawData.data));
+							if (data && data.id) {
+								delete STORE[model][data.id];
+								resolve(
+									rawData.deserialize(
+										JSON.stringify({
+											err: false
+										})));
+							} else {
+								reject(new Error('ID is required!'));
+							}
+							break;
+						case 'GET:/users/wrap':
+							// Return all users
+							resolve({
+								outer: {
+									inner: {
+										items: rawData.deserialize(JSON.stringify(_.values(STORE.user)))
+									}
+								}
+							});
+							break;
+						default:
+							reject(new Error('Unknown request'));
+					}
+				}, 100);
+			});
 		}
 	});
 

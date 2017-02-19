@@ -191,7 +191,7 @@ describe("Model Constructor", function() {
 		it("should pull (3) - pull without data", function(done) {
 			Model.User.pull('/user').then(function(models) {
 				try {
-					expect(models.length).to.equal(5);
+					expect(models.length).to.above(1);
 					done();
 				} catch (e) {
 					done(e);
