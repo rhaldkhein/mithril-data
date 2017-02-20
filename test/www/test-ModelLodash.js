@@ -1,13 +1,13 @@
-describe("Model.<lodash>", function() {
-	"use strict";
+describe('Model.<lodash>', function() {
+	'use strict';
 
-	it("has()", function() {
+	it('has()', function() {
 		var user = new Model.User();
 		expect(user.has).to.exist;
 		expect(user.has('name')).to.equal(true);
 	})
 
-	it("keys()", function() {
+	it('keys()', function() {
 		var user = new Model.User();
 		expect(user.keys).to.exist;
 		var props = Model.User.modelOptions.props;
@@ -17,7 +17,7 @@ describe("Model.<lodash>", function() {
 		}
 	})
 
-	it("values()", function() {
+	it('values()', function() {
 		var user = new Model.User();
 		expect(user.values).to.exist;
 		user.name('Test');
@@ -28,7 +28,7 @@ describe("Model.<lodash>", function() {
 		}
 	})
 
-	it("pick()", function() {
+	it('pick()', function() {
 		var user = new Model.User();
 		expect(user.pick).to.exist;
 		user.name('Name');
@@ -38,7 +38,7 @@ describe("Model.<lodash>", function() {
 		expect(picked.profile).to.equal(user.profile());
 	})
 
-	it("omit()", function() {
+	it('omit()', function() {
 		var user = new Model.User();
 		expect(user.omit).to.exist;
 		user.name('Name');

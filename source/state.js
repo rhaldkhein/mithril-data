@@ -2,7 +2,7 @@
  * State
  */
 var _ = require('lodash');
-var stream = require('mithril/stream');
+var config = require('./global').config;
 var defaultKey = '__key__';
 var privateKeys = ['factory', 'toJson', '_options'];
 
@@ -19,7 +19,7 @@ function _toJson() {
 function createState(signature, state, options, factoryKey) {
 	var propVal;
 	state._options = _.assign({
-		store: stream
+		store: config.stream
 	}, options);
 	for (var prop in signature) {
 		if (_.indexOf(privateKeys, prop) > -1)
@@ -61,7 +61,7 @@ State.prototype = {
 			key = defaultKey;
 		if (!this.map[key]) {
 			this.map[key] = createState(this.signature, {
-				factory: stream(this),
+				factory: config.stream(this),
 				toJson: _toJson
 			}, this._options, key);
 		}

@@ -12,7 +12,8 @@ var State = require('./state');
 function Collection(options) {
 	this.models = [];
 	this.__options = {
-		redraw: false
+		redraw: false,
+		_cache: false
 	};
 	if (options)
 		this.opt(options);
@@ -299,12 +300,16 @@ Collection.prototype = {
 			this.models[i] = models[i].__json;
 		}
 	},
-	__update: function() {
+	__update: function(fromModel) {
 		// Levels: instance || global
-		if (this.__options.redraw || config.redraw) {
-			// m.startComputation();
-			// util.nextTick(m.endComputation);
-			m.redraw();
+		if (!this.__options._cache && (this.__options.redraw || config.redraw)) {
+			// If `fromModel` is specified, means triggered by contained model.
+			// Otherwise, triggered by collection itself.
+			if (!fromModel) {
+				// console.log('Redraw', 'Collection');
+				m.redraw();
+			}
+			return true;
 		}
 	}
 };

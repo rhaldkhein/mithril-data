@@ -96,7 +96,7 @@ exports.State = require('./state');
 exports.store = require('./store');
 
 // Export Mithril's Stream
-exports.stream = require('mithril/stream');
+exports.stream = null;
 
 // Export model instantiator.
 exports.model = function(schemaOptions, ctrlOptions) {
@@ -130,7 +130,6 @@ exports.config = function(userConfig) {
 	userConfig.modelMethods = null;
 	userConfig.constructorMethods = null;
 	userConfig.collectionMethods = null;
-	userConfig.stream = null;
 	// Assign configuration.
 	_.assign(config, userConfig);
 };
@@ -153,6 +152,7 @@ exports.defaultConfig({
 	baseUrl: '',
 	keyId: 'id',
 	store: m.request,
+	stream: require('mithril/stream'),
 	redraw: false,
 	storeBackground: false,
 	cache: false,

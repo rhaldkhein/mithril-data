@@ -23,13 +23,14 @@ ModelConstructor.prototype = {
 			redraw: false,
 			cache: config.cache === true
 		};
-		// Inject schema level options to "__options"
+		// Inject schema level options to '__options'
 		if (options)
 			this.opt(options);
 		// Check cache enabled
 		if (this.__options.cache) {
 			this.__cacheCollection = new Collection({
-				model: this
+				model: this,
+				_cache: true
 			});
 			if (!this.__options.cacheLimit)
 				this.__options.cacheLimit = config.cacheLimit;

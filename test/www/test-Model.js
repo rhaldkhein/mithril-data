@@ -1,12 +1,12 @@
-describe("Model Instance", function() {
-	"use strict";
+describe('Model Instance', function() {
+	'use strict';
 
-	it("is instance of `BaseModel`", function() {
+	it('is instance of `BaseModel`', function() {
 		var user = new Model.User();
 		expect(user).to.be.instanceof(md.__TEST__.BaseModel);
 	});
 
-	it("create instance with DEFAULT prop values", function() {
+	it('create instance with DEFAULT prop values', function() {
 		var note = new Model.Note({
 			title: 'Foo'
 		});
@@ -15,7 +15,7 @@ describe("Model Instance", function() {
 		expect(note.author()).to.be.equal(Model.Note.modelOptions.defaults.author);
 	});
 
-	it("create instance with defined prop values", function() {
+	it('create instance with defined prop values', function() {
 		var user = new Model.User({
 			name: 'Foo',
 			age: 0,
@@ -27,7 +27,7 @@ describe("Model Instance", function() {
 		expect(user.active()).to.be.equal(false);
 	});
 
-	it("create instance with defined prop values and reference model", function() {
+	it('create instance with defined prop values and reference model', function() {
 		var noteA = new Model.Note({
 			title: 'Foo',
 			author: {
@@ -50,7 +50,7 @@ describe("Model Instance", function() {
 		expect(noteB.author().name()).to.be.equal('TestUser');
 	});
 
-	it("create instance with parser", function() {
+	it('create instance with parser', function() {
 		var noteA = new Model.Note({
 			wrap: {
 				title: 'Title',
@@ -67,45 +67,45 @@ describe("Model Instance", function() {
 		expect(noteA.author()).to.equal('Author');
 	});
 
-	it("prop defaults to `undefined`", function() {
+	it('prop defaults to `undefined`', function() {
 		var user = new Model.User();
 		expect(user.profile()).to.be.undefined;
 	});
 
-	it("prop sets `null`", function() {
+	it('prop sets `null`', function() {
 		var user = new Model.User();
 		user.name(null);
 		expect(user.name()).to.be.null;
 	});
 
-	it("prop sets `undefined`", function() {
+	it('prop sets `undefined`', function() {
 		var user = new Model.User();
 		user.name(undefined);
 		expect(user.name()).to.be.undefined;
 	});
 
-	it("prop set and read the correct value", function() {
+	it('prop set and read the correct value', function() {
 		var user = new Model.User();
-		user.name("test");
-		expect(user.name()).to.equal("test");
+		user.name('test');
+		expect(user.name()).to.equal('test');
 	});
 
-	it("with stream property", function() {
+	it('with stream property', function() {
 		var user = new Model.User();
-		user.name("Foo");
-		expect(user.name).to.have.property("stream");
+		user.name('Foo');
+		expect(user.name).to.have.property('stream');
 		expect(user.name.stream.constructor).to.be.equal(md.stream);
 	});
 
-	it("have all properties that was set in `props` with values of type function", function() {
+	it('have all properties that was set in `props` with values of type function', function() {
 		var props = Model.User.modelOptions.props;
 		var user = new Model.User();
 		for (var i = 0; i < props.length; i++) {
-			expect(user).to.have.property(props[i]).and.to.be.a("function");
+			expect(user).to.have.property(props[i]).and.to.be.a('function');
 		}
 	});
 
-	it("create instance with options", function() {
+	it('create instance with options', function() {
 		var user = new Model.User({
 			name: 'Foo'
 		}, {
@@ -115,7 +115,7 @@ describe("Model Instance", function() {
 		expect(user.__options.test).to.be.equal('test');
 	});
 
-	it("return the default value set in schema if value of prop is `undefined` or `null`", function() {
+	it('return the default value set in schema if value of prop is `undefined` or `null`', function() {
 		var ModelUserTest = md.model({
 			name: 'ModelUserTest',
 			props: ['test'],
@@ -131,7 +131,7 @@ describe("Model Instance", function() {
 		expect(user.test()).to.be.equal('Foo');
 	});
 
-	it("finds the reference if value is string or number (only for enabled cache)", function() {
+	it('finds the reference if value is string or number (only for enabled cache)', function() {
 
 		var CacheSenderModel = md.model({
 			name: 'CacheSenderModel',
@@ -176,36 +176,36 @@ describe("Model Instance", function() {
 
 });
 
-describe("Model.<properties>", function() {
-	"use strict";
+describe('Model.<properties>', function() {
+	'use strict';
 
-	it("`__lid` exist with value type of string", function() {
+	it('`__lid` exist with value type of string', function() {
 		var user = new Model.User();
-		expect(user).to.have.property("__lid").and.to.be.a("string");
+		expect(user).to.have.property('__lid').and.to.be.a('string');
 	});
 
-	it("`__collections` exist with value type of array", function() {
+	it('`__collections` exist with value type of array', function() {
 		var user = new Model.User();
-		expect(user).to.have.property("__collections").and.to.be.a("array");
+		expect(user).to.have.property('__collections').and.to.be.a('array');
 	});
 
-	it("`__options` exist with value type of object", function() {
+	it('`__options` exist with value type of object', function() {
 		var user = new Model.User();
-		expect(user).to.have.property("__options").and.to.be.a("object");
+		expect(user).to.have.property('__options').and.to.be.a('object');
 	});
 
-	it("`__json` exist - *** the object representation of the model ***", function() {
+	it('`__json` exist - *** the object representation of the model ***', function() {
 		var user = new Model.User();
-		expect(user).to.have.property("__json").and.to.be.a("object");
+		expect(user).to.have.property('__json').and.to.be.a('object');
 	});
 
-	it("`__json` has `__model` property with value referencing to its model instance", function() {
+	it('`__json` has `__model` property with value referencing to its model instance', function() {
 		var user = new Model.User();
 		expect(user.__json.__model).to.be.equal(user);
 	});
 
 
-	it("`__json` have all model properties (props)", function() {
+	it('`__json` have all model properties (props)', function() {
 		var props = Model.User.modelOptions.props;
 		var user = new Model.User();
 		for (var i = 0; i < props.length; i++) {
@@ -213,7 +213,7 @@ describe("Model.<properties>", function() {
 		}
 	});
 
-	it("`__json` properties are equal to its model properties", function() {
+	it('`__json` properties are equal to its model properties', function() {
 		var props = Model.User.modelOptions.props;
 		var user = new Model.User();
 		user.profile(false);
@@ -222,13 +222,13 @@ describe("Model.<properties>", function() {
 		}
 	});
 
-	it("`__json` will update on change of prop", function() {
+	it('`__json` will update on change of prop', function() {
 		var user = new Model.User();
 		user.name('New Value');
 		expect(user.__json.name).to.equal('New Value');
 	});
 
-	it("`__json` will update through `set()` or `setAll()`", function() {
+	it('`__json` will update through `set()` or `setAll()`', function() {
 		var user = new Model.User();
 		user.set('name', 'foo');
 		expect(user.__json.name).to.equal('foo');
@@ -242,13 +242,13 @@ describe("Model.<properties>", function() {
 
 });
 
-describe("Model.<methods>", function() {
-	"use strict";
+describe('Model.<methods>', function() {
+	'use strict';
 
-	describe("#opt()", function() {
-		"use strict";
+	describe('#opt()', function() {
+		'use strict';
 
-		it("set options by plain object", function() {
+		it('set options by plain object', function() {
 			var user = new Model.User();
 			user.opt({
 				test: 'test'
@@ -256,19 +256,19 @@ describe("Model.<methods>", function() {
 			expect(user.__options.test).to.be.equal('test');
 		});
 
-		it("set options by key/value`", function() {
+		it('set options by key/value`', function() {
 			var user = new Model.User();
 			user.opt('key', 'value');
 			expect(user.__options.key).to.be.equal('value');
 		});
 
-		it("defaults to boolean true", function() {
+		it('defaults to boolean true', function() {
 			var user = new Model.User();
 			user.opt('key');
 			expect(user.__options.key).to.be.equal(true);
 		});
 
-		it("can set falsy except `undefined`", function() {
+		it('can set falsy except `undefined`', function() {
 			var user = new Model.User();
 			user.opt('key', false);
 			expect(user.__options.key).to.be.false;
@@ -276,30 +276,30 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#lid()", function() {
-		"use strict";
+	describe('#lid()', function() {
+		'use strict';
 
-		it("returns a string with value of its `__lid`", function() {
+		it('returns a string with value of its `__lid`', function() {
 			var user = new Model.User();
 			expect(user.lid()).to.be.a('string').and.equal(user.__lid);
 		});
 
 	});
 
-	describe("#url()", function() {
-		"use strict";
+	describe('#url()', function() {
+		'use strict';
 
-		it("returns a string", function() {
+		it('returns a string', function() {
 			var user = new Model.User();
 			expect(user.url()).to.be.a('string');
 		});
 
 	});
 
-	describe("#attachCollection()", function() {
-		"use strict";
+	describe('#attachCollection()', function() {
+		'use strict';
 
-		it("property `__collections` contains the collection", function() {
+		it('property `__collections` contains the collection', function() {
 			var collection = new md.Collection();
 			var user = new Model.User();
 
@@ -307,7 +307,7 @@ describe("Model.<methods>", function() {
 			expect(user.__collections).to.contain(collection);
 		});
 
-		it("property `__collections` has correct size", function() {
+		it('property `__collections` has correct size', function() {
 			var collection = new md.Collection();
 			var user = new Model.User();
 			var size = user.__collections.length;
@@ -321,10 +321,10 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#detachCollection()", function() {
-		"use strict";
+	describe('#detachCollection()', function() {
+		'use strict';
 
-		it("property `__collections` does NOT contain the collection", function() {
+		it('property `__collections` does NOT contain the collection', function() {
 			var collection = new md.Collection();
 			var user = new Model.User();
 
@@ -336,7 +336,7 @@ describe("Model.<methods>", function() {
 
 		});
 
-		it("property `__collections` has correct size", function() {
+		it('property `__collections` has correct size', function() {
 			var collection = new md.Collection();
 			var user = new Model.User();
 
@@ -352,10 +352,10 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#set()", function() {
-		"use strict";
+	describe('#set()', function() {
+		'use strict';
 
-		it("set by object", function() {
+		it('set by object', function() {
 			var note = new Model.Note();
 			var user = new Model.User();
 			note.set({
@@ -368,7 +368,7 @@ describe("Model.<methods>", function() {
 			expect(note.author()).to.equal(user);
 		});
 
-		it("set by object with child object (reference model)", function() {
+		it('set by object with child object (reference model)', function() {
 			var note = new Model.Note();
 			note.set({
 				title: 'Foo',
@@ -383,7 +383,7 @@ describe("Model.<methods>", function() {
 			expect(note.author().name()).to.equal('Test');
 		});
 
-		it("set by object with parser", function() {
+		it('set by object with parser', function() {
 			var note = new Model.Note(null, {
 				parse: true
 			});
@@ -401,7 +401,7 @@ describe("Model.<methods>", function() {
 			expect(note.author()).to.equal('Authx');
 		});
 
-		it("set by key & value", function() {
+		it('set by key & value', function() {
 			var note = new Model.Note();
 			var user = new Model.User();
 			note.set('title', 'Foo');
@@ -412,7 +412,7 @@ describe("Model.<methods>", function() {
 			expect(note.author()).to.equal(user);
 		});
 
-		it("set to undefined if no value is set", function() {
+		it('set to undefined if no value is set', function() {
 			var user = new Model.User();
 			user.set({
 				name: 'Foo',
@@ -422,7 +422,7 @@ describe("Model.<methods>", function() {
 			expect(user.profile()).to.be.undefined;
 		});
 
-		it("set falsy value like `false` and `0` ", function() {
+		it('set falsy value like `false` and `0` ', function() {
 			var user = new Model.User();
 			user.set({
 				name: 'Foo',
@@ -434,7 +434,7 @@ describe("Model.<methods>", function() {
 			expect(user.active()).to.equal(false);
 		});
 
-		it("throw error if key is invalid", function() {
+		it('throw error if key is invalid', function() {
 			var user = new Model.User();
 			expect(function() {
 				user.set('noprop', 'Foo');
@@ -443,10 +443,10 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#setObject()", function() {
-		"use strict";
+	describe('#setObject()', function() {
+		'use strict';
 
-		it("successful set ", function() {
+		it('successful set ', function() {
 			var user = new Model.User();
 			user.setObject({
 				name: 'Foo',
@@ -456,7 +456,7 @@ describe("Model.<methods>", function() {
 			expect(user.age()).to.equal(32);
 		});
 
-		it("successful set with parser", function() {
+		it('successful set with parser', function() {
 			var note = new Model.Note(null, {
 				parse: true
 			});
@@ -476,10 +476,10 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#get()", function() {
-		"use strict";
+	describe('#get()', function() {
+		'use strict';
 
-		it("return correct value", function() {
+		it('return correct value', function() {
 			var note = new Model.Note();
 			var user = new Model.User();
 			note.set({
@@ -492,7 +492,7 @@ describe("Model.<methods>", function() {
 			expect(note.get('author')).to.equal(user);
 		});
 
-		it("return a copy if NO key is specified (alias of .getCopy())", function() {
+		it('return a copy if NO key is specified (alias of .getCopy())', function() {
 			var note = new Model.Note();
 			var user = new Model.User();
 			note.set({
@@ -509,10 +509,10 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#getJson()", function() {
-		"use strict";
+	describe('#getJson()', function() {
+		'use strict';
 
-		it("return correct value", function() {
+		it('return correct value', function() {
 			var user = new Model.User();
 			user.set({
 				name: 'Foo',
@@ -525,10 +525,10 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#getCopy()", function() {
-		"use strict";
+	describe('#getCopy()', function() {
+		'use strict';
 
-		it("really return a copy", function() {
+		it('really return a copy', function() {
 			var user = new Model.User();
 			user.set({
 				name: 'Foo',
@@ -538,7 +538,7 @@ describe("Model.<methods>", function() {
 			expect(copy).to.not.equal(user.getJson());
 		});
 
-		it("values are equal to the original", function() {
+		it('values are equal to the original', function() {
 			var note = new Model.Note();
 			var user = new Model.User();
 			note.set({
@@ -552,7 +552,7 @@ describe("Model.<methods>", function() {
 			expect(copy.author).to.eql(note.author().getCopy());
 		});
 
-		it("copy should not set the original or vice versa", function() {
+		it('copy should not set the original or vice versa', function() {
 			var note = new Model.Note();
 			var user = new Model.User();
 			note.set({
@@ -570,10 +570,10 @@ describe("Model.<methods>", function() {
 	});
 
 
-	describe("#detach()", function() {
-		"use strict";
+	describe('#detach()', function() {
+		'use strict';
 
-		it("detached from all collections", function() {
+		it('detached from all collections', function() {
 			var user = new Model.User();
 			var collA = new md.Collection();
 			var collB = new md.Collection();
@@ -588,10 +588,10 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#dispose()", function() {
-		"use strict";
+	describe('#dispose()', function() {
+		'use strict';
 
-		it("disposed", function() {
+		it('disposed', function() {
 			var user = new Model.User();
 			var keys = _.keys(user);
 			user.dispose();
@@ -602,10 +602,10 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#remove()", function() {
-		"use strict";
+	describe('#remove()', function() {
+		'use strict';
 
-		it("detached from all collections", function() {
+		it('detached from all collections', function() {
 			var user = new Model.User();
 			var collA = new md.Collection();
 			var collB = new md.Collection();
@@ -618,7 +618,7 @@ describe("Model.<methods>", function() {
 			expect(arr.length).to.be.equal(0);
 		});
 
-		it("disposed", function() {
+		it('disposed', function() {
 			var user = new Model.User();
 			var keys = _.keys(user);
 			user.remove();
@@ -629,19 +629,19 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#save()", function() {
-		"use strict";
+	describe('#save()', function() {
+		'use strict';
 
-		it("successful save (create)", function(done) {
+		it('successful save (create)', function(done) {
 			var user = new Model.User();
-			user.name("Create");
+			user.name('Create');
 			user.age(123);
 			user.active(false);
 			user.save().then(function(model) {
 				try {
 					expect(model).to.be.equal(user);
 					expect(user.id().length).to.be.above(0);
-					expect(user.name()).to.equal("Create");
+					expect(user.name()).to.equal('Create');
 					expect(user.profile()).to.be.undefined;
 					expect(user.age()).to.equal(123);
 					expect(user.active()).to.equal(false);
@@ -655,16 +655,16 @@ describe("Model.<methods>", function() {
 			});
 		});
 
-		it("successful save (update)", function(done) {
+		it('successful save (update)', function(done) {
 			var user = new Model.User();
-			user.name("Update");
+			user.name('Update');
 			user.age(123);
 			user.active(false);
 			user.save().then(function(model) {
 				try {
 					expect(model).to.be.equal(user);
 					expect(user.id().length).to.be.above(0);
-					expect(user.name()).to.equal("Update");
+					expect(user.name()).to.equal('Update');
 					expect(user.age()).to.equal(123);
 					user.name('Updated!');
 					user.age(456);
@@ -678,7 +678,7 @@ describe("Model.<methods>", function() {
 				try {
 					expect(model).to.be.equal(user);
 					expect(user.id().length).to.be.above(0);
-					expect(user.name()).to.equal("Updated!");
+					expect(user.name()).to.equal('Updated!');
 					expect(user.age()).to.equal(456);
 					expect(user.active()).to.equal(false);
 					expect(user.profile()).to.be.undefined;
@@ -691,9 +691,9 @@ describe("Model.<methods>", function() {
 			});
 		});
 
-		it("save result through callback", function(done) {
+		it('save result through callback', function(done) {
 			var user = new Model.User();
-			user.name("Callback");
+			user.name('Callback');
 			user.save(function(err, response, model) {
 				if (err) {
 					done(err);
@@ -701,10 +701,10 @@ describe("Model.<methods>", function() {
 				}
 				try {
 					expect(response.id.length).to.be.above(0);
-					expect(response.name).to.equal("Callback");
+					expect(response.name).to.equal('Callback');
 					expect(model).to.be.equal(user);
 					expect(user.id().length).to.be.above(0);
-					expect(user.name()).to.equal("Callback");
+					expect(user.name()).to.equal('Callback');
 					done();
 				} catch (e) {
 					done(e);
@@ -714,15 +714,15 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#fetch()", function() {
-		"use strict";
+	describe('#fetch()', function() {
+		'use strict';
 
 		var user;
 
 		before(function(done) {
 			user = new Model.User();
-			user.name("Hello");
-			user.profile("World");
+			user.name('Hello');
+			user.profile('World');
 			user.save().then(function(model) {
 				done()
 			}, function(err) {
@@ -730,15 +730,15 @@ describe("Model.<methods>", function() {
 			})
 		});
 
-		it("successful fetch", function(done) {
+		it('successful fetch', function(done) {
 			var existingUser = new Model.User();
 			existingUser.id(user.id());
 			existingUser.fetch().then(function(model) {
 				// Fetch result : resolve.
 				try {
 					expect(model.id()).to.be.equal(user.id());
-					expect(model.name()).to.equal("Hello");
-					expect(model.profile()).to.equal("World");
+					expect(model.name()).to.equal('Hello');
+					expect(model.profile()).to.equal('World');
 					expect(model.isSaved()).to.equal(true);
 					expect(model.age()).to.be.undefined;
 					expect(model.active()).to.be.undefined;
@@ -752,7 +752,7 @@ describe("Model.<methods>", function() {
 			});
 		});
 
-		it("fetch result through callback", function(done) {
+		it('fetch result through callback', function(done) {
 			var existingUser = new Model.User();
 			existingUser.id(user.id());
 			existingUser.fetch(function(err, response, model) {
@@ -762,11 +762,11 @@ describe("Model.<methods>", function() {
 				}
 				try {
 					expect(response.id.length).to.be.above(0);
-					expect(response.name).to.equal("Hello");
-					expect(response.profile).to.equal("World");
+					expect(response.name).to.equal('Hello');
+					expect(response.profile).to.equal('World');
 					expect(model.id()).to.be.equal(user.id());
-					expect(model.name()).to.equal("Hello");
-					expect(model.profile()).to.equal("World");
+					expect(model.name()).to.equal('Hello');
+					expect(model.profile()).to.equal('World');
 					expect(model.isSaved()).to.equal(true);
 					expect(model.age()).to.be.undefined;
 					expect(model.active()).to.be.undefined;
@@ -779,12 +779,12 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#destroy()", function() {
-		"use strict";
+	describe('#destroy()', function() {
+		'use strict';
 
-		it("successful destroy", function(done) {
+		it('successful destroy', function(done) {
 			var user = new Model.User();
-			user.name("Destroy");
+			user.name('Destroy');
 			user.save().then(function(model) {
 				// Save successful. Destroying now...
 				return model.destroy();
@@ -806,9 +806,9 @@ describe("Model.<methods>", function() {
 			});
 		});
 
-		it("destroy result through callback", function(done) {
+		it('destroy result through callback', function(done) {
 			var user = new Model.User();
-			user.name("Destroy");
+			user.name('Destroy');
 			user.save().then(function(model) {
 				// Save successful. Destroying now...
 				model.destroy(function(err) {
@@ -833,12 +833,30 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#isSaved()", function() {
-		"use strict";
+	describe('#isSaved()', function() {
+		'use strict';
 
-		it("through save", function(done) {
+		it('default to false', function() {
 			var user = new Model.User();
-			user.name("IsSaved");
+			expect(user.isSaved()).to.be.false;
+		});
+
+		it('default to false even modified', function() {
+			var user = new Model.User();
+			user.name('Modified Foo');
+			expect(user.isSaved()).to.be.false;
+		});
+
+		it('false even id is set', function() {
+			var user = new Model.User({
+				id: '001'
+			});
+			expect(user.isSaved()).to.be.false;
+		});
+
+		it('mark saved through save', function(done) {
+			var user = new Model.User();
+			user.name('IsSaved');
 			if (user.isSaved())
 				done('Model must not be saved yet.')
 			user.save().then(function(model) {
@@ -853,9 +871,9 @@ describe("Model.<methods>", function() {
 			});
 		});
 
-		it("through fetch", function(done) {
+		it('mark saved through fetch', function(done) {
 			var user = new Model.User();
-			user.name("IsSaved");
+			user.name('IsSaved');
 			if (user.isSaved())
 				done('Model must not be saved yet.')
 			user.save().then(function(model) {
@@ -884,13 +902,13 @@ describe("Model.<methods>", function() {
 
 	});
 
-	describe("#isNew()", function() {
-		"use strict";
+	describe('#isNew()', function() {
+		'use strict';
 
-		it("new if fresh instance", function(done) {
+		it('new if fresh instance', function(done) {
 			try {
 				var user = new Model.User();
-				user.name("IsNew");
+				user.name('IsNew');
 				expect(user.isNew()).to.be.true;
 				user.id('notexist');
 				expect(user.isNew()).to.be.true;
@@ -900,10 +918,10 @@ describe("Model.<methods>", function() {
 			}
 		});
 
-		it("NOT new if saved", function(done) {
+		it('not new if saved', function(done) {
 			var user = new Model.User();
 			try {
-				user.name("IsNew");
+				user.name('IsNew');
 				expect(user.isNew()).to.be.true;
 			} catch (e) {
 				done(e);
@@ -916,16 +934,64 @@ describe("Model.<methods>", function() {
 					done(e);
 				}
 			}, function(err) {
-				done(err)
+				done(err);
 			});
 		});
 
 	});
 
-	describe("#populate()", function() {
-		"use strict";
+	describe('#isModified()', function() {
+		'use strict';
 
-		it("successful populate", function(done) {
+		it('default to false', function() {
+			var user = new Model.User();
+			expect(user.isModified()).to.be.false;
+		});
+
+		it('true if a prop is changed', function() {
+			var user = new Model.User();
+			user.name('New Foo');
+			expect(user.isModified()).to.be.true;
+		});
+
+	});
+
+	describe('#isDirty()', function() {
+		'use strict';
+
+		it('true if modified', function() {
+			var user = new Model.User();
+			user.name('New Foo');
+			expect(user.isDirty()).to.be.true;
+		});
+
+		it('true if not saved', function() {
+			var user = new Model.User();
+			expect(user.isDirty()).to.be.true;
+		});
+
+		it('false if saved and not modified', function(done) {
+			var user = new Model.User();
+			user.save(function() {
+				try {
+					expect(user.isDirty()).to.be.false;
+					user.name('New Foo');
+					expect(user.isDirty()).to.be.true;
+					done();
+				} catch (e) {
+					done(e);
+				}
+			}, function(err) {
+				done(err);
+			});
+		});
+
+	});
+
+	describe('#populate()', function() {
+		'use strict';
+
+		it('successful populate', function(done) {
 			var note = new Model.Note({
 				folder: 'fold001',
 				author: 'user001'

@@ -1,5 +1,5 @@
-describe("State", function() {
-	"use strict";
+describe('State', function() {
+	'use strict';
 
 	var customStoreData = {};
 	var customStore = function(initVal, key, factorykey) {
@@ -18,7 +18,7 @@ describe("State", function() {
 		return prop;
 	};
 
-	it("Single instance", function() {
+	it('Single instance', function() {
 		var state = md.State.create({
 			isEditing: false,
 			test: 'Foo'
@@ -31,7 +31,7 @@ describe("State", function() {
 		expect(state.test()).to.be.equal('Bar');
 	});
 
-	it("Accepts fuctions initialized with md.stream()", function() {
+	it('Accepts fuctions initialized with md.stream()', function() {
 		var _isDone = md.stream(false);
 		var _test = md.stream('Foo');
 		var state = md.State.create({
@@ -48,7 +48,7 @@ describe("State", function() {
 
 	});
 
-	it("`toJson()` method", function() {
+	it('`toJson()` method', function() {
 		var _isDone = md.stream(false);
 		var _test = md.stream('Foo');
 		var state = md.State.create({
@@ -60,7 +60,7 @@ describe("State", function() {
 		expect(json.test).to.be.equal('Foo');
 	});
 
-	it("Custom store / prop (non factory)", function() {
+	it('Custom store / prop (non factory)', function() {
 		var state = md.State.create({
 			name: 'Foo',
 			age: 25,
@@ -73,7 +73,7 @@ describe("State", function() {
 		expect(state.active()).to.equal(customStoreData.active).and.to.equal(false);
 	});
 
-	it("Custom store / prop with prefix (non factory)", function() {
+	it('Custom store / prop with prefix (non factory)', function() {
 		var state = md.State.create({
 			name: 'Foo',
 			age: 25
@@ -85,7 +85,7 @@ describe("State", function() {
 		expect(state.age()).to.equal(customStoreData['pref.age']).and.to.equal(25);
 	});
 
-	it("Custom store / prop with prefix (factory)", function() {
+	it('Custom store / prop with prefix (factory)', function() {
 		var stateFactory = new md.State({
 			name: 'Foo',
 			age: 25

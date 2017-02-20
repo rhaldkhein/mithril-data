@@ -56,9 +56,9 @@
 	var config = __webpack_require__(3).config;
 	var modelConstructors = __webpack_require__(3).modelConstructors;
 	var BaseModel = __webpack_require__(4);
-	var ModelConstructor = __webpack_require__(13);
-	var util = __webpack_require__(9);
-	var Collection = __webpack_require__(11);
+	var ModelConstructor = __webpack_require__(10);
+	var util = __webpack_require__(6);
+	var Collection = __webpack_require__(8);
 
 	Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
 		obj.__proto__ = proto;
@@ -140,16 +140,16 @@
 	};
 
 	// Export class Collection.
-	exports.Collection = __webpack_require__(11);
+	exports.Collection = __webpack_require__(8);
 
 	// Export class State.
-	exports.State = __webpack_require__(12);
+	exports.State = __webpack_require__(9);
 
 	// Export our own store controller.
-	exports.store = __webpack_require__(8);
+	exports.store = __webpack_require__(5);
 
 	// Export Mithril's Stream
-	exports.stream = __webpack_require__(5);
+	exports.stream = null;
 
 	// Export model instantiator.
 	exports.model = function(schemaOptions, ctrlOptions) {
@@ -183,7 +183,6 @@
 		userConfig.modelMethods = null;
 		userConfig.constructorMethods = null;
 		userConfig.collectionMethods = null;
-		userConfig.stream = null;
 		// Assign configuration.
 		_.assign(config, userConfig);
 	};
@@ -206,6 +205,7 @@
 		baseUrl: '',
 		keyId: 'id',
 		store: m.request,
+		stream: __webpack_require__(11),
 		redraw: false,
 		storeBackground: false,
 		cache: false,
@@ -274,7 +274,6 @@
 
 	var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
-	var stream = __webpack_require__(5);
 	var config = __webpack_require__(3).config;
 	var modelConstructors = __webpack_require__(3).modelConstructors;
 
@@ -286,6 +285,7 @@
 		this.__collections = [];
 		this.__lid = _.uniqueId('model');
 		this.__saved = false;
+		this.__modified = false;
 		this.__json = {
 			__model: this
 		};
@@ -298,9 +298,9 @@
 	module.exports = BaseModel;
 
 	// Need to require after export. To fix the circular dependencies issue.
-	var store = __webpack_require__(8);
-	var util = __webpack_require__(9);
-	var Collection = __webpack_require__(11);
+	var store = __webpack_require__(5);
+	var util = __webpack_require__(6);
+	var Collection = __webpack_require__(8);
 
 	// Method to bind to Model object. Use by _.bindAll().
 	var modelBindMethods = [];
@@ -359,15 +359,15 @@
 				_.pull(this.__collections, collection);
 		},
 		// Sets all or a prop values from passed data.
-		set: function(key, value, silent) {
+		set: function(key, value, silent, saved) {
 			if (_.isString(key)) {
 				this[key](value, silent);
 			} else {
-				this.setObject(key, silent);
+				this.setObject(key, silent, saved);
 			}
 		},
 		// Sets props by object.
-		setObject: function(obj, silent) {
+		setObject: function(obj, silent, saved) {
 			var isModel = obj instanceof BaseModel;
 			if (!isModel && !_.isPlainObject(obj))
 				throw new Error('Argument `obj` must be a model or plain object.');
@@ -379,9 +379,9 @@
 				if (!this.__isProp(key) || !_.isFunction(this[key]))
 					continue;
 				if (isModel && _.isFunction(val)) {
-					this[key](val(), true);
+					this[key](val(), true, saved);
 				} else {
-					this[key](val, true);
+					this[key](val, true, saved);
 				}
 			}
 			if (!silent) // silent
@@ -423,8 +423,8 @@
 			return new Promise(function(resolve, reject) {
 				var req = self.id() ? store.put : store.post;
 				req.call(store, self.url(), self, options).then(function(data) {
-					self.set(options && options.path ? _.get(data, options.path) : data);
-					self.__saved = true;
+					self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
+					self.__saved = self.id() && true;
 					resolve(self);
 					if (_.isFunction(callback)) callback(null, data, self);
 				}, function(err) {
@@ -443,8 +443,8 @@
 				var id = self.__getDataId();
 				if (id[config.keyId]) {
 					store.get(self.url(), id, options).then(function(data) {
-						self.set(options && options.path ? _.get(data, options.path) : data);
-						self.__saved = true;
+						self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
+						self.__saved = self.id() && true;
 						resolve(self);
 						if (_.isFunction(callback)) callback(null, data, self);
 					}, function(err) {
@@ -559,26 +559,30 @@
 			}
 		},
 		isSaved: function() {
+			// Fresh from store
 			return this.__saved;
 		},
 		isNew: function() {
-			return !(this.id() && this.__saved);
+			return !this.__saved;
+		},
+		isModified: function() {
+			// When a prop is modified
+			return this.__modified;
+		},
+		isDirty: function() {
+			return !this.isSaved() || this.isModified();
 		},
 		__update: function() {
-			// Redraw by self.
-			// var redrawing;
-			// Levels: instance || schema || global
-			// if (this.__options.redraw || this.options.redraw || config.redraw) {
-			// 	m.startComputation();
-			// 	redrawing = true;
-			// }
+			var redraw;
 			// Propagate change to model's collections.
 			for (var i = 0; i < this.__collections.length; i++) {
-				this.__collections[i].__update(this);
+				if (this.__collections[i].__update(true)) {
+					redraw = true;
+				}
 			}
-			// if (redrawing)
-			// 	util.nextTick(m.endComputation);
-			if (this.__options.redraw || this.options.redraw || config.redraw) {
+			// Levels: instance || schema || global
+			if (redraw || this.__options.redraw || this.options.redraw || config.redraw) {
+				// console.log('Redraw', 'Model');
 				m.redraw();
 			}
 		},
@@ -591,10 +595,14 @@
 			return dataId;
 		},
 		__gettersetter: function(initial, key) {
-			var _stream = stream();
+			var _stream = config.stream();
 			// Wrapper
 			function prop() {
 				var value;
+				// arguments[0] is value
+				// arguments[1] is silent
+				// arguments[2] is saved (from store)
+				// arguments[3] is isinitial
 				if (arguments.length) {
 					// Write
 					value = arguments[0];
@@ -609,9 +617,11 @@
 						}
 					}
 					if (value instanceof BaseModel) {
+						value.__saved = arguments[2] && value.id() && true;
 						value = value.getJson();
 					}
 					_stream(value);
+					this.__modified = arguments[2] ? false : !arguments[3] && this.__json[key] !== _stream._state.value;
 					this.__json[key] = _stream._state.value;
 					if (!arguments[1])
 						this.__update(key);
@@ -628,53 +638,7 @@
 				return value;
 			}
 			prop.stream = _stream;
-			prop.call(this, initial, true);
-			return prop;
-		},
-		__gettersetter__: function(initial, key) {
-			var store = this.__json;
-			var ref = this.options.refs[key];
-			// Getter and setter function.
-			function prop() {
-				var value;
-				if (arguments.length) {
-					// 0 = value
-					// 1 = silent
-					value = arguments[0];
-					if (ref) {
-						var refConstructor = modelConstructors[ref];
-						if (_.isPlainObject(value)) {
-							value = refConstructor.create(value);
-						} else if ((_.isString(value) || _.isNumber(value)) && refConstructor.__cacheCollection) {
-							// Try to find the model in the cache
-							value = refConstructor.__cacheCollection.get(value) || value;
-						}
-					}
-					if (value instanceof BaseModel) {
-						value = value.getJson();
-					}
-					store[key] = value;
-					if (!arguments[1])
-						this.__update(key);
-					return value;
-				}
-				value = store[key];
-				if (value && value.__model instanceof BaseModel) {
-					value = value.__model;
-				} else if (_.isNil(value) && this.options && !_.isNil(this.options.defaults[key])) {
-					// If value is null or undefined and a default value exist.
-					// Return that default value which was set in schema.
-					value = this.options.defaults[key];
-				}
-
-				return value;
-			}
-			// Add toJSON method to prop.
-			prop.toJSON = function() {
-				return store[key];
-			};
-			// Store initial value.
-			prop(initial, true);
+			prop.call(this, initial, true, null, true);
 			return prop;
 		}
 	};
@@ -684,151 +648,6 @@
 
 /***/ },
 /* 5 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = __webpack_require__(6)
-
-/***/ },
-/* 6 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(module) {"use strict"
-
-	var guid = 0, HALT = {}
-	function createStream() {
-		function stream() {
-			if (arguments.length > 0 && arguments[0] !== HALT) updateStream(stream, arguments[0])
-			return stream._state.value
-		}
-		initStream(stream)
-
-		if (arguments.length > 0 && arguments[0] !== HALT) updateStream(stream, arguments[0])
-
-		return stream
-	}
-	function initStream(stream) {
-		stream.constructor = createStream
-		stream._state = {id: guid++, value: undefined, state: 0, derive: undefined, recover: undefined, deps: {}, parents: [], endStream: undefined}
-		stream.map = stream["fantasy-land/map"] = map, stream["fantasy-land/ap"] = ap, stream["fantasy-land/of"] = createStream
-		stream.valueOf = valueOf, stream.toJSON = toJSON, stream.toString = valueOf
-
-		Object.defineProperties(stream, {
-			end: {get: function() {
-				if (!stream._state.endStream) {
-					var endStream = createStream()
-					endStream.map(function(value) {
-						if (value === true) unregisterStream(stream), unregisterStream(endStream)
-						return value
-					})
-					stream._state.endStream = endStream
-				}
-				return stream._state.endStream
-			}}
-		})
-	}
-	function updateStream(stream, value) {
-		updateState(stream, value)
-		for (var id in stream._state.deps) updateDependency(stream._state.deps[id], false)
-		finalize(stream)
-	}
-	function updateState(stream, value) {
-		stream._state.value = value
-		stream._state.changed = true
-		if (stream._state.state !== 2) stream._state.state = 1
-	}
-	function updateDependency(stream, mustSync) {
-		var state = stream._state, parents = state.parents
-		if (parents.length > 0 && parents.every(active) && (mustSync || parents.some(changed))) {
-			var value = stream._state.derive()
-			if (value === HALT) return false
-			updateState(stream, value)
-		}
-	}
-	function finalize(stream) {
-		stream._state.changed = false
-		for (var id in stream._state.deps) stream._state.deps[id]._state.changed = false
-	}
-
-	function combine(fn, streams) {
-		if (!streams.every(valid)) throw new Error("Ensure that each item passed to m.prop.combine/m.prop.merge is a stream")
-		return initDependency(createStream(), streams, function() {
-			return fn.apply(this, streams.concat([streams.filter(changed)]))
-		})
-	}
-
-	function initDependency(dep, streams, derive) {
-		var state = dep._state
-		state.derive = derive
-		state.parents = streams.filter(notEnded)
-
-		registerDependency(dep, state.parents)
-		updateDependency(dep, true)
-
-		return dep
-	}
-	function registerDependency(stream, parents) {
-		for (var i = 0; i < parents.length; i++) {
-			parents[i]._state.deps[stream._state.id] = stream
-			registerDependency(stream, parents[i]._state.parents)
-		}
-	}
-	function unregisterStream(stream) {
-		for (var i = 0; i < stream._state.parents.length; i++) {
-			var parent = stream._state.parents[i]
-			delete parent._state.deps[stream._state.id]
-		}
-		for (var id in stream._state.deps) {
-			var dependent = stream._state.deps[id]
-			var index = dependent._state.parents.indexOf(stream)
-			if (index > -1) dependent._state.parents.splice(index, 1)
-		}
-		stream._state.state = 2 //ended
-		stream._state.deps = {}
-	}
-
-	function map(fn) {return combine(function(stream) {return fn(stream())}, [this])}
-	function ap(stream) {return combine(function(s1, s2) {return s1()(s2())}, [stream, this])}
-	function valueOf() {return this._state.value}
-	function toJSON() {return this._state.value != null && typeof this._state.value.toJSON === "function" ? this._state.value.toJSON() : this._state.value}
-
-	function valid(stream) {return stream._state }
-	function active(stream) {return stream._state.state === 1}
-	function changed(stream) {return stream._state.changed}
-	function notEnded(stream) {return stream._state.state !== 2}
-
-	function merge(streams) {
-		return combine(function() {
-			return streams.map(function(s) {return s()})
-		}, streams)
-	}
-	createStream["fantasy-land/of"] = createStream
-	createStream.merge = merge
-	createStream.combine = combine
-	createStream.HALT = HALT
-
-	if (true) module["exports"] = createStream
-	else window.stream = createStream
-
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7)(module)))
-
-/***/ },
-/* 7 */
-/***/ function(module, exports) {
-
-	module.exports = function(module) {
-		if(!module.webpackPolyfill) {
-			module.deprecate = function() {};
-			module.paths = [];
-			// module.parent = undefined by default
-			module.children = [];
-			module.webpackPolyfill = 1;
-		}
-		return module;
-	}
-
-
-/***/ },
-/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var _ = __webpack_require__(1);
@@ -915,7 +734,7 @@
 	});
 
 /***/ },
-/* 9 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {var _ = __webpack_require__(1);
@@ -1048,10 +867,10 @@
 			});
 		}
 	});
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(10)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7)))
 
 /***/ },
-/* 10 */
+/* 7 */
 /***/ function(module, exports) {
 
 	// shim for using process in browser
@@ -1151,7 +970,7 @@
 
 
 /***/ },
-/* 11 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -1160,15 +979,16 @@
 
 	var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
-	var util = __webpack_require__(9);
+	var util = __webpack_require__(6);
 	var config = __webpack_require__(3).config;
 	var BaseModel = __webpack_require__(4);
-	var State = __webpack_require__(12);
+	var State = __webpack_require__(9);
 
 	function Collection(options) {
 		this.models = [];
 		this.__options = {
-			redraw: false
+			redraw: false,
+			_cache: false
 		};
 		if (options)
 			this.opt(options);
@@ -1455,12 +1275,16 @@
 				this.models[i] = models[i].__json;
 			}
 		},
-		__update: function() {
+		__update: function(fromModel) {
 			// Levels: instance || global
-			if (this.__options.redraw || config.redraw) {
-				// m.startComputation();
-				// util.nextTick(m.endComputation);
-				m.redraw();
+			if (!this.__options._cache && (this.__options.redraw || config.redraw)) {
+				// If `fromModel` is specified, means triggered by contained model.
+				// Otherwise, triggered by collection itself.
+				if (!fromModel) {
+					// console.log('Redraw', 'Collection');
+					m.redraw();
+				}
+				return true;
 			}
 		}
 	};
@@ -1509,14 +1333,14 @@
 	util.addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
 
 /***/ },
-/* 12 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * State
 	 */
 	var _ = __webpack_require__(1);
-	var stream = __webpack_require__(5);
+	var config = __webpack_require__(3).config;
 	var defaultKey = '__key__';
 	var privateKeys = ['factory', 'toJson', '_options'];
 
@@ -1533,7 +1357,7 @@
 	function createState(signature, state, options, factoryKey) {
 		var propVal;
 		state._options = _.assign({
-			store: stream
+			store: config.stream
 		}, options);
 		for (var prop in signature) {
 			if (_.indexOf(privateKeys, prop) > -1)
@@ -1575,7 +1399,7 @@
 				key = defaultKey;
 			if (!this.map[key]) {
 				this.map[key] = createState(this.signature, {
-					factory: stream(this),
+					factory: config.stream(this),
 					toJson: _toJson
 				}, this._options, key);
 			}
@@ -1618,7 +1442,7 @@
 	};
 
 /***/ },
-/* 13 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -1627,9 +1451,9 @@
 
 	var _ = __webpack_require__(1);
 	// var m = require('mithril');
-	var store = __webpack_require__(8);
+	var store = __webpack_require__(5);
 	var config = __webpack_require__(3).config;
-	var Collection = __webpack_require__(11);
+	var Collection = __webpack_require__(8);
 
 	function ModelConstructor() {}
 
@@ -1646,13 +1470,14 @@
 				redraw: false,
 				cache: config.cache === true
 			};
-			// Inject schema level options to "__options"
+			// Inject schema level options to '__options'
 			if (options)
 				this.opt(options);
 			// Check cache enabled
 			if (this.__options.cache) {
 				this.__cacheCollection = new Collection({
-					model: this
+					model: this,
+					_cache: true
 				});
 				if (!this.__options.cacheLimit)
 					this.__options.cacheLimit = config.cacheLimit;
@@ -1734,6 +1559,151 @@
 			});
 		}
 	};
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__(12)
+
+/***/ },
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(module) {"use strict"
+
+	var guid = 0, HALT = {}
+	function createStream() {
+		function stream() {
+			if (arguments.length > 0 && arguments[0] !== HALT) updateStream(stream, arguments[0])
+			return stream._state.value
+		}
+		initStream(stream)
+
+		if (arguments.length > 0 && arguments[0] !== HALT) updateStream(stream, arguments[0])
+
+		return stream
+	}
+	function initStream(stream) {
+		stream.constructor = createStream
+		stream._state = {id: guid++, value: undefined, state: 0, derive: undefined, recover: undefined, deps: {}, parents: [], endStream: undefined}
+		stream.map = stream["fantasy-land/map"] = map, stream["fantasy-land/ap"] = ap, stream["fantasy-land/of"] = createStream
+		stream.valueOf = valueOf, stream.toJSON = toJSON, stream.toString = valueOf
+
+		Object.defineProperties(stream, {
+			end: {get: function() {
+				if (!stream._state.endStream) {
+					var endStream = createStream()
+					endStream.map(function(value) {
+						if (value === true) unregisterStream(stream), unregisterStream(endStream)
+						return value
+					})
+					stream._state.endStream = endStream
+				}
+				return stream._state.endStream
+			}}
+		})
+	}
+	function updateStream(stream, value) {
+		updateState(stream, value)
+		for (var id in stream._state.deps) updateDependency(stream._state.deps[id], false)
+		finalize(stream)
+	}
+	function updateState(stream, value) {
+		stream._state.value = value
+		stream._state.changed = true
+		if (stream._state.state !== 2) stream._state.state = 1
+	}
+	function updateDependency(stream, mustSync) {
+		var state = stream._state, parents = state.parents
+		if (parents.length > 0 && parents.every(active) && (mustSync || parents.some(changed))) {
+			var value = stream._state.derive()
+			if (value === HALT) return false
+			updateState(stream, value)
+		}
+	}
+	function finalize(stream) {
+		stream._state.changed = false
+		for (var id in stream._state.deps) stream._state.deps[id]._state.changed = false
+	}
+
+	function combine(fn, streams) {
+		if (!streams.every(valid)) throw new Error("Ensure that each item passed to m.prop.combine/m.prop.merge is a stream")
+		return initDependency(createStream(), streams, function() {
+			return fn.apply(this, streams.concat([streams.filter(changed)]))
+		})
+	}
+
+	function initDependency(dep, streams, derive) {
+		var state = dep._state
+		state.derive = derive
+		state.parents = streams.filter(notEnded)
+
+		registerDependency(dep, state.parents)
+		updateDependency(dep, true)
+
+		return dep
+	}
+	function registerDependency(stream, parents) {
+		for (var i = 0; i < parents.length; i++) {
+			parents[i]._state.deps[stream._state.id] = stream
+			registerDependency(stream, parents[i]._state.parents)
+		}
+	}
+	function unregisterStream(stream) {
+		for (var i = 0; i < stream._state.parents.length; i++) {
+			var parent = stream._state.parents[i]
+			delete parent._state.deps[stream._state.id]
+		}
+		for (var id in stream._state.deps) {
+			var dependent = stream._state.deps[id]
+			var index = dependent._state.parents.indexOf(stream)
+			if (index > -1) dependent._state.parents.splice(index, 1)
+		}
+		stream._state.state = 2 //ended
+		stream._state.deps = {}
+	}
+
+	function map(fn) {return combine(function(stream) {return fn(stream())}, [this])}
+	function ap(stream) {return combine(function(s1, s2) {return s1()(s2())}, [stream, this])}
+	function valueOf() {return this._state.value}
+	function toJSON() {return this._state.value != null && typeof this._state.value.toJSON === "function" ? this._state.value.toJSON() : this._state.value}
+
+	function valid(stream) {return stream._state }
+	function active(stream) {return stream._state.state === 1}
+	function changed(stream) {return stream._state.changed}
+	function notEnded(stream) {return stream._state.state !== 2}
+
+	function merge(streams) {
+		return combine(function() {
+			return streams.map(function(s) {return s()})
+		}, streams)
+	}
+	createStream["fantasy-land/of"] = createStream
+	createStream.merge = merge
+	createStream.combine = combine
+	createStream.HALT = HALT
+
+	if (true) module["exports"] = createStream
+	else window.stream = createStream
+
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(13)(module)))
+
+/***/ },
+/* 13 */
+/***/ function(module, exports) {
+
+	module.exports = function(module) {
+		if(!module.webpackPolyfill) {
+			module.deprecate = function() {};
+			module.paths = [];
+			// module.parent = undefined by default
+			module.children = [];
+			module.webpackPolyfill = 1;
+		}
+		return module;
+	}
+
 
 /***/ }
 /******/ ]);

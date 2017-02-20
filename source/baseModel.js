@@ -4,7 +4,6 @@
 
 var _ = require('lodash');
 var m = require('mithril');
-var stream = require('mithril/stream');
 var config = require('./global').config;
 var modelConstructors = require('./global').modelConstructors;
 
@@ -16,6 +15,7 @@ function BaseModel(opts) {
 	this.__collections = [];
 	this.__lid = _.uniqueId('model');
 	this.__saved = false;
+	this.__modified = false;
 	this.__json = {
 		__model: this
 	};
@@ -89,15 +89,15 @@ BaseModel.prototype = {
 			_.pull(this.__collections, collection);
 	},
 	// Sets all or a prop values from passed data.
-	set: function(key, value, silent) {
+	set: function(key, value, silent, saved) {
 		if (_.isString(key)) {
 			this[key](value, silent);
 		} else {
-			this.setObject(key, silent);
+			this.setObject(key, silent, saved);
 		}
 	},
 	// Sets props by object.
-	setObject: function(obj, silent) {
+	setObject: function(obj, silent, saved) {
 		var isModel = obj instanceof BaseModel;
 		if (!isModel && !_.isPlainObject(obj))
 			throw new Error('Argument `obj` must be a model or plain object.');
@@ -109,9 +109,9 @@ BaseModel.prototype = {
 			if (!this.__isProp(key) || !_.isFunction(this[key]))
 				continue;
 			if (isModel && _.isFunction(val)) {
-				this[key](val(), true);
+				this[key](val(), true, saved);
 			} else {
-				this[key](val, true);
+				this[key](val, true, saved);
 			}
 		}
 		if (!silent) // silent
@@ -153,8 +153,8 @@ BaseModel.prototype = {
 		return new Promise(function(resolve, reject) {
 			var req = self.id() ? store.put : store.post;
 			req.call(store, self.url(), self, options).then(function(data) {
-				self.set(options && options.path ? _.get(data, options.path) : data);
-				self.__saved = true;
+				self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
+				self.__saved = self.id() && true;
 				resolve(self);
 				if (_.isFunction(callback)) callback(null, data, self);
 			}, function(err) {
@@ -173,8 +173,8 @@ BaseModel.prototype = {
 			var id = self.__getDataId();
 			if (id[config.keyId]) {
 				store.get(self.url(), id, options).then(function(data) {
-					self.set(options && options.path ? _.get(data, options.path) : data);
-					self.__saved = true;
+					self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
+					self.__saved = self.id() && true;
 					resolve(self);
 					if (_.isFunction(callback)) callback(null, data, self);
 				}, function(err) {
@@ -289,26 +289,30 @@ BaseModel.prototype = {
 		}
 	},
 	isSaved: function() {
+		// Fresh from store
 		return this.__saved;
 	},
 	isNew: function() {
-		return !(this.id() && this.__saved);
+		return !this.__saved;
+	},
+	isModified: function() {
+		// When a prop is modified
+		return this.__modified;
+	},
+	isDirty: function() {
+		return !this.isSaved() || this.isModified();
 	},
 	__update: function() {
-		// Redraw by self.
-		// var redrawing;
-		// Levels: instance || schema || global
-		// if (this.__options.redraw || this.options.redraw || config.redraw) {
-		// 	m.startComputation();
-		// 	redrawing = true;
-		// }
+		var redraw;
 		// Propagate change to model's collections.
 		for (var i = 0; i < this.__collections.length; i++) {
-			this.__collections[i].__update(this);
+			if (this.__collections[i].__update(true)) {
+				redraw = true;
+			}
 		}
-		// if (redrawing)
-		// 	util.nextTick(m.endComputation);
-		if (this.__options.redraw || this.options.redraw || config.redraw) {
+		// Levels: instance || schema || global
+		if (redraw || this.__options.redraw || this.options.redraw || config.redraw) {
+			// console.log('Redraw', 'Model');
 			m.redraw();
 		}
 	},
@@ -321,10 +325,14 @@ BaseModel.prototype = {
 		return dataId;
 	},
 	__gettersetter: function(initial, key) {
-		var _stream = stream();
+		var _stream = config.stream();
 		// Wrapper
 		function prop() {
 			var value;
+			// arguments[0] is value
+			// arguments[1] is silent
+			// arguments[2] is saved (from store)
+			// arguments[3] is isinitial
 			if (arguments.length) {
 				// Write
 				value = arguments[0];
@@ -339,9 +347,11 @@ BaseModel.prototype = {
 					}
 				}
 				if (value instanceof BaseModel) {
+					value.__saved = arguments[2] && value.id() && true;
 					value = value.getJson();
 				}
 				_stream(value);
+				this.__modified = arguments[2] ? false : !arguments[3] && this.__json[key] !== _stream._state.value;
 				this.__json[key] = _stream._state.value;
 				if (!arguments[1])
 					this.__update(key);
@@ -358,53 +368,7 @@ BaseModel.prototype = {
 			return value;
 		}
 		prop.stream = _stream;
-		prop.call(this, initial, true);
-		return prop;
-	},
-	__gettersetter__: function(initial, key) {
-		var store = this.__json;
-		var ref = this.options.refs[key];
-		// Getter and setter function.
-		function prop() {
-			var value;
-			if (arguments.length) {
-				// 0 = value
-				// 1 = silent
-				value = arguments[0];
-				if (ref) {
-					var refConstructor = modelConstructors[ref];
-					if (_.isPlainObject(value)) {
-						value = refConstructor.create(value);
-					} else if ((_.isString(value) || _.isNumber(value)) && refConstructor.__cacheCollection) {
-						// Try to find the model in the cache
-						value = refConstructor.__cacheCollection.get(value) || value;
-					}
-				}
-				if (value instanceof BaseModel) {
-					value = value.getJson();
-				}
-				store[key] = value;
-				if (!arguments[1])
-					this.__update(key);
-				return value;
-			}
-			value = store[key];
-			if (value && value.__model instanceof BaseModel) {
-				value = value.__model;
-			} else if (_.isNil(value) && this.options && !_.isNil(this.options.defaults[key])) {
-				// If value is null or undefined and a default value exist.
-				// Return that default value which was set in schema.
-				value = this.options.defaults[key];
-			}
-
-			return value;
-		}
-		// Add toJSON method to prop.
-		prop.toJSON = function() {
-			return store[key];
-		};
-		// Store initial value.
-		prop(initial, true);
+		prop.call(this, initial, true, null, true);
 		return prop;
 	}
 };
