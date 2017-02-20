@@ -12,7 +12,8 @@ var State = require('./state');
 function Collection(options) {
 	this.models = [];
 	this.__options = {
-		redraw: false
+		redraw: false,
+		_cache: false
 	};
 	if (options)
 		this.opt(options);
@@ -272,38 +273,43 @@ Collection.prototype = {
 			callback = options;
 			options = undefined;
 		}
-		var d = m.deferred();
-		if (this.hasModel()) {
-			var self = this;
-			options = options || {};
-			this.model().pull(this.url(), query, options, function(err, response, models) {
-				if (err) {
-					d.reject(err);
-					if (_.isFunction(callback)) callback(err);
-				} else {
-					if (options.clear)
-						self.clear(true);
-					self.addAll(models);
-					d.resolve(models);
-					if (_.isFunction(callback)) callback(null, response, models);
-				}
-			});
-		} else {
-			d.reject(true);
-			if (_.isFunction(callback)) callback(true);
-		}
-		return d.promise;
+		var self = this;
+		return new Promise(function(resolve, reject) {
+			if (self.hasModel()) {
+				options = options || {};
+				self.model().pull(self.url(), query, options, function(err, response, models) {
+					if (err) {
+						reject(err);
+						if (_.isFunction(callback)) callback(err);
+					} else {
+						if (options.clear)
+							self.clear(true);
+						self.addAll(models);
+						resolve(models);
+						if (_.isFunction(callback)) callback(null, response, models);
+					}
+				});
+			} else {
+				reject(true);
+				if (_.isFunction(callback)) callback(true);
+			}
+		});
 	},
 	__replaceModels: function(models) {
 		for (var i = models.length - 1; i >= 0; i--) {
 			this.models[i] = models[i].__json;
 		}
 	},
-	__update: function() {
+	__update: function(fromModel) {
 		// Levels: instance || global
-		if (this.__options.redraw || config.redraw) {
-			m.startComputation();
-			util.nextTick(m.endComputation);
+		if (!this.__options._cache && (this.__options.redraw || config.redraw)) {
+			// If `fromModel` is specified, means triggered by contained model.
+			// Otherwise, triggered by collection itself.
+			if (!fromModel) {
+				// console.log('Redraw', 'Collection');
+				m.redraw();
+			}
+			return true;
 		}
 	}
 };
@@ -345,7 +351,7 @@ var collectionMethods = {
 	transform: 2,
 	toArray: 0,
 	without: 1
-}; 
+};
 
 
 // Inject lodash method.

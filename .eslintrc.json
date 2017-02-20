@@ -22,5 +22,13 @@
             "error",
             "always"
         ]
+    },
+    "globals": {
+        "m": true,
+        "md": true,
+        "Model": true,
+        "it": true,
+        "expect": true,
+        "describe": true
     }
 }
