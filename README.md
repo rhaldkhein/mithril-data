@@ -9,14 +9,14 @@ A rich data model library for Mithril javascript framework.
 * Create brilliant application with **Schema**-based **Model** and **Collection**
 * Enriched with **Lodash** methods, integrated into Model & Collection
 * **Auto Redraw** on Model & Collection changes
-* **State** (View-Model) features
+* **State** (View-Model) using Mithril's stream
 * Extensible, Configurable and Customizable
 * And many more ...
 
-#### Prerequisite
+#### Dependencies
 
-- [Mithril](http://mithril.js.org/)
-- [Lodash](http://lodash.com/)
+- [Mithril](http://mithril.js.org/) (>= 1.0.0)
+- [Lodash](http://lodash.com/) (>= 4.12.0) - Many Lodash methods are attached to Model and Collection
 
 - - - -
 
@@ -110,11 +110,12 @@ Creates an instance of model.
   * **parse** - (boolean) set `false` to disable parsing. defaults to `true`
 
 #### \#\<prop>([value, silent])
-Get or set value of prop. If auto-redraw is enabled, pass `true` at the end to set without redrawing.
+Get or set value of prop. If auto-redraw is enabled, pass `true` at the end to set without auto redrawing. This uses the basic usage of stream, and to get the stream itself, use `<prop>.stream`. 
 ```javascript
 user.name('Foo') // Sets the name to `Foo`
 var n = user.name() // Get the name... returns `Foo`
 user.name('Bar', true) // Silently sets the name to `Bar` (without redrawing)
+var s = user.name.stream.map(callback) // Get the stream object with `<prop>.stream`
 ```
 
 #### \#opt(key[, value])
@@ -175,10 +176,13 @@ Detach the model from ALL associated collections.
 Triggers `detach` and also `dispose` the object. Make sure you're not using the model anymore.
 
 #### \#isSaved()
-A flag to identify the save state. The model is considered saved if it's fresh from store (server or local storage).
+True if it contains id and fresh from store (server or local storage).
 
-#### \#isNew()
-A flag to identify if the model is new or not. The model is considered new if it does not have ID and is not saved.
+#### \#isModified()
+True when a prop is modified.
+
+#### \#isDirty()
+True if the model is modified or not saved.
 
 #### \#save([options, callback])
 Saves the model to data store. To check for result, you can use either `callback` or `then`. Callback arguments are `(err, response, model)`. Properties for `options` is the same with `m.request`'s options but with additional `path` string property. `path` is the path to actual value for the model in the response object. Like in `response:{outer:{model:{}}}` will be `"outer.model"`.
@@ -203,20 +207,15 @@ user.fetch().then( function (model) { /* Success! model now have other prop valu
 #### \#destroy([options, callback])
 Destroys the model from data store and triggers `remove` method. Also accept `callback` or `then`. Parameter `options` is the same with `#save()`'s options.
 
+#### \#populate()
+Populates all references. This will trigger fetch if necessary.
+
 #### \#\<lodash methods>()
 Model includes few methods of Lodash. `has`, `keys`, `values`, `pick`, and `omit`. See **Lodash** for info.
 ```javascript
 userA.pick(['name', 'age'])
 // Returns an object with only two properties `name` and `age`, excluding others.
 ```
-
-Note: Following methods are not nesseccary or not recommended. Use with caution.
-
-#### \#dispose()
-Disposes the object by `null`-ing all properties of the object. Note that this might not be nesseccary.
-
-#### \#getJson()
-Get a reference to model's `__json`, the prop-store of all models' props. Make sure to ONLY read and don't write! 
 
 - - - -
 
@@ -361,17 +360,12 @@ var filtered = userCollection.filter({age: 30})
 // Returns an array of models with age of 30.
 ```
 
-Note: Following methods are not nesseccary or not recommended. Use with caution.
-
-#### \#dispose()
-Disposes the object by `null`-ing all properties of the object. Note that this might not be nesseccary. 
-
 - - - -
 
 ## State
 Also known as View-Model. See Mithril's view-model description for more info.
 ```javascript
-var _isEditing = m.prop(false)
+var _isEditing = md.stream(false)
 // Create state factory
 var stateFactory = new md.State({
    isLoading: false,
@@ -385,6 +379,7 @@ var component = {
    controller: function() {
       this.stateA = stateFactory.get('A')
       this.stateA.isEditing(true)
+      var s = this.stateA.isEditing.map(callback) // Using with stream
    },
    view: function(ctrl) {
       return m('div', 'Is editing ' + ctrl.stateA.isEditing()) // Displays `Is editing true`
@@ -396,8 +391,8 @@ var component = {
 Creates a new State factory. `signature` can be object or array.
 
 All available state options:
-* **store** - (function) the custom store function (it must return a function). defaults to `m.prop`
-* **prefix** - (string) the string prefix for custom store
+* **store** - (function) the custom store function (it must return a function). defaults to `stream` that was set in `md.config`
+* **prefix** - (string) the string prefix for custom store.
 
 #### \#set(key)
 Internally creates a new state by `key`.
@@ -443,7 +438,8 @@ All available config options:
 * **storeExtract** - (function) a function to trigger after receiving data from data-store. see Mithril's `m.request` for more info
 * **storeSerializer** - (function) a function that overrides data-store serializer. see Mithril's `m.request` for more info
 * **storeDeserializer** - (function) a function that overrides data-store deserializer. see Mithril's `m.request` for more info
-* **store** - (function) a function that handles the storing or data. defaults to `m.request`
+* **store** - (function) a function that handles the storing of data. defaults to `m.request`
+* **stream** - (function) a function that handles the model props as well as md's State class. defaults to Mithril's `Stream`
 * **cache** - (boolean) should use cache or not in all collections. defaults to `false`
 * **cacheLimit** - (number) limit of cache. defaults to `100`
 
@@ -470,7 +466,7 @@ var fnLocalStorage = function (data) {
 }
 md.config({ store : fnLocalStorage})
 ```
-> Just make sure that your custom store should return a promise, or your own promise-like with `then` and `catch` methods.
+> Just make sure that your custom store should return a Promise.
 
 - - - -
 
@@ -482,6 +478,9 @@ A handy tool that handles request to data-store. The result is through `then` / 
 * **get(url[, data, opt])** - calls`request` with `GET` method, passing the `data` and `opt`
 * **post(url[, data, opt])** - calls`request` with `POST` method, passing the `data` and `opt`
 * **destroy(url[, data, opt])** - calls`request` with `DELETE` method, passing the `data` and `opt`
+
+#### md.stream
+Expose Mithril's Stream (unmodified and only bundled).
 
 #### md.model.get(name)
 A way to get a model constructor from other scope. Argument `name` is the model name.
@@ -516,6 +515,9 @@ HTML: (`md` is automatically exposed to browser's global scope)
 <script type="text/javascript" src="lodash.min.js"></script>
 <script type="text/javascript" src="mithril.min.js"></script>
 <script type="text/javascript" src="mithril-data.min.js"></script>
+<script type="text/javascript">
+  console.log(md.version());
+</script>
 ```
 
 - - - -
