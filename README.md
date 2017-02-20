@@ -429,6 +429,7 @@ All available config options:
 * **baseUrl** - (string) the base url
 * **keyId** - (string) the custom ID of the model. defaults to `id`
 * **redraw** - (boolean) the global redraw flag. default to `false`
+* **cache** - (boolean) enable caching the models created by a collection. defaults to `false`
 * **modelMethods** - (object { methodName : `function()` }) additional methods to bind to `model`'s prototype
 * **collectionMethods** - (object { methodName : `function()` }) additional methods to bind to `collection`'s prototype
 * **modelBindMethods** - (string array) model's methods to bind to itself. see Lodash `bindAll()`
