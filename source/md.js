@@ -95,6 +95,9 @@ exports.State = require('./state');
 // Export our own store controller.
 exports.store = require('./store');
 
+// Export Mithril's Stream
+exports.stream = null;
+
 // Export model instantiator.
 exports.model = function(schemaOptions, ctrlOptions) {
 	schemaOptions = schemaOptions || {};
@@ -114,19 +117,21 @@ exports.model.get = function(name) {
 // Export configurator
 var defaultConfig = {};
 exports.config = function(userConfig) {
-	// Compile configuration.
-	_.assign(config, userConfig);
 	// Configure prototypes.
-	if (config.modelMethods)
-		util.strictExtend(BaseModel.prototype, config.modelMethods);
-	if (config.constructorMethods)
-		util.strictExtend(ModelConstructor.prototype, config.constructorMethods);
-	if (config.collectionMethods)
-		util.strictExtend(Collection.prototype, config.collectionMethods);
+	if (userConfig.modelMethods)
+		util.strictExtend(BaseModel.prototype, userConfig.modelMethods);
+	if (userConfig.constructorMethods)
+		util.strictExtend(ModelConstructor.prototype, userConfig.constructorMethods);
+	if (userConfig.collectionMethods)
+		util.strictExtend(Collection.prototype, userConfig.collectionMethods);
+	if (userConfig.stream)
+		exports.stream = userConfig.stream;
 	// Clear
-	config.modelMethods = null;
-	config.constructorMethods = null;
-	config.collectionMethods = null;
+	userConfig.modelMethods = null;
+	userConfig.constructorMethods = null;
+	userConfig.collectionMethods = null;
+	// Assign configuration.
+	_.assign(config, userConfig);
 };
 
 // Option to reset to first initial config.
@@ -147,7 +152,9 @@ exports.defaultConfig({
 	baseUrl: '',
 	keyId: 'id',
 	store: m.request,
+	stream: require('mithril/stream'),
 	redraw: false,
+	storeBackground: false,
 	cache: false,
 	cacheLimit: 100
 });

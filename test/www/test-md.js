@@ -1,10 +1,16 @@
 // Root before - Run before all tests.
 before(function(done) {
 
-	it("create sample schemas for test", function() {
+	it('create sample schemas for test', function(done) {
+
 		window.Model.User = md.model({
 			name: 'User',
 			props: ['name', 'profile', 'age', 'active']
+		});
+
+		window.Model.Folder = md.model({
+			name: 'Folder',
+			props: ['name']
 		});
 
 		window.Model.Note = md.model({
@@ -14,10 +20,14 @@ before(function(done) {
 				body: 'Default Note Body',
 				author: new Model.User({
 					name: 'User Default'
+				}),
+				folder: new Model.Folder({
+					name: 'Folder Default'
 				})
 			},
 			refs: {
-				author: 'User'
+				author: 'User',
+				folder: 'Folder'
 			},
 			parser: function(data) {
 				if (data && data.wrap) {
@@ -32,7 +42,31 @@ before(function(done) {
 		});
 
 		expect(window.Model.User).to.exist;
+		expect(window.Model.Folder).to.exist;
 		expect(window.Model.Note).to.exist;
+
+		Promise.all([
+			(new Model.Folder({
+				id: 'fold001',
+				name: 'System'
+			})).save(),
+			(new Model.Folder({
+				id: 'fold002',
+				name: 'Admin'
+			})).save(),
+			(new Model.User({
+				id: 'user001',
+				name: 'UserFoo',
+				age: 1
+			})).save(),
+			(new Model.User({
+				id: 'user002',
+				name: 'UserBar',
+				age: 2
+			})).save()
+		]).then(function() {
+			done();
+		});
 
 	});
 
@@ -45,60 +79,60 @@ before(function(done) {
 
 });
 
-describe("md", function() {
-	"use strict";
+describe('md', function() {
+	'use strict';
 
-	it("exists", function() {
+	it('exists', function() {
 		expect(md).to.exists;
 	});
 
-	it("is an object", function() {
-		expect(md).to.be.a("object");
+	it('is an object', function() {
+		expect(md).to.be.a('object');
 	});
 
-	describe("#version()", function() {
-		"use strict";
+	describe('#version()', function() {
+		'use strict';
 
-		it("exists", function() {
-			expect(md.version).to.be.a("function");
+		it('exists', function() {
+			expect(md.version).to.be.a('function');
 		});
 
-		it("is a string", function() {
-			expect(md.version()).to.be.a("string");
-		});
-
-	});
-
-	describe("#noConflict()", function() {
-		"use strict";
-
-		it("exists", function() {
-			expect(md.noConflict).to.be.a("function");
+		it('is a string', function() {
+			expect(md.version()).to.be.a('string');
 		});
 
 	});
 
-	describe("#config()", function() {
-		"use strict";
+	describe('#noConflict()', function() {
+		'use strict';
 
-		it("exists", function() {
-			expect(md.config).to.be.a("function");
+		it('exists', function() {
+			expect(md.noConflict).to.be.a('function');
 		});
 
 	});
 
-	describe("#resetConfig()", function() {
-		"use strict";
+	describe('#config()', function() {
+		'use strict';
+
+		it('exists', function() {
+			expect(md.config).to.be.a('function');
+		});
+
+	});
+
+	describe('#resetConfig()', function() {
+		'use strict';
 
 		after(function() {
 			md.resetConfig();
 		})
 
-		it("exists", function() {
-			expect(md.resetConfig).to.be.a("function");
+		it('exists', function() {
+			expect(md.resetConfig).to.be.a('function');
 		});
 
-		it("return back to defaults", function() {
+		it('return back to defaults', function() {
 			var fn = function() {};
 			md.config({
 				keyId: 'customId',
@@ -113,24 +147,24 @@ describe("md", function() {
 
 	});
 
-	describe("#model()", function() {
-		"use strict";
+	describe('#model()', function() {
+		'use strict';
 
-		it("exists", function() {
+		it('exists', function() {
 			expect(md.model).to.exist;
 		});
 
-		it("is a function", function() {
-			expect(md.model).to.be.a("function");
+		it('is a function', function() {
+			expect(md.model).to.be.a('function');
 		});
 
-		it("returns a Model Constructor", function() {
+		it('returns a Model Constructor', function() {
 			var User = window.Model.User;
 			expect(User.prototype.__proto__).to.equal(md.__TEST__.BaseModel.prototype);
 			expect(User).to.be.instanceof(md.__TEST__.ModelConstructor);
 		});
 
-		it("throw error on missing name", function() {
+		it('throw error on missing name', function() {
 			expect(function() {
 				var ModelA = md.model({
 					props: ['name']
@@ -138,7 +172,7 @@ describe("md", function() {
 			}).to.throw(Error);
 		});
 
-		it("throw error on restricted props", function() {
+		it('throw error on restricted props', function() {
 			expect(function() {
 				var ModelB = md.model({
 					name: 'ModelB',
@@ -148,7 +182,7 @@ describe("md", function() {
 			}).to.throw(Error);
 		});
 
-		it("correct url", function() {
+		it('correct url', function() {
 			var ModelB = md.model({
 				name: 'ModelB',
 				url: '/modelb'
@@ -157,12 +191,12 @@ describe("md", function() {
 			expect(mdl.url()).to.equal('/modelb');
 		});
 
-		it("get model constructor from different scope", function() {
-			// In scope "A"
+		it('get model constructor from different scope', function() {
+			// In scope 'A'
 			md.model({
 				name: 'ModelC'
 			});
-			// In scope "B"
+			// In scope 'B'
 			var mdl = new(md.model.get('ModelC'));
 			expect(mdl).to.be.instanceof(md.__TEST__.BaseModel);
 		});

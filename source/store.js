@@ -55,6 +55,7 @@ module.exports = _.create(null, {
 			method: method || 'GET',
 			url: url,
 			data: data || {},
+			background: !!config.storeBackground,
 			serialize: __serializer,
 			deserialize: __deserializer,
 			config: __config,

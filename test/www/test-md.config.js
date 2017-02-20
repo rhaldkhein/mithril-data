@@ -1,14 +1,14 @@
-describe("md.config()", function() {
-	"use strict";
+describe('md.config()', function() {
+	'use strict';
 
 	afterEach(function() {
 		md.resetConfig();
 	});
 
-	describe("baseUrl", function() {
-		"use strict";
+	describe('baseUrl', function() {
+		'use strict';
 
-		it("for model", function() {
+		it('for model', function() {
 			md.config({
 				baseUrl: '/base'
 			});
@@ -16,7 +16,7 @@ describe("md.config()", function() {
 			expect(user.url()).to.equal('/base/user');
 		});
 
-		it("for model with custom url", function() {
+		it('for model with custom url', function() {
 			md.config({
 				baseUrl: '/base'
 			});
@@ -28,7 +28,7 @@ describe("md.config()", function() {
 			expect(mdl.url()).to.equal('/base/modelurl');
 		});
 
-		it("for collection without model", function() {
+		it('for collection without model', function() {
 			md.config({
 				baseUrl: '/base'
 			});
@@ -36,7 +36,7 @@ describe("md.config()", function() {
 			expect(colA.url()).to.equal('/base');
 		});
 
-		it("for collection without model but with custom url", function() {
+		it('for collection without model but with custom url', function() {
 			md.config({
 				baseUrl: '/base'
 			});
@@ -46,7 +46,7 @@ describe("md.config()", function() {
 			expect(colA.url()).to.equal('/base/collectionurl');
 		});
 
-		it("for collection with model", function() {
+		it('for collection with model', function() {
 			md.config({
 				baseUrl: '/base'
 			});
@@ -56,7 +56,7 @@ describe("md.config()", function() {
 			expect(colB.url()).to.equal('/base/user');
 		});
 
-		it("for collection with custom url", function() {
+		it('for collection with custom url', function() {
 			md.config({
 				baseUrl: '/base'
 			});
@@ -68,7 +68,7 @@ describe("md.config()", function() {
 		});
 
 
-		it("for collection with model that is with custom url", function() {
+		it('for collection with model that is with custom url', function() {
 			md.config({
 				baseUrl: '/base'
 			});
@@ -84,10 +84,10 @@ describe("md.config()", function() {
 
 	});
 
-	describe("keyId", function() {
-		"use strict";
+	describe('keyId', function() {
+		'use strict';
 
-		it("exist in model and is a function", function() {
+		it('exist in model and is a function', function() {
 			md.config({
 				keyId: 'customKey'
 			});
@@ -99,7 +99,7 @@ describe("md.config()", function() {
 			expect(mdl.customKey).to.be.a('function');
 		});
 
-		it("set and get correct value through method `id()`", function() {
+		it('set and get correct value through method `id()`', function() {
 			md.config({
 				keyId: 'customKey'
 			});
@@ -116,10 +116,10 @@ describe("md.config()", function() {
 
 	});
 
-	describe("constructorMethods", function() {
-		"use strict";
+	describe('constructorMethods', function() {
+		'use strict';
 
-		it("exist in model and is a function", function() {
+		it('exist in model and is a function', function() {
 			md.config({
 				constructorMethods: {
 					customConsMethod: function() {
@@ -141,10 +141,10 @@ describe("md.config()", function() {
 
 	});
 
-	describe("modelMethods", function() {
-		"use strict";
+	describe('modelMethods', function() {
+		'use strict';
 
-		it("exist in model and is a function", function() {
+		it('exist in model and is a function', function() {
 			md.config({
 				modelMethods: {
 					customModelMethod: function() {
@@ -168,10 +168,10 @@ describe("md.config()", function() {
 
 	});
 
-	describe("collectionMethods", function() {
-		"use strict";
+	describe('collectionMethods', function() {
+		'use strict';
 
-		it("exist in model and is a function", function() {
+		it('exist in model and is a function', function() {
 			md.config({
 				collectionMethods: {
 					customColMethod: function() {
@@ -189,10 +189,10 @@ describe("md.config()", function() {
 
 	});
 
-	describe("modelBindMethods", function() {
-		"use strict";
+	describe('modelBindMethods', function() {
+		'use strict';
 
-		it("direct own property", function() {
+		it('direct own property', function() {
 			md.config({
 				modelBindMethods: ['save', 'destroy']
 			});
@@ -206,10 +206,10 @@ describe("md.config()", function() {
 
 	});
 
-	describe("collectionBindMethods", function() {
-		"use strict";
+	describe('collectionBindMethods', function() {
+		'use strict';
 
-		it("direct own property", function() {
+		it('direct own property', function() {
 			md.config({
 				collectionBindMethods: ['fetch']
 			});
@@ -219,10 +219,10 @@ describe("md.config()", function() {
 
 	});
 
-	describe("storeConfigOptions", function() {
-		"use strict";
+	describe('storeConfigOptions', function() {
+		'use strict';
 
-		it("added to md's config", function() {
+		it('added to md config', function() {
 			var fn = function() {};
 			md.config({
 				storeConfigOptions: fn
@@ -230,7 +230,7 @@ describe("md.config()", function() {
 			expect(md.__TEST__.config.storeConfigOptions).to.equal(fn);
 		});
 
-		it("called with correct arguments", function(done) {
+		it('called with correct arguments', function(done) {
 			var fn = function(options) {
 				expect(options.method).to.equal('GET');
 				expect(options.url).to.equal('/exist');
@@ -244,10 +244,10 @@ describe("md.config()", function() {
 
 	});
 
-	describe("storeConfigXHR", function() {
-		"use strict";
+	describe('storeConfigXHR', function() {
+		'use strict';
 
-		it("added to md's config", function() {
+		it('added to md config', function() {
 			var fn = function() {};
 			md.config({
 				storeConfigXHR: fn
@@ -257,11 +257,11 @@ describe("md.config()", function() {
 
 	});
 
-	describe("storeExtract", function() {
-		"use strict";
+	describe('storeExtract', function() {
+		'use strict';
 		// This test case suite will create error
 		// storeExtract must be configured before everthing else
-		it("added to md's config", function() {
+		it('added to md config', function() {
 			var fn = function() {};
 			md.config({
 				storeExtract: fn
@@ -271,10 +271,10 @@ describe("md.config()", function() {
 
 	});
 
-	describe("store", function() {
-		"use strict";
+	describe('store', function() {
+		'use strict';
 
-		it("added to md's config", function() {
+		it('added to md config', function() {
 			var fn = function() {};
 			md.config({
 				store: fn
@@ -282,7 +282,7 @@ describe("md.config()", function() {
 			expect(md.__TEST__.config.store).to.equal(fn);
 		});
 
-		it("called with correct arguments", function(done) {
+		it('called with correct arguments', function(done) {
 			var fn = function(data) {
 				expect(data.method).to.equal('GET');
 				expect(data.url).to.equal('/exist');
@@ -293,6 +293,27 @@ describe("md.config()", function() {
 				store: fn
 			});
 			md.store.request('/exist');
+		});
+
+	});
+
+	describe('stream', function() {
+		'use strict';
+
+		it('added to config', function() {
+			var fn = function() {};
+			md.config({
+				stream: fn
+			});
+			expect(md.__TEST__.config.stream).to.equal(fn);
+		});
+
+		it('added to md', function() {
+			var fn = function() {};
+			md.config({
+				stream: fn
+			});
+			expect(md.stream).to.equal(fn);
 		});
 
 	});

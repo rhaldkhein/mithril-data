@@ -1,12 +1,12 @@
-describe("Collection Instance", function() {
-	"use strict";
+describe('Collection Instance', function() {
+	'use strict';
 
-	it("is instance of `Collection`", function() {
+	it('is instance of `Collection`', function() {
 		var col = new md.Collection();
 		expect(col).to.be.instanceof(md.Collection);
 	});
 
-	it("is instance of `Collection` with options", function() {
+	it('is instance of `Collection` with options', function() {
 		var col = new md.Collection({
 			test: 'test'
 		});
@@ -14,7 +14,7 @@ describe("Collection Instance", function() {
 		expect(col.__options.test).to.be.equal('test');
 	});
 
-	it("state - by object and array and instance", function() {
+	it('state - by object and array and instance', function() {
 		// By array
 		var colA = new md.Collection({
 			state: ['a', 'b']
@@ -41,7 +41,7 @@ describe("Collection Instance", function() {
 		expect(colC.stateOf(userC).name()).to.be.undefined;
 	});
 
-	it("state - set and get and remove", function() {
+	it('state - set and get and remove', function() {
 		// By object
 		var colB = new md.Collection({
 			state: {
@@ -67,28 +67,28 @@ describe("Collection Instance", function() {
 
 });
 
-describe("Collection.<properties>", function() {
-	"use strict";
+describe('Collection.<properties>', function() {
+	'use strict';
 
-	it("`models` exist with value type of array", function() {
+	it('`models` exist with value type of array', function() {
 		var col = new md.Collection();
-		expect(col.models).to.exist.and.to.be.a("array");
+		expect(col.models).to.exist.and.to.be.a('array');
 	});
 
-	it("`__options` exist with value type of object", function() {
+	it('`__options` exist with value type of object', function() {
 		var col = new md.Collection();
-		expect(col.__options).to.exist.and.to.be.a("object");
+		expect(col.__options).to.exist.and.to.be.a('object');
 	});
 
 });
 
-describe("Collection.<methods>", function() {
-	"use strict";
+describe('Collection.<methods>', function() {
+	'use strict';
 
-	describe("#opt()", function() {
-		"use strict";
+	describe('#opt()', function() {
+		'use strict';
 
-		it("set options by plain object", function() {
+		it('set options by plain object', function() {
 			var col = new md.Collection();
 			col.opt({
 				test: 'test'
@@ -96,19 +96,19 @@ describe("Collection.<methods>", function() {
 			expect(col.__options.test).to.be.equal('test');
 		});
 
-		it("set options by key/value`", function() {
+		it('set options by key/value`', function() {
 			var col = new md.Collection();
 			col.opt('key', 'value');
 			expect(col.__options.key).to.be.equal('value');
 		});
 
-		it("defaults to boolean true", function() {
+		it('defaults to boolean true', function() {
 			var col = new md.Collection();
 			col.opt('key');
 			expect(col.__options.key).to.be.equal(true);
 		});
 
-		it("can set falsy except `undefined`", function() {
+		it('can set falsy except `undefined`', function() {
 			var col = new md.Collection();
 			col.opt('key', false);
 			expect(col.__options.key).to.be.false;
@@ -116,10 +116,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#add()", function() {
-		"use strict";
+	describe('#add()', function() {
+		'use strict';
 
-		it("throw error if argument 1 is NOT instanceof of `BaseModel`", function() {
+		it('throw error if argument 1 is NOT instanceof of `BaseModel`', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -128,7 +128,7 @@ describe("Collection.<methods>", function() {
 			}).to.throw(Error);
 		});
 
-		it("throw error if argument 1 is NOT instanceof of model specified", function() {
+		it('throw error if argument 1 is NOT instanceof of model specified', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -137,7 +137,7 @@ describe("Collection.<methods>", function() {
 			}).to.throw(Error);
 		});
 
-		it("successfully add a model (push)", function() {
+		it('successfully add a model (push)', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -148,7 +148,7 @@ describe("Collection.<methods>", function() {
 			expect(col.models).to.contain(user.__json);
 		});
 
-		it("successfully add a model at the beginning (unshift)", function() {
+		it('successfully add a model at the beginning (unshift)', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -164,10 +164,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#addAll()", function() {
-		"use strict";
+	describe('#addAll()', function() {
+		'use strict';
 
-		it("successfully add all models (push)", function() {
+		it('successfully add all models (push)', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -181,7 +181,7 @@ describe("Collection.<methods>", function() {
 			expect(col.models[2]).to.equal(userC.__json);
 		});
 
-		it("successfully add all models at the beginning (unshift)", function() {
+		it('successfully add all models at the beginning (unshift)', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -198,10 +198,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#create()", function() {
-		"use strict";
+	describe('#create()', function() {
+		'use strict';
 
-		it("by single model data", function() {
+		it('by single model data', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -212,7 +212,7 @@ describe("Collection.<methods>", function() {
 			expect(col.models[0].name).to.be.equal('Foo');
 		});
 
-		it("by multiple model data", function() {
+		it('by multiple model data', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -226,7 +226,7 @@ describe("Collection.<methods>", function() {
 			expect(col.models[1].name).to.be.equal('Bar');
 		});
 
-		it("do not create if no associated model", function() {
+		it('do not create if no associated model', function() {
 			var col = new md.Collection();
 			col.create([{
 				name: 'Foo',
@@ -236,7 +236,7 @@ describe("Collection.<methods>", function() {
 			expect(col.models.length).to.be.equal(0);
 		});
 
-		it("return newly created models", function() {
+		it('return newly created models', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -255,10 +255,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#get()", function() {
-		"use strict";
+	describe('#get()', function() {
+		'use strict';
 
-		it("get correct model by id", function() {
+		it('get correct model by id', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -280,7 +280,7 @@ describe("Collection.<methods>", function() {
 			expect(result).to.equal(user);
 		});
 
-		it("get correct model by plain object", function() {
+		it('get correct model by plain object', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -306,7 +306,7 @@ describe("Collection.<methods>", function() {
 			expect(result).to.equal(user);
 		});
 
-		it("get correct model by property (array)", function() {
+		it('get correct model by property (array)', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -329,7 +329,7 @@ describe("Collection.<methods>", function() {
 			expect(result).to.equal(user);
 		});
 
-		it("get correct model by existing model", function() {
+		it('get correct model by existing model', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -351,7 +351,7 @@ describe("Collection.<methods>", function() {
 			expect(result).to.equal(user);
 		});
 
-		it("get correct model by function", function() {
+		it('get correct model by function', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -374,7 +374,7 @@ describe("Collection.<methods>", function() {
 			expect(result).to.equal(user);
 		});
 
-		it("get undefined", function() {
+		it('get undefined', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -402,10 +402,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#getAll()", function() {
-		"use strict";
+	describe('#getAll()', function() {
+		'use strict';
 
-		it("get all correct models by id", function() {
+		it('get all correct models by id', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -439,7 +439,7 @@ describe("Collection.<methods>", function() {
 			expect(result[1]).to.be.equal(userD);
 		});
 
-		it("get all correct models by plain object", function() {
+		it('get all correct models by plain object', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -480,10 +480,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#remove()", function() {
-		"use strict";
+	describe('#remove()', function() {
+		'use strict';
 
-		it("successful remove", function() {
+		it('successful remove', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -530,7 +530,7 @@ describe("Collection.<methods>", function() {
 			expect(col.models).to.not.contain(userD);
 		});
 
-		it("successful remove by array", function() {
+		it('successful remove by array', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -571,7 +571,7 @@ describe("Collection.<methods>", function() {
 			expect(col.models).to.not.contain(userE);
 		});
 
-		it("return correct boolean", function() {
+		it('return correct boolean', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -587,7 +587,7 @@ describe("Collection.<methods>", function() {
 			expect(col.remove('333')).to.equal(false);
 		});
 
-		it("removed model should not contain this collection", function() {
+		it('removed model should not contain this collection', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -602,10 +602,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#push()", function() {
-		"use strict";
+	describe('#push()', function() {
+		'use strict';
 
-		it("successful push", function() {
+		it('successful push', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -627,10 +627,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#unshift()", function() {
-		"use strict";
+	describe('#unshift()', function() {
+		'use strict';
 
-		it("successful unshift", function() {
+		it('successful unshift', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -652,10 +652,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#shift()", function() {
-		"use strict";
+	describe('#shift()', function() {
+		'use strict';
 
-		it("successful shift", function() {
+		it('successful shift', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -670,10 +670,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#pop()", function() {
-		"use strict";
+	describe('#pop()', function() {
+		'use strict';
 
-		it("successful pop", function() {
+		it('successful pop', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -688,10 +688,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#clear()", function() {
-		"use strict";
+	describe('#clear()', function() {
+		'use strict';
 
-		it("successful clear", function() {
+		it('successful clear', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -706,10 +706,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#pluck()", function() {
-		"use strict";
+	describe('#pluck()', function() {
+		'use strict';
 
-		it("successful pluck", function() {
+		it('successful pluck', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -734,7 +734,7 @@ describe("Collection.<methods>", function() {
 			expect(result[3]).to.be.equal('Test');
 		});
 
-		it("successful pluck by id", function() {
+		it('successful pluck by id', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -761,8 +761,8 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#contains()", function() {
-		"use strict";
+	describe('#contains()', function() {
+		'use strict';
 
 		var col;
 		var userA;
@@ -790,12 +790,12 @@ describe("Collection.<methods>", function() {
 			col.addAll([userA, userB, userC, userD]);
 		});
 
-		it("by id", function() {
+		it('by id', function() {
 			expect(col.contains('456')).to.be.true;
 			expect(col.contains('XXX')).to.be.false;
 		});
 
-		it("by plain object", function() {
+		it('by plain object', function() {
 			expect(col.contains({
 				name: 'Baz'
 			})).to.be.true;
@@ -804,15 +804,15 @@ describe("Collection.<methods>", function() {
 			})).to.be.false;
 		});
 
-		it("by model instance", function() {
+		it('by model instance', function() {
 			expect(col.contains(userA)).to.be.true;
 			expect(col.contains(new Model.User())).to.be.false;
 		});
 
 	});
 
-	describe("#sort(), #reverse(), #randomize()", function() {
-		"use strict";
+	describe('#sort(), #reverse(), #randomize()', function() {
+		'use strict';
 
 		var col = new md.Collection();
 
@@ -844,7 +844,7 @@ describe("Collection.<methods>", function() {
 			}));
 		});
 
-		it("sort with no order specified - used default order", function() {
+		it('sort with no order specified - used default order', function() {
 			col.sort('name');
 			expect(col.size()).to.be.equal(5);
 			expect(col.nth(0).name()).to.be.equal('Bar');
@@ -854,7 +854,7 @@ describe("Collection.<methods>", function() {
 			expect(col.nth(4).name()).to.be.equal('Zoo');
 		});
 
-		it("sort with order is specified", function() {
+		it('sort with order is specified', function() {
 			// Note that age is used, but name is used to compare
 			col.sort('age', 'desc');
 			expect(col.size()).to.be.equal(5);
@@ -865,7 +865,7 @@ describe("Collection.<methods>", function() {
 			expect(col.nth(4).name()).to.be.equal('Zoo');
 		});
 
-		it("sort by multiple fields with default order", function() {
+		it('sort by multiple fields with default order', function() {
 			col.sort(['active', 'age']);
 			expect(col.size()).to.be.equal(5);
 			expect(col.nth(0).name()).to.be.equal('Bar');
@@ -875,7 +875,7 @@ describe("Collection.<methods>", function() {
 			expect(col.nth(4).name()).to.be.equal('Dog');
 		});
 
-		it("sort by multiple fields with `specified` order", function() {
+		it('sort by multiple fields with `specified` order', function() {
 			col.sort(['active', 'age'], ['desc', 'asc']);
 			expect(col.size()).to.be.equal(5);
 			expect(col.nth(0).name()).to.be.equal('Zoo');
@@ -885,7 +885,7 @@ describe("Collection.<methods>", function() {
 			expect(col.nth(4).name()).to.be.equal('Jar');
 		});
 
-		it("reverse", function() {
+		it('reverse', function() {
 			var v0 = col.nth(0).name();
 			var v1 = col.nth(1).name();
 			var v2 = col.nth(2).name();
@@ -900,7 +900,7 @@ describe("Collection.<methods>", function() {
 			expect(col.nth(4).name()).to.be.equal(v0);
 		});
 
-		it("randomize", function() {
+		it('randomize', function() {
 			var oldOrder = col.toArray();
 			col.randomize();
 			var newOrder = col.toArray();
@@ -917,10 +917,10 @@ describe("Collection.<methods>", function() {
 	});
 
 
-	describe("#dispose()", function() {
-		"use strict";
+	describe('#dispose()', function() {
+		'use strict';
 
-		it("successful dispose", function() {
+		it('successful dispose', function() {
 			var col = new md.Collection({
 				model: Model.User
 			});
@@ -946,8 +946,8 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#stateOf()", function() {
-		"use strict";
+	describe('#stateOf()', function() {
+		'use strict';
 
 		var col;
 
@@ -975,7 +975,7 @@ describe("Collection.<methods>", function() {
 			col.addAll([userA, userB, userC, userD]);
 		});
 
-		it("successful state", function() {
+		it('successful state', function() {
 			expect(col.stateOf('123').stateA()).to.be.undefined;
 			col.stateOf('123').stateA('New State');
 			expect(col.stateOf('123').stateA()).to.be.equal('New State');
@@ -983,10 +983,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#hasModel()", function() {
-		"use strict";
+	describe('#hasModel()', function() {
+		'use strict';
 
-		it("return correct boolean", function() {
+		it('return correct boolean', function() {
 			var colA = new md.Collection({
 				model: Model.User
 			});
@@ -997,10 +997,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#model()", function() {
-		"use strict";
+	describe('#model()', function() {
+		'use strict';
 
-		it("return correct value", function() {
+		it('return correct value', function() {
 			var colA = new md.Collection({
 				model: Model.User
 			});
@@ -1011,10 +1011,10 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#url()", function() {
-		"use strict";
+	describe('#url()', function() {
+		'use strict';
 
-		it("returns a string", function() {
+		it('returns a string', function() {
 			var colA = new md.Collection({
 				model: Model.User
 			});
@@ -1023,8 +1023,8 @@ describe("Collection.<methods>", function() {
 
 	});
 
-	describe("#fetch()", function() {
-		"use strict";
+	describe('#fetch()', function() {
+		'use strict';
 
 		var _ids = [];
 		var _models = {};
@@ -1047,7 +1047,7 @@ describe("Collection.<methods>", function() {
 			}
 		});
 
-		it("success fetch", function(done) {
+		it('success fetch', function(done) {
 			var colA = new md.Collection({
 				model: Model.User
 			});
@@ -1068,7 +1068,7 @@ describe("Collection.<methods>", function() {
 			});
 		});
 
-		it("success fetch using callback", function(done) {
+		it('success fetch using callback', function(done) {
 			var colA = new md.Collection({
 				model: Model.User
 			});
@@ -1097,7 +1097,7 @@ describe("Collection.<methods>", function() {
 			});
 		});
 
-		it("clear option", function(done) {
+		it('clear option', function(done) {
 			var colA = new md.Collection({
 				model: Model.User
 			});
