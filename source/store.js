@@ -12,7 +12,7 @@ function __extract(xhr, xhrOptions) {
 	if (config.storeExtract) {
 		return config.storeExtract(xhr, xhrOptions);
 	} else if (xhr.responseText.length) {
-		return xhr.responseText;
+		return __deserializer(xhr.responseText);
 	} else {
 		return null;
 	}
