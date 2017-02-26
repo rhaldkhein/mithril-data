@@ -369,7 +369,7 @@ var _isEditing = md.stream(false)
 // Create state factory
 var stateFactory = new md.State({
    isLoading: false,
-   isEditing: _isEditing // Add exisiting prop created somewhere
+   isEditing: _isEditing // Add exisiting stream created somewhere
 })
 // Creating states 
 stateFactory.set('A');
@@ -410,8 +410,20 @@ Creates a state without instantiating new State factory. `options` is same with 
 var state = md.State.create({
    isWorking: false
 })
-state.isWorking() // Get state prop. => false
-state.isWorking(true) // Set state prop. => true
+state.isWorking() // Get state. => false
+state.isWorking(true) // Set state. => true
+```
+
+#### md.State.assign(object, signature[, options])
+Same with `create` but assigns to given `object`, instead of creating new object.
+```javascript
+// Existing object
+var obj = {};
+// Create state factory
+md.State.assign(obj, {
+   isWorking: false
+})
+obj.isWorking()
 ```
 
 - - - -
