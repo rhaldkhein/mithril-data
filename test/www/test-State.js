@@ -2,8 +2,8 @@ describe('State', function() {
 	'use strict';
 
 	var customStoreData = {};
-	var customStore = function(initVal, key, factorykey) {
-		var prefix = this.prefix || '';
+	var customStore = function(initVal, key, factorykey, options) {
+		var prefix = options.prefix || '';
 		factorykey = factorykey ? (factorykey + '.') : '';
 		key = prefix + factorykey + key;
 		var prop = function(valNew) {
@@ -29,6 +29,23 @@ describe('State', function() {
 		state.test('Bar');
 		expect(state.isEditing()).to.be.true;
 		expect(state.test()).to.be.equal('Bar');
+	});
+
+	it('Assign to existing object', function() {
+		var obj = {
+			name: 'Foo'
+		};
+		md.State.assign(obj, {
+			isEditing: false,
+			test: 'Bar'
+		});
+		expect(obj.name).to.be.equal('Foo');
+		expect(obj.isEditing()).to.be.false;
+		expect(obj.test()).to.be.equal('Bar');
+		obj.isEditing(true);
+		obj.test('Baz');
+		expect(obj.isEditing()).to.be.true;
+		expect(obj.test()).to.be.equal('Baz');
 	});
 
 	it('Accepts fuctions initialized with md.stream()', function() {
