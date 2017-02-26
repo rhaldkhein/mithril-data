@@ -1356,14 +1356,12 @@
 
 	function createState(signature, state, options, factoryKey) {
 		var propVal;
-		state._options = _.assign({
-			store: config.stream
-		}, options);
-		for (var prop in signature) {
-			if (_.indexOf(privateKeys, prop) > -1)
-				throw new Error('State key `' + prop + '` is not allowed.');
-			propVal = signature[prop];
-			state[prop] = _.isFunction(propVal) ? propVal : state._options.store(propVal, prop, factoryKey);
+		var store = options && options.store ? options.store : config.stream;
+		for (var propKey in signature) {
+			if (_.indexOf(privateKeys, propKey) > -1)
+				throw new Error('State key `' + propKey + '` is not allowed.');
+			propVal = signature[propKey];
+			state[propKey] = _.isFunction(propVal) ? propVal : store(propVal, propKey, factoryKey, options);
 		}
 		return state;
 	}
@@ -1390,6 +1388,11 @@
 		return createState(signature, {
 			toJson: _toJson
 		}, options);
+	};
+
+	// Assign state
+	State.assign = function(object, signature, options) {
+		createState(signature, object, options);
 	};
 
 	// Prototype
@@ -1440,6 +1443,7 @@
 			}
 		}
 	};
+
 
 /***/ },
 /* 10 */
