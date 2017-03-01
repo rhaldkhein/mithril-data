@@ -182,7 +182,7 @@ BaseModel.prototype = {
 					if (_.isFunction(callback)) callback(err);
 				});
 			} else {
-				reject(true);
+				reject(new Error('Model must have an id to fetch'));
 				if (_.isFunction(callback)) callback(true);
 			}
 		});
@@ -259,7 +259,7 @@ BaseModel.prototype = {
 					if (_.isFunction(callback)) callback(err);
 				});
 			} else {
-				reject(true);
+				reject(new Error('Model must have an id to destroy'));
 				if (_.isFunction(callback)) callback(true);
 			}
 		});

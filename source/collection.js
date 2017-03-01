@@ -290,7 +290,7 @@ Collection.prototype = {
 					}
 				});
 			} else {
-				reject(true);
+				reject(new Error('Collection must have a model to perform fetch'));
 				if (_.isFunction(callback)) callback(true);
 			}
 		});

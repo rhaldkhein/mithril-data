@@ -452,7 +452,7 @@
 						if (_.isFunction(callback)) callback(err);
 					});
 				} else {
-					reject(true);
+					reject(new Error('Model must have an id to fetch'));
 					if (_.isFunction(callback)) callback(true);
 				}
 			});
@@ -529,7 +529,7 @@
 						if (_.isFunction(callback)) callback(err);
 					});
 				} else {
-					reject(true);
+					reject(new Error('Model must have an id to destroy'));
 					if (_.isFunction(callback)) callback(true);
 				}
 			});
@@ -1265,7 +1265,7 @@
 						}
 					});
 				} else {
-					reject(true);
+					reject(new Error('Collection must have a model to perform fetch'));
 					if (_.isFunction(callback)) callback(true);
 				}
 			});
