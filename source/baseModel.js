@@ -154,7 +154,7 @@ BaseModel.prototype = {
 			var req = self.id() ? store.put : store.post;
 			req.call(store, self.url(), self, options).then(function(data) {
 				self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
-				self.__saved = self.id() && true;
+				self.__saved = !!self.id();
 				resolve(self);
 				if (_.isFunction(callback)) callback(null, data, self);
 			}, function(err) {
@@ -174,7 +174,7 @@ BaseModel.prototype = {
 			if (id[config.keyId]) {
 				store.get(self.url(), id, options).then(function(data) {
 					self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
-					self.__saved = self.id() && true;
+					self.__saved = !!self.id();
 					resolve(self);
 					if (_.isFunction(callback)) callback(null, data, self);
 				}, function(err) {
@@ -347,7 +347,7 @@ BaseModel.prototype = {
 					}
 				}
 				if (value instanceof BaseModel) {
-					value.__saved = arguments[2] && value.id() && true;
+					value.__saved = value.__saved || !!(arguments[2] && value.id());
 					value = value.getJson();
 				}
 				_stream(value);
@@ -368,7 +368,7 @@ BaseModel.prototype = {
 			return value;
 		}
 		prop.stream = _stream;
-		prop.call(this, initial, true, null, true);
+		prop.call(this, initial, true, undefined, true);
 		return prop;
 	}
 };
