@@ -103,6 +103,52 @@ describe('md', function() {
 
 	});
 
+	describe('#stream()', function() {
+		'use strict';
+
+		it('exists', function() {
+			expect(md.stream).to.be.a('function');
+		});
+
+		it('real stream', function() {
+			var sInt = md.stream(123);
+			expect(sInt.constructor).to.be.equal(md.stream);
+			expect(sInt.name).to.be.equal('stream');
+		});
+
+	});
+
+	describe('#toStream()', function() {
+		'use strict';
+
+		it('exists', function() {
+			expect(md.toStream).to.be.a('function');
+		});
+
+		it('any value', function() {
+			var sInt = md.toStream(123);
+			var sString = md.toStream('Foo');
+			expect(sInt()).to.be.a('number');
+			expect(sInt()).to.be.equal(123);
+			expect(sString()).to.be.a('string');
+			expect(sString()).to.be.equal('Foo');
+		});
+
+		it('stream value', function() {
+			var sInt = md.toStream(123);
+			var newStream = md.toStream(sInt);
+			expect(newStream()).to.be.a('number');
+			expect(newStream()).to.be.equal(123);
+		});
+
+		it('real stream', function() {
+			var sInt = md.toStream(123);
+			expect(sInt.constructor).to.be.equal(md.stream);
+			expect(sInt.name).to.be.equal('stream');
+		});
+
+	});
+
 	describe('#noConflict()', function() {
 		'use strict';
 

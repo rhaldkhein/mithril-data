@@ -151,6 +151,11 @@
 	// Export Mithril's Stream
 	exports.stream = null;
 
+	// Helper to convert any value to stream
+	exports.toStream = function(value) {
+		return value.constructor === exports.stream ? value : exports.stream(value);
+	};
+
 	// Export model instantiator.
 	exports.model = function(schemaOptions, ctrlOptions) {
 		schemaOptions = schemaOptions || {};
