@@ -5,12 +5,15 @@ before(function(done) {
 
 		window.Model.User = md.model({
 			name: 'User',
-			props: ['name', 'profile', 'age', 'active']
+			props: ['name', 'profile', 'age', 'active'],
 		});
 
 		window.Model.Folder = md.model({
 			name: 'Folder',
-			props: ['name']
+			props: ['name', 'size'],
+			defaults: {
+				name: 'Untitled Folder'
+			}
 		});
 
 		window.Model.Note = md.model({
@@ -63,7 +66,7 @@ before(function(done) {
 				id: 'user002',
 				name: 'UserBar',
 				age: 2
-			})).save()
+			})).save(),
 		]).then(function() {
 			done();
 		});

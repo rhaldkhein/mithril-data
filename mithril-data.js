@@ -214,7 +214,8 @@
 		redraw: false,
 		storeBackground: false,
 		cache: false,
-		cacheLimit: 100
+		cacheLimit: 100,
+		placeholder: null
 	});
 
 	// Export for AMD & browser's global.
@@ -291,6 +292,7 @@
 		this.__lid = _.uniqueId('model');
 		this.__saved = false;
 		this.__modified = false;
+		this.__fetching = false;
 		this.__json = {
 			__model: this
 		};
@@ -444,12 +446,14 @@
 				options = undefined;
 			}
 			var self = this;
+			self.__fetching = true;
 			return new Promise(function(resolve, reject) {
 				var id = self.__getDataId();
 				if (id[config.keyId]) {
 					store.get(self.url(), id, options).then(function(data) {
 						self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
 						self.__saved = !!self.id();
+						self.__fetching = false;
 						resolve(self);
 						if (_.isFunction(callback)) callback(null, data, self);
 					}, function(err) {
@@ -577,6 +581,9 @@
 		isDirty: function() {
 			return !this.isSaved() || this.isModified();
 		},
+		isFetching: function() {
+			return this.__fetching;
+		},
 		__update: function() {
 			var redraw;
 			// Propagate change to model's collections.
@@ -640,7 +647,7 @@
 					// Return that default value which was set in schema.
 					value = this.options.defaults[key];
 				}
-				return value;
+				return (config.placeholder && this.__fetching && key !== config.keyId && _.isString(value) ? config.placeholder : value);
 			}
 			prop.stream = _stream;
 			prop.call(this, initial, true, undefined, true);
@@ -650,6 +657,7 @@
 
 	// Inject lodash methods.
 	util.addMethods(BaseModel.prototype, _, objectMethods, '__json');
+
 
 /***/ },
 /* 5 */
@@ -879,74 +887,8 @@
 /***/ function(module, exports) {
 
 	// shim for using process in browser
+
 	var process = module.exports = {};
-
-	// cached from whatever global is present so that test runners that stub it
-	// don't break things.  But we need to wrap it in a try catch in case it is
-	// wrapped in strict mode code which doesn't define any globals.  It's inside a
-	// function because try/catches deoptimize in certain engines.
-
-	var cachedSetTimeout;
-	var cachedClearTimeout;
-
-	(function () {
-	    try {
-	        cachedSetTimeout = setTimeout;
-	    } catch (e) {
-	        cachedSetTimeout = function () {
-	            throw new Error('setTimeout is not defined');
-	        }
-	    }
-	    try {
-	        cachedClearTimeout = clearTimeout;
-	    } catch (e) {
-	        cachedClearTimeout = function () {
-	            throw new Error('clearTimeout is not defined');
-	        }
-	    }
-	} ())
-	function runTimeout(fun) {
-	    if (cachedSetTimeout === setTimeout) {
-	        //normal enviroments in sane situations
-	        return setTimeout(fun, 0);
-	    }
-	    try {
-	        // when when somebody has screwed with setTimeout but no I.E. maddness
-	        return cachedSetTimeout(fun, 0);
-	    } catch(e){
-	        try {
-	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-	            return cachedSetTimeout.call(null, fun, 0);
-	        } catch(e){
-	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-	            return cachedSetTimeout.call(this, fun, 0);
-	        }
-	    }
-
-
-	}
-	function runClearTimeout(marker) {
-	    if (cachedClearTimeout === clearTimeout) {
-	        //normal enviroments in sane situations
-	        return clearTimeout(marker);
-	    }
-	    try {
-	        // when when somebody has screwed with setTimeout but no I.E. maddness
-	        return cachedClearTimeout(marker);
-	    } catch (e){
-	        try {
-	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-	            return cachedClearTimeout.call(null, marker);
-	        } catch (e){
-	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-	            return cachedClearTimeout.call(this, marker);
-	        }
-	    }
-
-
-
-	}
 	var queue = [];
 	var draining = false;
 	var currentQueue;
@@ -971,7 +913,7 @@
 	    if (draining) {
 	        return;
 	    }
-	    var timeout = runTimeout(cleanUpNextTick);
+	    var timeout = setTimeout(cleanUpNextTick);
 	    draining = true;
 
 	    var len = queue.length;
@@ -988,7 +930,7 @@
 	    }
 	    currentQueue = null;
 	    draining = false;
-	    runClearTimeout(timeout);
+	    clearTimeout(timeout);
 	}
 
 	process.nextTick = function (fun) {
@@ -1000,7 +942,7 @@
 	    }
 	    queue.push(new Item(fun, args));
 	    if (queue.length === 1 && !draining) {
-	        runTimeout(drainQueue);
+	        setTimeout(drainQueue, 0);
 	    }
 	};
 

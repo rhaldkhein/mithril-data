@@ -16,6 +16,7 @@ function BaseModel(opts) {
 	this.__lid = _.uniqueId('model');
 	this.__saved = false;
 	this.__modified = false;
+	this.__fetching = false;
 	this.__json = {
 		__model: this
 	};
@@ -169,12 +170,14 @@ BaseModel.prototype = {
 			options = undefined;
 		}
 		var self = this;
+		self.__fetching = true;
 		return new Promise(function(resolve, reject) {
 			var id = self.__getDataId();
 			if (id[config.keyId]) {
 				store.get(self.url(), id, options).then(function(data) {
 					self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
 					self.__saved = !!self.id();
+					self.__fetching = false;
 					resolve(self);
 					if (_.isFunction(callback)) callback(null, data, self);
 				}, function(err) {
@@ -302,6 +305,9 @@ BaseModel.prototype = {
 	isDirty: function() {
 		return !this.isSaved() || this.isModified();
 	},
+	isFetching: function() {
+		return this.__fetching;
+	},
 	__update: function() {
 		var redraw;
 		// Propagate change to model's collections.
@@ -365,7 +371,7 @@ BaseModel.prototype = {
 				// Return that default value which was set in schema.
 				value = this.options.defaults[key];
 			}
-			return value;
+			return (config.placeholder && this.__fetching && key !== config.keyId && _.isString(value) ? config.placeholder : value);
 		}
 		prop.stream = _stream;
 		prop.call(this, initial, true, undefined, true);

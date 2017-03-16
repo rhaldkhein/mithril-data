@@ -5,13 +5,14 @@
 	var STORE;
 
 	function reset() {
-		STORE = {};
+		window.STORE = STORE = {};
 		STORE.user = {};
 		STORE.note = {};
 		STORE.folder = {};
 	}
 
 	reset();
+
 
 	md.defaultConfig({
 		store: function(rawData) {
@@ -58,7 +59,7 @@
 								if (_.has(STORE[model], data.id)) {
 									resolve(rawData.deserialize(STORE[model][data.id]));
 								} else {
-									reject(new Error('Model does not exist!'));
+									reject(new Error('Model ' + data.id + ' does not exist!'));
 								}
 							} else {
 								if (!_.isEmpty(data)) {

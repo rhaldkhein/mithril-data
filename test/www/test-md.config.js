@@ -155,9 +155,9 @@ describe('md.config()', function() {
 			var ModelCustomMethodsA = md.model({
 				name: 'ModelCustomMethodsA'
 			});
-			var ModelCustomMethodsB = md.model({
-				name: 'ModelCustomMethodsB'
-			});
+			// var ModelCustomMethodsB = md.model({
+			// 	name: 'ModelCustomMethodsB'
+			// });
 			var mdlA = new ModelCustomMethodsA();
 			expect(mdlA.customModelMethod).to.be.a('function');
 			mdlA.customModelMethod();
@@ -314,6 +314,43 @@ describe('md.config()', function() {
 				stream: fn
 			});
 			expect(md.stream).to.equal(fn);
+		});
+
+	});
+
+	describe('placeholder', function() {
+		'use strict';
+
+		it('added to config', function() {
+			md.config({
+				placeholder: 'Fooing...'
+			});
+			expect(md.__TEST__.config.placeholder).to.equal('Fooing...');
+		});
+
+		it('defaults to null', function() {
+			expect(md.__TEST__.config.placeholder).to.be.null;
+			var folder = new Model.Folder({
+				id: 'fold001'
+			});
+			folder.fetch();
+			expect(folder.name()).to.equal('Untitled Folder');
+		});
+
+		it('should be working', function(done) {
+			md.config({
+				placeholder: 'Baring...'
+			});
+
+			var folder = new Model.Folder({
+				id: 'fold001'
+			});
+			folder.fetch().then(function() {
+				expect(folder.name()).to.equal('System');
+				done();
+			}, done);
+			expect(folder.name()).to.equal('Baring...');
+			expect(folder.size()).to.be.undefined;
 		});
 
 	});

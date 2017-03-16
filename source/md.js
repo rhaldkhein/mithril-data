@@ -161,7 +161,8 @@ exports.defaultConfig({
 	redraw: false,
 	storeBackground: false,
 	cache: false,
-	cacheLimit: 100
+	cacheLimit: 100,
+	placeholder: null
 });
 
 // Export for AMD & browser's global.
