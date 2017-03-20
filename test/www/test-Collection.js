@@ -1051,7 +1051,9 @@ describe('Collection.<methods>', function() {
 			var colA = new md.Collection({
 				model: Model.User
 			});
+			expect(colA.isFetching()).to.be.false;
 			colA.fetch([_ids[2], _ids[3]]).then(function() {
+				expect(colA.isFetching()).to.be.false;
 				try {
 					var moA = colA.models[0];
 					expect(moA.id).to.equal(_models[moA.id].id())
@@ -1064,8 +1066,37 @@ describe('Collection.<methods>', function() {
 					done(e);
 				}
 			}, function(err) {
+				expect(colA.isFetching()).to.be.false;
 				done(err);
 			});
+			expect(colA.isFetching()).to.be.true;
+		});
+
+		it('is fetching method', function(done) {
+			var colPromise = new md.Collection({
+				model: Model.User
+			});
+			var colCallback = new md.Collection({
+				model: Model.User
+			});
+
+			expect(colPromise.isFetching()).to.be.false;
+			expect(colCallback.isFetching()).to.be.false;
+
+			colPromise.fetch([_ids[2], _ids[3]]).then(function() {
+				expect(colPromise.isFetching()).to.be.false;
+			}).catch(function() {
+				expect(colPromise.isFetching()).to.be.false;
+			}).then(function() {
+				colCallback.fetch([_ids[2], _ids[3]], function() {
+					expect(colCallback.isFetching()).to.be.false;
+					done();
+				});
+				expect(colCallback.isFetching()).to.be.true;
+			});
+
+			expect(colPromise.isFetching()).to.be.true;
+
 		});
 
 		it('success fetch using callback', function(done) {

@@ -181,10 +181,12 @@ BaseModel.prototype = {
 					resolve(self);
 					if (_.isFunction(callback)) callback(null, data, self);
 				}, function(err) {
+					self.__fetching = false;
 					reject(err);
 					if (_.isFunction(callback)) callback(err);
 				});
 			} else {
+				self.__fetching = false;
 				reject(new Error('Model must have an id to fetch'));
 				if (_.isFunction(callback)) callback(true);
 			}
