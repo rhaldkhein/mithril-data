@@ -567,6 +567,24 @@ describe('Model.<methods>', function() {
 			expect(note.title()).to.not.equal(copy.title);
 		});
 
+		it('depopulate', function() {
+			var note = new Model.Note();
+			var user = new Model.User({
+				id: 'id001'
+			});
+			note.set({
+				title: 'Foo',
+				body: 'Bar',
+				author: user
+			});
+			// Default
+			var copyA = note.getCopy();
+			expect(copyA.author).to.be.object;
+			// Depopulate
+			var copyB = note.getCopy(false, true);
+			expect(copyB.author).to.equal('id001');
+		});
+
 	});
 
 

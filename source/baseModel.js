@@ -130,7 +130,7 @@ BaseModel.prototype = {
 		return this.__json;
 	},
 	// Get a copy of json representation. Removing private properties.
-	getCopy: function(deep) {
+	getCopy: function(deep, depopulate) {
 		var copy = {};
 		var keys = _.keys(this.__json);
 		for (var i = 0, key, value; i < keys.length; i++) {
@@ -138,7 +138,7 @@ BaseModel.prototype = {
 			value = this.__json[key];
 			if (this.__isProp(key)) {
 				if (value && value.__model instanceof BaseModel)
-					copy[key] = value.__model.get();
+					copy[key] = depopulate ? value.__model.id() : value.__model.getCopy(deep, true);
 				else
 					copy[key] = value;
 			}
