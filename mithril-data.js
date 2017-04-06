@@ -882,6 +882,7 @@
 			});
 		}
 	});
+
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7)))
 
 /***/ },
@@ -1242,6 +1243,12 @@
 			}
 			this.__replaceModels(sorted);
 		},
+		sortByOrder: function(order, path) {
+			if (!path) path = config.keyId;
+			this.__replaceModels(this.sortBy([function(item) {
+				return order.indexOf(_.get(item, path));
+			}]));
+		},
 		randomize: function() {
 			this.__replaceModels(this.shuffle());
 		},
@@ -1353,6 +1360,7 @@
 
 	// Inject lodash method.
 	util.addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
+
 
 /***/ },
 /* 9 */
