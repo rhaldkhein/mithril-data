@@ -19,7 +19,7 @@ function __extract(xhr, xhrOptions) {
 }
 
 function __serializer(data) {
-	data = data instanceof BaseModel ? data.getCopy() : data;
+	// data = data instanceof BaseModel ? data.getCopy() : data;
 	__dereference(data);
 	if (config.storeSerializer)
 		return config.storeSerializer(data);
@@ -54,7 +54,7 @@ module.exports = _.create(null, {
 		var _options = {
 			method: method || 'GET',
 			url: url,
-			data: data || {},
+			data: (data instanceof BaseModel ? data.getCopy() : data) || {},
 			background: !!config.storeBackground,
 			serialize: __serializer,
 			deserialize: __deserializer,
