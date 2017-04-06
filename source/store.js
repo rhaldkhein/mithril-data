@@ -50,8 +50,8 @@ function __dereference(data) {
 }
 
 module.exports = _.create(null, {
-	request: function(url, method, data, opt) {
-		var options = {
+	request: function(url, method, data, options) {
+		var _options = {
 			method: method || 'GET',
 			url: url,
 			data: data || {},
@@ -61,11 +61,9 @@ module.exports = _.create(null, {
 			config: __config,
 			extract: __extract
 		};
-		if (opt)
-			_.assign(options, opt);
-		if (config.storeConfigOptions)
-			config.storeConfigOptions(options);
-		return config.store(options);
+		if (options) _options = _.defaultsDeep(options, _options);
+		if (config.storeConfigOptions) config.storeConfigOptions(_options);
+		return config.store(_options);
 	},
 	get: function(url, data, opt) {
 		return this.request(url, 'GET', data, opt);
