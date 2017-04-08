@@ -334,6 +334,7 @@ BaseModel.prototype = {
 	},
 	__gettersetter: function(initial, key) {
 		var _stream = config.stream();
+		var self = this;
 		// Wrapper
 		function prop() {
 			var value;
@@ -344,7 +345,7 @@ BaseModel.prototype = {
 			if (arguments.length) {
 				// Write
 				value = arguments[0];
-				var ref = this.options.refs[key];
+				var ref = self.options.refs[key];
 				if (ref) {
 					var refConstructor = modelConstructors[ref];
 					if (_.isPlainObject(value)) {
@@ -359,21 +360,21 @@ BaseModel.prototype = {
 					value = value.getJson();
 				}
 				_stream(value);
-				this.__modified = arguments[2] ? false : !arguments[3] && this.__json[key] !== _stream._state.value;
-				this.__json[key] = _stream._state.value;
+				self.__modified = arguments[2] ? false : !arguments[3] && self.__json[key] !== _stream._state.value;
+				self.__json[key] = _stream._state.value;
 				if (!arguments[1])
-					this.__update(key);
+					self.__update(key);
 				return value;
 			}
 			value = _stream();
 			if (value && value.__model instanceof BaseModel) {
 				value = value.__model;
-			} else if (_.isNil(value) && this.options && !_.isNil(this.options.defaults[key])) {
+			} else if (_.isNil(value) && self.options && !_.isNil(self.options.defaults[key])) {
 				// If value is null or undefined and a default value exist.
 				// Return that default value which was set in schema.
-				value = this.options.defaults[key];
+				value = self.options.defaults[key];
 			}
-			return (config.placeholder && this.__fetching && key !== config.keyId && _.isString(value) ? config.placeholder : value);
+			return (config.placeholder && self.__fetching && key !== config.keyId && _.isString(value) ? config.placeholder : value);
 		}
 		prop.stream = _stream;
 		prop.call(this, initial, true, undefined, true);
