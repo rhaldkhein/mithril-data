@@ -156,6 +156,8 @@ BaseModel.prototype = {
 			req.call(store, self.url(), self, options).then(function(data) {
 				self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
 				self.__saved = !!self.id();
+				// Add to cache, if enabled
+				self.__addToCache();
 				resolve(self);
 				if (_.isFunction(callback)) callback(null, data, self);
 			}, function(err) {
@@ -178,6 +180,7 @@ BaseModel.prototype = {
 					self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
 					self.__saved = !!self.id();
 					self.__fetching = false;
+					self.__addToCache();
 					resolve(self);
 					if (_.isFunction(callback)) callback(null, data, self);
 				}, function(err) {
@@ -331,6 +334,11 @@ BaseModel.prototype = {
 		var dataId = {};
 		dataId[config.keyId] = this.id();
 		return dataId;
+	},
+	__addToCache: function() {
+		if (this.constructor.__options.cache && !this.constructor.__cacheCollection.contains(this) && this.__saved) {
+			this.constructor.__cacheCollection.add(this);
+		}
 	},
 	__gettersetter: function(initial, key) {
 		var _stream = config.stream();

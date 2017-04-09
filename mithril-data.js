@@ -113,6 +113,7 @@
 		Model.modelOptions = schema;
 		// Extend from base model prototype.
 		Model.prototype = _.create(BaseModel.prototype, _.assign(schema.methods || {}, {
+			constructor: Model,
 			options: schema,
 		}));
 		// Link model controller prototype.
@@ -432,6 +433,8 @@
 				req.call(store, self.url(), self, options).then(function(data) {
 					self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
 					self.__saved = !!self.id();
+					// Add to cache, if enabled
+					self.__addToCache();
 					resolve(self);
 					if (_.isFunction(callback)) callback(null, data, self);
 				}, function(err) {
@@ -454,6 +457,7 @@
 						self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
 						self.__saved = !!self.id();
 						self.__fetching = false;
+						self.__addToCache();
 						resolve(self);
 						if (_.isFunction(callback)) callback(null, data, self);
 					}, function(err) {
@@ -607,6 +611,11 @@
 			var dataId = {};
 			dataId[config.keyId] = this.id();
 			return dataId;
+		},
+		__addToCache: function() {
+			if (this.constructor.__options.cache && !this.constructor.__cacheCollection.contains(this) && this.__saved) {
+				this.constructor.__cacheCollection.add(this);
+			}
 		},
 		__gettersetter: function(initial, key) {
 			var _stream = config.stream();
@@ -1531,6 +1540,7 @@
 		},
 		// Creates a model. Comply with parsing and caching.
 		create: function(values, options) {
+			if(values == null) values = {};
 			if (!_.isPlainObject(values))
 				throw new Error('Plain object required');
 			var cachedModel;

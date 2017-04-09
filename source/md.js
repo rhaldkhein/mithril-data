@@ -60,6 +60,7 @@ function createModelConstructor(schema) {
 	Model.modelOptions = schema;
 	// Extend from base model prototype.
 	Model.prototype = _.create(BaseModel.prototype, _.assign(schema.methods || {}, {
+		constructor: Model,
 		options: schema,
 	}));
 	// Link model controller prototype.

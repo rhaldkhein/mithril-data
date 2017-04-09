@@ -9,6 +9,7 @@
 		STORE.user = {};
 		STORE.note = {};
 		STORE.folder = {};
+		STORE.cacheuser = {};
 	}
 
 	reset();
@@ -30,14 +31,16 @@
 							resolve('ok');
 							break;
 						case 'POST:/user':
+						case 'POST:/cacheuser':
 						case 'POST:/folder':
 							var data = _.assign({
-								id: _.uniqueId('mdl')
+								id: _.uniqueId('serverid')
 							}, JSON.parse(rawData.serialize(rawData.data)));
 							STORE[model][data.id] = data;
 							resolve(rawData.deserialize(JSON.stringify(STORE[model][data.id])));
 							break;
 						case 'PUT:/user':
+						case 'PUT:/cacheuser':
 						case 'PUT:/folder':
 							var data = JSON.parse(rawData.serialize(rawData.data));
 							if (_.has(STORE[model], data.id)) {
@@ -52,6 +55,7 @@
 							}
 							break;
 						case 'GET:/user':
+						case 'GET:/cacheuser':
 						case 'GET:/folder':
 							var data = rawData.data;
 							if (_.isPlainObject(data) && data.id) {
@@ -80,6 +84,7 @@
 							}
 							break;
 						case 'DELETE:/user':
+						case 'DELETE:/cacheuser':
 						case 'DELETE:/folder':
 							var data = JSON.parse(rawData.serialize(rawData.data));
 							if (data && data.id) {
