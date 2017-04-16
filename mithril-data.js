@@ -140,6 +140,9 @@
 		return 'v0.4.1';//version
 	};
 
+	// Export class BaseModel
+	exports.BaseModel = BaseModel;
+
 	// Export class Collection.
 	exports.Collection = __webpack_require__(8);
 

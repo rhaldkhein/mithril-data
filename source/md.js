@@ -87,6 +87,9 @@ exports.version = function() {
 	return 'v0.4.1';//version
 };
 
+// Export class BaseModel
+exports.BaseModel = BaseModel;
+
 // Export class Collection.
 exports.Collection = require('./collection');
 
