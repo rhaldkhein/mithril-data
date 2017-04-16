@@ -50,6 +50,7 @@ ModelConstructor.prototype = {
 	},
 	// Creates a model. Comply with parsing and caching.
 	create: function(values, options) {
+		if(values == null) values = {};
 		if (!_.isPlainObject(values))
 			throw new Error('Plain object required');
 		var cachedModel;

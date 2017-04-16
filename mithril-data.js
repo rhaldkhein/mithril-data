@@ -113,6 +113,7 @@
 		Model.modelOptions = schema;
 		// Extend from base model prototype.
 		Model.prototype = _.create(BaseModel.prototype, _.assign(schema.methods || {}, {
+			constructor: Model,
 			options: schema,
 		}));
 		// Link model controller prototype.
@@ -139,6 +140,9 @@
 		return 'v0.4.1';//version
 	};
 
+	// Export class BaseModel
+	exports.BaseModel = BaseModel;
+
 	// Export class Collection.
 	exports.Collection = __webpack_require__(8);
 
@@ -150,6 +154,11 @@
 
 	// Export Mithril's Stream
 	exports.stream = null;
+
+	// Helper to convert any value to stream
+	exports.toStream = function(value) {
+		return value.constructor === exports.stream ? value : exports.stream(value);
+	};
 
 	// Export model instantiator.
 	exports.model = function(schemaOptions, ctrlOptions) {
@@ -209,7 +218,8 @@
 		redraw: false,
 		storeBackground: false,
 		cache: false,
-		cacheLimit: 100
+		cacheLimit: 100,
+		placeholder: null
 	});
 
 	// Export for AMD & browser's global.
@@ -286,6 +296,7 @@
 		this.__lid = _.uniqueId('model');
 		this.__saved = false;
 		this.__modified = false;
+		this.__fetching = false;
 		this.__json = {
 			__model: this
 		};
@@ -399,7 +410,7 @@
 			return this.__json;
 		},
 		// Get a copy of json representation. Removing private properties.
-		getCopy: function(deep) {
+		getCopy: function(deep, depopulate) {
 			var copy = {};
 			var keys = _.keys(this.__json);
 			for (var i = 0, key, value; i < keys.length; i++) {
@@ -407,7 +418,7 @@
 				value = this.__json[key];
 				if (this.__isProp(key)) {
 					if (value && value.__model instanceof BaseModel)
-						copy[key] = value.__model.get();
+						copy[key] = depopulate ? value.__model.id() : value.__model.getCopy(deep, true);
 					else
 						copy[key] = value;
 				}
@@ -424,7 +435,9 @@
 				var req = self.id() ? store.put : store.post;
 				req.call(store, self.url(), self, options).then(function(data) {
 					self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
-					self.__saved = self.id() && true;
+					self.__saved = !!self.id();
+					// Add to cache, if enabled
+					self.__addToCache();
 					resolve(self);
 					if (_.isFunction(callback)) callback(null, data, self);
 				}, function(err) {
@@ -439,20 +452,25 @@
 				options = undefined;
 			}
 			var self = this;
+			self.__fetching = true;
 			return new Promise(function(resolve, reject) {
 				var id = self.__getDataId();
 				if (id[config.keyId]) {
 					store.get(self.url(), id, options).then(function(data) {
 						self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
-						self.__saved = self.id() && true;
+						self.__saved = !!self.id();
+						self.__fetching = false;
+						self.__addToCache();
 						resolve(self);
 						if (_.isFunction(callback)) callback(null, data, self);
 					}, function(err) {
+						self.__fetching = false;
 						reject(err);
 						if (_.isFunction(callback)) callback(err);
 					});
 				} else {
-					reject(true);
+					self.__fetching = false;
+					reject(new Error('Model must have an id to fetch'));
 					if (_.isFunction(callback)) callback(true);
 				}
 			});
@@ -529,7 +547,7 @@
 						if (_.isFunction(callback)) callback(err);
 					});
 				} else {
-					reject(true);
+					reject(new Error('Model must have an id to destroy'));
 					if (_.isFunction(callback)) callback(true);
 				}
 			});
@@ -572,6 +590,9 @@
 		isDirty: function() {
 			return !this.isSaved() || this.isModified();
 		},
+		isFetching: function() {
+			return this.__fetching;
+		},
 		__update: function() {
 			var redraw;
 			// Propagate change to model's collections.
@@ -594,8 +615,14 @@
 			dataId[config.keyId] = this.id();
 			return dataId;
 		},
+		__addToCache: function() {
+			if (this.constructor.__options.cache && !this.constructor.__cacheCollection.contains(this) && this.__saved) {
+				this.constructor.__cacheCollection.add(this);
+			}
+		},
 		__gettersetter: function(initial, key) {
 			var _stream = config.stream();
+			var self = this;
 			// Wrapper
 			function prop() {
 				var value;
@@ -606,7 +633,7 @@
 				if (arguments.length) {
 					// Write
 					value = arguments[0];
-					var ref = this.options.refs[key];
+					var ref = self.options.refs[key];
 					if (ref) {
 						var refConstructor = modelConstructors[ref];
 						if (_.isPlainObject(value)) {
@@ -617,34 +644,35 @@
 						}
 					}
 					if (value instanceof BaseModel) {
-						value.__saved = arguments[2] && value.id() && true;
+						value.__saved = value.__saved || !!(arguments[2] && value.id());
 						value = value.getJson();
 					}
 					_stream(value);
-					this.__modified = arguments[2] ? false : !arguments[3] && this.__json[key] !== _stream._state.value;
-					this.__json[key] = _stream._state.value;
+					self.__modified = arguments[2] ? false : !arguments[3] && self.__json[key] !== _stream._state.value;
+					self.__json[key] = _stream._state.value;
 					if (!arguments[1])
-						this.__update(key);
+						self.__update(key);
 					return value;
 				}
 				value = _stream();
 				if (value && value.__model instanceof BaseModel) {
 					value = value.__model;
-				} else if (_.isNil(value) && this.options && !_.isNil(this.options.defaults[key])) {
+				} else if (_.isNil(value) && self.options && !_.isNil(self.options.defaults[key])) {
 					// If value is null or undefined and a default value exist.
 					// Return that default value which was set in schema.
-					value = this.options.defaults[key];
+					value = self.options.defaults[key];
 				}
-				return value;
+				return (config.placeholder && self.__fetching && key !== config.keyId && _.isString(value) ? config.placeholder : value);
 			}
 			prop.stream = _stream;
-			prop.call(this, initial, true, null, true);
+			prop.call(this, initial, true, undefined, true);
 			return prop;
 		}
 	};
 
 	// Inject lodash methods.
 	util.addMethods(BaseModel.prototype, _, objectMethods, '__json');
+
 
 /***/ },
 /* 5 */
@@ -671,7 +699,7 @@
 	}
 
 	function __serializer(data) {
-		data = data instanceof BaseModel ? data.getCopy() : data;
+		// data = data instanceof BaseModel ? data.getCopy() : data;
 		__dereference(data);
 		if (config.storeSerializer)
 			return config.storeSerializer(data);
@@ -702,22 +730,20 @@
 	}
 
 	module.exports = _.create(null, {
-		request: function(url, method, data, opt) {
-			var options = {
+		request: function(url, method, data, options) {
+			var _options = {
 				method: method || 'GET',
 				url: url,
-				data: data || {},
+				data: (data instanceof BaseModel ? data.getCopy() : data) || {},
 				background: !!config.storeBackground,
 				serialize: __serializer,
 				deserialize: __deserializer,
 				config: __config,
 				extract: __extract
 			};
-			if (opt)
-				_.assign(options, opt);
-			if (config.storeConfigOptions)
-				config.storeConfigOptions(options);
-			return config.store(options);
+			if (options) _options = _.defaultsDeep(options, _options);
+			if (config.storeConfigOptions) config.storeConfigOptions(_options);
+			return config.store(_options);
 		},
 		get: function(url, data, opt) {
 			return this.request(url, 'GET', data, opt);
@@ -732,6 +758,7 @@
 			return this.request(url, 'DELETE', data, opt);
 		}
 	});
+
 
 /***/ },
 /* 6 */
@@ -867,6 +894,7 @@
 			});
 		}
 	});
+
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7)))
 
 /***/ },
@@ -1000,6 +1028,7 @@
 			this.__state = state;
 		}
 		_.bindAll(this, _.union(collectionBindMethods, config.collectionBindMethods));
+		this.__fetching = false;
 	}
 
 	// Export class.
@@ -1226,6 +1255,12 @@
 			}
 			this.__replaceModels(sorted);
 		},
+		sortByOrder: function(order, path) {
+			if (!path) path = config.keyId;
+			this.__replaceModels(this.sortBy([function(item) {
+				return order.indexOf(_.get(item, path));
+			}]));
+		},
 		randomize: function() {
 			this.__replaceModels(this.shuffle());
 		},
@@ -1249,10 +1284,12 @@
 				options = undefined;
 			}
 			var self = this;
+			self.__fetching = true;
 			return new Promise(function(resolve, reject) {
 				if (self.hasModel()) {
 					options = options || {};
 					self.model().pull(self.url(), query, options, function(err, response, models) {
+						self.__fetching = false;
 						if (err) {
 							reject(err);
 							if (_.isFunction(callback)) callback(err);
@@ -1265,10 +1302,14 @@
 						}
 					});
 				} else {
-					reject(true);
+					self.__fetching = false;
+					reject(new Error('Collection must have a model to perform fetch'));
 					if (_.isFunction(callback)) callback(true);
 				}
 			});
+		},
+		isFetching: function() {
+			return this.__fetching;
 		},
 		__replaceModels: function(models) {
 			for (var i = models.length - 1; i >= 0; i--) {
@@ -1331,6 +1372,7 @@
 
 	// Inject lodash method.
 	util.addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
+
 
 /***/ },
 /* 9 */
@@ -1501,6 +1543,7 @@
 		},
 		// Creates a model. Comply with parsing and caching.
 		create: function(values, options) {
+			if(values == null) values = {};
 			if (!_.isPlainObject(values))
 				throw new Error('Plain object required');
 			var cachedModel;

@@ -811,33 +811,38 @@ describe('Collection.<methods>', function() {
 
 	});
 
-	describe('#sort(), #reverse(), #randomize()', function() {
+	describe('#sort(), #sortByOrder(), #reverse(), #randomize()', function() {
 		'use strict';
 
 		var col = new md.Collection();
 
 		before(function() {
 			col.add(new Model.User({
+				id: 'sortid01',
 				name: 'Foo',
 				age: 2,
 				active: true
 			}));
 			col.add(new Model.User({
+				id: 'sortid02',
 				name: 'Bar',
 				age: 3,
 				active: false
 			}));
 			col.add(new Model.User({
+				id: 'sortid03',
 				name: 'Zoo',
 				age: 1,
 				active: true
 			}));
 			col.add(new Model.User({
+				id: 'sortid04',
 				name: 'Jar',
 				age: 5,
 				active: false
 			}));
 			col.add(new Model.User({
+				id: 'sortid05',
 				name: 'Dog',
 				age: 4,
 				active: true
@@ -883,6 +888,26 @@ describe('Collection.<methods>', function() {
 			expect(col.nth(2).name()).to.be.equal('Dog');
 			expect(col.nth(3).name()).to.be.equal('Bar');
 			expect(col.nth(4).name()).to.be.equal('Jar');
+		});
+
+		it('sort by order (array) - default field (id)', function() {
+			col.sortByOrder(['sortid03', 'sortid05', 'sortid01', 'sortid04', 'sortid02']);
+			expect(col.size()).to.be.equal(5);
+			expect(col.nth(0).name()).to.be.equal('Zoo');
+			expect(col.nth(1).name()).to.be.equal('Dog');
+			expect(col.nth(2).name()).to.be.equal('Foo');
+			expect(col.nth(3).name()).to.be.equal('Jar');
+			expect(col.nth(4).name()).to.be.equal('Bar');
+		});
+
+		it('sort by order (array) - custom field (age)', function() {
+			col.sortByOrder([5, 4, 3, 2, 1], 'age');
+			expect(col.size()).to.be.equal(5);
+			expect(col.nth(0).name()).to.be.equal('Jar');
+			expect(col.nth(1).name()).to.be.equal('Dog');
+			expect(col.nth(2).name()).to.be.equal('Bar');
+			expect(col.nth(3).name()).to.be.equal('Foo');
+			expect(col.nth(4).name()).to.be.equal('Zoo');
 		});
 
 		it('reverse', function() {
@@ -1051,7 +1076,9 @@ describe('Collection.<methods>', function() {
 			var colA = new md.Collection({
 				model: Model.User
 			});
+			expect(colA.isFetching()).to.be.false;
 			colA.fetch([_ids[2], _ids[3]]).then(function() {
+				expect(colA.isFetching()).to.be.false;
 				try {
 					var moA = colA.models[0];
 					expect(moA.id).to.equal(_models[moA.id].id())
@@ -1064,8 +1091,37 @@ describe('Collection.<methods>', function() {
 					done(e);
 				}
 			}, function(err) {
+				expect(colA.isFetching()).to.be.false;
 				done(err);
 			});
+			expect(colA.isFetching()).to.be.true;
+		});
+
+		it('is fetching method', function(done) {
+			var colPromise = new md.Collection({
+				model: Model.User
+			});
+			var colCallback = new md.Collection({
+				model: Model.User
+			});
+
+			expect(colPromise.isFetching()).to.be.false;
+			expect(colCallback.isFetching()).to.be.false;
+
+			colPromise.fetch([_ids[2], _ids[3]]).then(function() {
+				expect(colPromise.isFetching()).to.be.false;
+			}).catch(function() {
+				expect(colPromise.isFetching()).to.be.false;
+			}).then(function() {
+				colCallback.fetch([_ids[2], _ids[3]], function() {
+					expect(colCallback.isFetching()).to.be.false;
+					done();
+				});
+				expect(colCallback.isFetching()).to.be.true;
+			});
+
+			expect(colPromise.isFetching()).to.be.true;
+
 		});
 
 		it('success fetch using callback', function(done) {

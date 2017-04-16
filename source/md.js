@@ -60,6 +60,7 @@ function createModelConstructor(schema) {
 	Model.modelOptions = schema;
 	// Extend from base model prototype.
 	Model.prototype = _.create(BaseModel.prototype, _.assign(schema.methods || {}, {
+		constructor: Model,
 		options: schema,
 	}));
 	// Link model controller prototype.
@@ -86,6 +87,9 @@ exports.version = function() {
 	return 'v0.4.1';//version
 };
 
+// Export class BaseModel
+exports.BaseModel = BaseModel;
+
 // Export class Collection.
 exports.Collection = require('./collection');
 
@@ -97,6 +101,11 @@ exports.store = require('./store');
 
 // Export Mithril's Stream
 exports.stream = null;
+
+// Helper to convert any value to stream
+exports.toStream = function(value) {
+	return value.constructor === exports.stream ? value : exports.stream(value);
+};
 
 // Export model instantiator.
 exports.model = function(schemaOptions, ctrlOptions) {
@@ -156,7 +165,8 @@ exports.defaultConfig({
 	redraw: false,
 	storeBackground: false,
 	cache: false,
-	cacheLimit: 100
+	cacheLimit: 100,
+	placeholder: null
 });
 
 // Export for AMD & browser's global.

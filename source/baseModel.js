@@ -16,6 +16,7 @@ function BaseModel(opts) {
 	this.__lid = _.uniqueId('model');
 	this.__saved = false;
 	this.__modified = false;
+	this.__fetching = false;
 	this.__json = {
 		__model: this
 	};
@@ -129,7 +130,7 @@ BaseModel.prototype = {
 		return this.__json;
 	},
 	// Get a copy of json representation. Removing private properties.
-	getCopy: function(deep) {
+	getCopy: function(deep, depopulate) {
 		var copy = {};
 		var keys = _.keys(this.__json);
 		for (var i = 0, key, value; i < keys.length; i++) {
@@ -137,7 +138,7 @@ BaseModel.prototype = {
 			value = this.__json[key];
 			if (this.__isProp(key)) {
 				if (value && value.__model instanceof BaseModel)
-					copy[key] = value.__model.get();
+					copy[key] = depopulate ? value.__model.id() : value.__model.getCopy(deep, true);
 				else
 					copy[key] = value;
 			}
@@ -154,7 +155,9 @@ BaseModel.prototype = {
 			var req = self.id() ? store.put : store.post;
 			req.call(store, self.url(), self, options).then(function(data) {
 				self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
-				self.__saved = self.id() && true;
+				self.__saved = !!self.id();
+				// Add to cache, if enabled
+				self.__addToCache();
 				resolve(self);
 				if (_.isFunction(callback)) callback(null, data, self);
 			}, function(err) {
@@ -169,20 +172,25 @@ BaseModel.prototype = {
 			options = undefined;
 		}
 		var self = this;
+		self.__fetching = true;
 		return new Promise(function(resolve, reject) {
 			var id = self.__getDataId();
 			if (id[config.keyId]) {
 				store.get(self.url(), id, options).then(function(data) {
 					self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
-					self.__saved = self.id() && true;
+					self.__saved = !!self.id();
+					self.__fetching = false;
+					self.__addToCache();
 					resolve(self);
 					if (_.isFunction(callback)) callback(null, data, self);
 				}, function(err) {
+					self.__fetching = false;
 					reject(err);
 					if (_.isFunction(callback)) callback(err);
 				});
 			} else {
-				reject(true);
+				self.__fetching = false;
+				reject(new Error('Model must have an id to fetch'));
 				if (_.isFunction(callback)) callback(true);
 			}
 		});
@@ -259,7 +267,7 @@ BaseModel.prototype = {
 					if (_.isFunction(callback)) callback(err);
 				});
 			} else {
-				reject(true);
+				reject(new Error('Model must have an id to destroy'));
 				if (_.isFunction(callback)) callback(true);
 			}
 		});
@@ -302,6 +310,9 @@ BaseModel.prototype = {
 	isDirty: function() {
 		return !this.isSaved() || this.isModified();
 	},
+	isFetching: function() {
+		return this.__fetching;
+	},
 	__update: function() {
 		var redraw;
 		// Propagate change to model's collections.
@@ -324,8 +335,14 @@ BaseModel.prototype = {
 		dataId[config.keyId] = this.id();
 		return dataId;
 	},
+	__addToCache: function() {
+		if (this.constructor.__options.cache && !this.constructor.__cacheCollection.contains(this) && this.__saved) {
+			this.constructor.__cacheCollection.add(this);
+		}
+	},
 	__gettersetter: function(initial, key) {
 		var _stream = config.stream();
+		var self = this;
 		// Wrapper
 		function prop() {
 			var value;
@@ -336,7 +353,7 @@ BaseModel.prototype = {
 			if (arguments.length) {
 				// Write
 				value = arguments[0];
-				var ref = this.options.refs[key];
+				var ref = self.options.refs[key];
 				if (ref) {
 					var refConstructor = modelConstructors[ref];
 					if (_.isPlainObject(value)) {
@@ -347,28 +364,28 @@ BaseModel.prototype = {
 					}
 				}
 				if (value instanceof BaseModel) {
-					value.__saved = arguments[2] && value.id() && true;
+					value.__saved = value.__saved || !!(arguments[2] && value.id());
 					value = value.getJson();
 				}
 				_stream(value);
-				this.__modified = arguments[2] ? false : !arguments[3] && this.__json[key] !== _stream._state.value;
-				this.__json[key] = _stream._state.value;
+				self.__modified = arguments[2] ? false : !arguments[3] && self.__json[key] !== _stream._state.value;
+				self.__json[key] = _stream._state.value;
 				if (!arguments[1])
-					this.__update(key);
+					self.__update(key);
 				return value;
 			}
 			value = _stream();
 			if (value && value.__model instanceof BaseModel) {
 				value = value.__model;
-			} else if (_.isNil(value) && this.options && !_.isNil(this.options.defaults[key])) {
+			} else if (_.isNil(value) && self.options && !_.isNil(self.options.defaults[key])) {
 				// If value is null or undefined and a default value exist.
 				// Return that default value which was set in schema.
-				value = this.options.defaults[key];
+				value = self.options.defaults[key];
 			}
-			return value;
+			return (config.placeholder && self.__fetching && key !== config.keyId && _.isString(value) ? config.placeholder : value);
 		}
 		prop.stream = _stream;
-		prop.call(this, initial, true, null, true);
+		prop.call(this, initial, true, undefined, true);
 		return prop;
 	}
 };
