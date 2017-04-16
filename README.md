@@ -198,10 +198,12 @@ user.save()
 ```
 
 #### \#fetch([options, callback])
-Fetches the model from data store. Model ID required to fetch. This method also accept `callback` or `then`. Properties for `options` is the same with `#save()`'s options.
+Fetches the model from data store. Model ID required to fetch. This method also accept `callback` or `then`. Properties for `options` is the same with `#save()`'s options. If `placeholder` is given in the configuration, the returned value will be that placeholder string.
 ```javascript
 user.id('abc123')
 user.fetch().then( function (model) { /* Success! model now have other prop values */ } );
+// If placeholder is set as 'Loading...'
+user.name(); // Returns `Loading...`, until the fetch completed
 ```
 
 #### \#destroy([options, callback])
@@ -297,6 +299,9 @@ userCollection.sort('name', 'desc')
 userCollection.sort(['age', 'name'], ['desc', 'asc'])
 ```
 
+#### \#sortByOrder(order <Array>, path <string>)
+Sort the collection by giver order.
+
 #### \#pluck()
 Pluck a prop from each model.
 ```javascript
@@ -352,6 +357,9 @@ Returns `true` if the collection has associated model, otherwise `false`.
 
 #### \#destroy()
 Destroys the collection. Trigger `clear` and `dispose`.
+
+#### \#isFetching()
+Checks if the collection is fetching.
 
 #### \#\<lodash methods>()
 Collection includes several methods of Lodash. `forEach`, `map`, `find`, `findIndex`, `findLastIndex`, `filter`, `reject`, `every`, `some`, `invoke`, `maxBy`, `minBy`, `sortBy`, `groupBy`, `shuffle`, `size`, `initial`, `without`, `indexOf`, `lastIndexOf`, `difference`, `sample`, `reverse`, `nth`, `first`, `last`, `toArray`, `slice`, `orderBy`, `transform`. See **Lodash** for info.
@@ -455,6 +463,7 @@ All available config options:
 * **stream** - (function) a function that handles the model props as well as md's State class. defaults to Mithril's `Stream`
 * **cache** - (boolean) should use cache or not in all collections. defaults to `false`
 * **cacheLimit** - (number) limit of cache. defaults to `100`
+* **placeholder** - (string) the string to return by prop when the model fetching or collection through `isFetching` method
 
 #### storeConfigOptions
 This is useful when you want to modify the `options` object before sending to data-store. One scenario is to create custom url instead of default generated url.
@@ -494,6 +503,9 @@ A handy tool that handles request to data-store. The result is through `then` / 
 
 #### md.stream
 Expose Mithril's Stream (unmodified and only bundled).
+
+#### md.toStream
+A helper function to convert any value to stream.
 
 #### md.model.get(name)
 A way to get a model constructor from other scope. Argument `name` is the model name.
