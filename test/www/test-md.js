@@ -6,6 +6,11 @@ before(function(done) {
 		window.Model.User = md.model({
 			name: 'User',
 			props: ['name', 'profile', 'age', 'active'],
+			statics: {
+				hello: function() {
+					return 'Hello World';
+				}
+			}
 		});
 
 		window.Model.Folder = md.model({

@@ -50,12 +50,9 @@ function createModelConstructor(schema) {
 			}
 		}
 	}
-	// Make sure that it options.methods does not create
-	// conflict with internal methods.
-	var conflict = util.isConflictExtend(BaseModel.prototype, schema.methods);
-	if (conflict) {
-		throw new Error('`' + conflict + '` method is not allowed.');
-	}
+	// Make sure that it custom methods and statics does not create conflict with internal ones.
+	var confMethods = util.isConflictExtend(BaseModel.prototype, schema.methods);
+	if (confMethods) throw new Error('`' + confMethods + '` method is not allowed.');
 	// Attach the options to model constructor.
 	Model.modelOptions = schema;
 	// Extend from base model prototype.
@@ -65,6 +62,12 @@ function createModelConstructor(schema) {
 	}));
 	// Link model controller prototype.
 	Object.setPrototypeOf(Model, ModelConstructor.prototype);
+	// Attach statics for model.
+	if (!_.isEmpty(schema.statics)) {
+		var confStatics = util.isConflictExtend(Model, schema.statics);
+		if (confStatics) throw new Error('`' + confStatics + '` method is not allowed for statics.');
+		_.assign(Model, schema.statics);
+	}
 	// Return the model.
 	return Model;
 }
@@ -84,7 +87,7 @@ function resolveSchemaOptions(options) {
 
 // Return the current version.
 exports.version = function() {
-	return 'v0.4.1';//version
+	return 'v0.4.1'; //version
 };
 
 // Export class BaseModel

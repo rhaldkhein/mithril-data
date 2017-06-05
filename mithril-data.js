@@ -103,12 +103,9 @@
 				}
 			}
 		}
-		// Make sure that it options.methods does not create
-		// conflict with internal methods.
-		var conflict = util.isConflictExtend(BaseModel.prototype, schema.methods);
-		if (conflict) {
-			throw new Error('`' + conflict + '` method is not allowed.');
-		}
+		// Make sure that it custom methods and statics does not create conflict with internal ones.
+		var confMethods = util.isConflictExtend(BaseModel.prototype, schema.methods);
+		if (confMethods) throw new Error('`' + confMethods + '` method is not allowed.');
 		// Attach the options to model constructor.
 		Model.modelOptions = schema;
 		// Extend from base model prototype.
@@ -118,6 +115,12 @@
 		}));
 		// Link model controller prototype.
 		Object.setPrototypeOf(Model, ModelConstructor.prototype);
+		// Attach statics for model.
+		if (!_.isEmpty(schema.statics)) {
+			var confStatics = util.isConflictExtend(Model, schema.statics);
+			if (confStatics) throw new Error('`' + confStatics + '` method is not allowed for statics.');
+			_.assign(Model, schema.statics);
+		}
 		// Return the model.
 		return Model;
 	}
@@ -137,7 +140,7 @@
 
 	// Return the current version.
 	exports.version = function() {
-		return 'v0.4.1';//version
+		return 'v0.4.1'; //version
 	};
 
 	// Export class BaseModel
@@ -252,6 +255,7 @@
 			oldObject = window.md;
 		window.md = exports;
 	}
+
 
 /***/ },
 /* 1 */
@@ -902,8 +906,74 @@
 /***/ function(module, exports) {
 
 	// shim for using process in browser
-
 	var process = module.exports = {};
+
+	// cached from whatever global is present so that test runners that stub it
+	// don't break things.  But we need to wrap it in a try catch in case it is
+	// wrapped in strict mode code which doesn't define any globals.  It's inside a
+	// function because try/catches deoptimize in certain engines.
+
+	var cachedSetTimeout;
+	var cachedClearTimeout;
+
+	(function () {
+	    try {
+	        cachedSetTimeout = setTimeout;
+	    } catch (e) {
+	        cachedSetTimeout = function () {
+	            throw new Error('setTimeout is not defined');
+	        }
+	    }
+	    try {
+	        cachedClearTimeout = clearTimeout;
+	    } catch (e) {
+	        cachedClearTimeout = function () {
+	            throw new Error('clearTimeout is not defined');
+	        }
+	    }
+	} ())
+	function runTimeout(fun) {
+	    if (cachedSetTimeout === setTimeout) {
+	        //normal enviroments in sane situations
+	        return setTimeout(fun, 0);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedSetTimeout(fun, 0);
+	    } catch(e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+	            return cachedSetTimeout.call(null, fun, 0);
+	        } catch(e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+	            return cachedSetTimeout.call(this, fun, 0);
+	        }
+	    }
+
+
+	}
+	function runClearTimeout(marker) {
+	    if (cachedClearTimeout === clearTimeout) {
+	        //normal enviroments in sane situations
+	        return clearTimeout(marker);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedClearTimeout(marker);
+	    } catch (e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+	            return cachedClearTimeout.call(null, marker);
+	        } catch (e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+	            return cachedClearTimeout.call(this, marker);
+	        }
+	    }
+
+
+
+	}
 	var queue = [];
 	var draining = false;
 	var currentQueue;
@@ -928,7 +998,7 @@
 	    if (draining) {
 	        return;
 	    }
-	    var timeout = setTimeout(cleanUpNextTick);
+	    var timeout = runTimeout(cleanUpNextTick);
 	    draining = true;
 
 	    var len = queue.length;
@@ -945,7 +1015,7 @@
 	    }
 	    currentQueue = null;
 	    draining = false;
-	    clearTimeout(timeout);
+	    runClearTimeout(timeout);
 	}
 
 	process.nextTick = function (fun) {
@@ -957,7 +1027,7 @@
 	    }
 	    queue.push(new Item(fun, args));
 	    if (queue.length === 1 && !draining) {
-	        setTimeout(drainQueue, 0);
+	        runTimeout(drainQueue);
 	    }
 	};
 
