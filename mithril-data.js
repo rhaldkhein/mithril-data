@@ -51,7 +51,6 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-<<<<<<< HEAD
 	var __WEBPACK_AMD_DEFINE_RESULT__;var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
 	var config = __webpack_require__(3).config;
@@ -62,8 +61,8 @@
 	var Collection = __webpack_require__(8);
 
 	Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
-		obj.__proto__ = proto;
-		return obj;
+	    obj.__proto__ = proto;
+	    return obj;
 	};
 
 	/**
@@ -72,64 +71,67 @@
 	 */
 
 	function createModelConstructor(schema) {
-		// Resolve model options. Mutates the object.
-		resolveSchemaOptions(schema);
-		// The model constructor.
-		function Model(vals, opts) {
-			// Calling parent class.
-			BaseModel.call(this, opts);
-			// Local variables.
-			var data = (this.__options.parse ? this.options.parser(vals) : vals) || {};
-			var props = schema.props;
-			// var initial;
-			// Make user id is in prop;
-			if (_.indexOf(props, config.keyId) === -1) {
-				props.push(config.keyId);
-			}
-			// Adding props.
-			for (var i = 0, value; i < props.length; i++) {
-				value = props[i];
-				// 1. Must not starts  with '__'.
-				// 2. Omit id in data if you configure different id field.
-				if (!this.__isProp(value) || (value === 'id' && value !== config.keyId))
-					return;
-				// Make sure that it does not create conflict with
-				// internal reserved keywords.
-				if (!_.hasIn(this, value) || value === 'id') {
-					// Use default if data is not available. Only `undefined` should change to default.
-					// In order to accept other falsy value. Like, `false` and `0`.
-					this[value] = this.__gettersetter(_.isUndefined(data[value]) ? schema.defaults[value] : data[value], value);
-				} else {
-					throw new Error('`' + value + '` prop is not allowed.');
-				}
-			}
-		}
-		// Make sure that it options.methods does not create
-		// conflict with internal methods.
-		var conflict = util.isConflictExtend(BaseModel.prototype, schema.methods);
-		if (conflict) {
-			throw new Error('`' + conflict + '` method is not allowed.');
-		}
-		// Attach the options to model constructor.
-		Model.modelOptions = schema;
-		// Extend from base model prototype.
-		Model.prototype = _.create(BaseModel.prototype, _.assign(schema.methods || {}, {
-			constructor: Model,
-			options: schema,
-		}));
-		// Link model controller prototype.
-		Object.setPrototypeOf(Model, ModelConstructor.prototype);
-		// Return the model.
-		return Model;
+	    // Resolve model options. Mutates the object.
+	    resolveSchemaOptions(schema);
+	    // The model constructor.
+	    function Model(vals, opts) {
+	        // Calling parent class.
+	        BaseModel.call(this, opts);
+	        // Local variables.
+	        var data = (this.__options.parse ? this.options.parser(vals) : vals) || {};
+	        var props = schema.props;
+	        // var initial;
+	        // Make user id is in prop;
+	        if (_.indexOf(props, config.keyId) === -1) {
+	            props.push(config.keyId);
+	        }
+	        // Adding props.
+	        for (var i = 0, value; i < props.length; i++) {
+	            value = props[i];
+	            // 1. Must not starts  with '__'.
+	            // 2. Omit id in data if you configure different id field.
+	            if (!this.__isProp(value) || (value === 'id' && value !== config.keyId))
+	                return;
+	            // Make sure that it does not create conflict with
+	            // internal reserved keywords.
+	            if (!_.hasIn(this, value) || value === 'id') {
+	                // Use default if data is not available. Only `undefined` should change to default.
+	                // In order to accept other falsy value. Like, `false` and `0`.
+	                this[value] = this.__gettersetter(_.isUndefined(data[value]) ? schema.defaults[value] : data[value], value);
+	            } else {
+	                throw new Error('`' + value + '` prop is not allowed.');
+	            }
+	        }
+	    }
+	    // Make sure that it custom methods and statics does not create conflict with internal ones.
+	    var confMethods = util.isConflictExtend(BaseModel.prototype, schema.methods);
+	    if (confMethods) throw new Error('`' + confMethods + '` method is not allowed.');
+	    // Attach the options to model constructor.
+	    Model.modelOptions = schema;
+	    // Extend from base model prototype.
+	    Model.prototype = _.create(BaseModel.prototype, _.assign(schema.methods || {}, {
+	        constructor: Model,
+	        options: schema,
+	    }));
+	    // Link model controller prototype.
+	    Object.setPrototypeOf(Model, ModelConstructor.prototype);
+	    // Attach statics for model.
+	    if (!_.isEmpty(schema.statics)) {
+	        var confStatics = util.isConflictExtend(Model, schema.statics);
+	        if (confStatics) throw new Error('`' + confStatics + '` method is not allowed for statics.');
+	        _.assign(Model, schema.statics);
+	    }
+	    // Return the model.
+	    return Model;
 	}
 
 	function resolveSchemaOptions(options) {
-		options.defaults = options.defaults || {};
-		options.props = _.union(options.props || [], _.keys(options.defaults));
-		options.refs = options.refs || {};
-		options.parser = options.parser || function(data) {
-			return data;
-		};
+	    options.defaults = options.defaults || {};
+	    options.props = _.union(options.props || [], _.keys(options.defaults));
+	    options.refs = options.refs || {};
+	    options.parser = options.parser || function(data) {
+	        return data;
+	    };
 	}
 
 	/**
@@ -138,7 +140,7 @@
 
 	// Return the current version.
 	exports.version = function() {
-		return 'v0.4.2';//version
+	    return 'v0.4.2'; //version
 	};
 
 	// Export class BaseModel
@@ -158,307 +160,101 @@
 
 	// Helper to convert any value to stream
 	exports.toStream = function(value) {
-		return value.constructor === exports.stream ? value : exports.stream(value);
+	    return (value && value.constructor === exports.stream) ? value : exports.stream(value);
 	};
 
 	// Export model instantiator.
 	exports.model = function(schemaOptions, ctrlOptions) {
-		schemaOptions = schemaOptions || {};
-		ctrlOptions = ctrlOptions || {};
-		if (!schemaOptions.name)
-			throw new Error('Model name must be set.');
-		var modelConstructor = modelConstructors[schemaOptions.name] = createModelConstructor(schemaOptions);
-		modelConstructor.__init(ctrlOptions);
-		return modelConstructor;
+	    schemaOptions = schemaOptions || {};
+	    ctrlOptions = ctrlOptions || {};
+	    if (!schemaOptions.name)
+	        throw new Error('Model name must be set.');
+	    var modelConstructor = modelConstructors[schemaOptions.name] = createModelConstructor(schemaOptions);
+	    modelConstructor.__init(ctrlOptions);
+	    return modelConstructor;
 	};
 
 	// A way to get a constructor from this scope
 	exports.model.get = function(name) {
-		return modelConstructors[name];
+	    return modelConstructors[name];
 	};
 
 	// Export configurator
 	var defaultConfig = {};
 	exports.config = function(userConfig) {
-		// Configure prototypes.
-		if (userConfig.modelMethods)
-			util.strictExtend(BaseModel.prototype, userConfig.modelMethods);
-		if (userConfig.constructorMethods)
-			util.strictExtend(ModelConstructor.prototype, userConfig.constructorMethods);
-		if (userConfig.collectionMethods)
-			util.strictExtend(Collection.prototype, userConfig.collectionMethods);
-		if (userConfig.stream)
-			exports.stream = userConfig.stream;
-		// Clear
-		userConfig.modelMethods = null;
-		userConfig.constructorMethods = null;
-		userConfig.collectionMethods = null;
-		// Assign configuration.
-		_.assign(config, userConfig);
+	    // Configure prototypes.
+	    if (userConfig.modelMethods)
+	        util.strictExtend(BaseModel.prototype, userConfig.modelMethods);
+	    if (userConfig.constructorMethods)
+	        util.strictExtend(ModelConstructor.prototype, userConfig.constructorMethods);
+	    if (userConfig.collectionMethods)
+	        util.strictExtend(Collection.prototype, userConfig.collectionMethods);
+	    if (userConfig.stream)
+	        exports.stream = userConfig.stream;
+	    // Clear
+	    userConfig.modelMethods = null;
+	    userConfig.constructorMethods = null;
+	    userConfig.collectionMethods = null;
+	    // Assign configuration.
+	    _.assign(config, userConfig);
 	};
 
 	// Option to reset to first initial config.
 	exports.resetConfig = function() {
-		util.clearObject(config);
-		exports.config(defaultConfig);
+	    util.clearObject(config);
+	    exports.config(defaultConfig);
 	};
 
 	// Add config to default config. Does not overwrite the old config.
 	exports.defaultConfig = function(defaults, silent) {
-		_.assign(defaultConfig, defaults);
-		if (!silent)
-			exports.resetConfig();
+	    _.assign(defaultConfig, defaults);
+	    if (!silent)
+	        exports.resetConfig();
 	};
 
 	// Set config defaults.
 	exports.defaultConfig({
-		baseUrl: '',
-		keyId: 'id',
-		store: m.request,
-		stream: __webpack_require__(11),
-		redraw: false,
-		storeBackground: false,
-		cache: false,
-		cacheLimit: 100,
-		placeholder: null
+	    baseUrl: '',
+	    keyId: 'id',
+	    store: m.request,
+	    stream: __webpack_require__(11),
+	    redraw: false,
+	    storeBackground: false,
+	    cache: false,
+	    cacheLimit: 100,
+	    placeholder: null
 	});
 
 	// Export for AMD & browser's global.
 	if (true) {
-		!(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
-			return exports;
-		}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	    !(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
+	        return exports;
+	    }.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 	}
 
 	// Export for browser's global.
 	if (typeof window !== 'undefined') {
-		var oldObject;
-		// Return back old md.
-		exports.noConflict = function() {
-			if (oldObject) {
-				window.md = oldObject;
-				oldObject = null;
-			}
-			return window.md;
-		};
-		// Export private objects for unit testing.
-		if (window.__TEST__ && window.mocha && window.chai) {
-			exports.__TEST__ = {
-				config: config,
-				BaseModel: BaseModel,
-				ModelConstructor: ModelConstructor
-			};
-		}
-		if (window.md)
-			oldObject = window.md;
-		window.md = exports;
-=======
-	var __WEBPACK_AMD_DEFINE_RESULT__;var _ = __webpack_require__(1);
-	var m = __webpack_require__(2);
-	var config = __webpack_require__(3).config;
-	var modelConstructors = __webpack_require__(3).modelConstructors;
-	var BaseModel = __webpack_require__(4);
-	var ModelConstructor = __webpack_require__(10);
-	var util = __webpack_require__(6);
-	var Collection = __webpack_require__(8);
-
-	Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
-		obj.__proto__ = proto;
-		return obj;
-	};
-
-	/**
-	 * `this.__options` is instance options, registered in `new Model(<values>, <__options>)`.
-	 * `this.options` is schema options, registered in `m.model(schema)`.
-	 */
-
-	function createModelConstructor(schema) {
-		// Resolve model options. Mutates the object.
-		resolveSchemaOptions(schema);
-		// The model constructor.
-		function Model(vals, opts) {
-			// Calling parent class.
-			BaseModel.call(this, opts);
-			// Local variables.
-			var data = (this.__options.parse ? this.options.parser(vals) : vals) || {};
-			var props = schema.props;
-			// var initial;
-			// Make user id is in prop;
-			if (_.indexOf(props, config.keyId) === -1) {
-				props.push(config.keyId);
-			}
-			// Adding props.
-			for (var i = 0, value; i < props.length; i++) {
-				value = props[i];
-				// 1. Must not starts  with '__'.
-				// 2. Omit id in data if you configure different id field.
-				if (!this.__isProp(value) || (value === 'id' && value !== config.keyId))
-					return;
-				// Make sure that it does not create conflict with
-				// internal reserved keywords.
-				if (!_.hasIn(this, value) || value === 'id') {
-					// Use default if data is not available. Only `undefined` should change to default.
-					// In order to accept other falsy value. Like, `false` and `0`.
-					this[value] = this.__gettersetter(_.isUndefined(data[value]) ? schema.defaults[value] : data[value], value);
-				} else {
-					throw new Error('`' + value + '` prop is not allowed.');
-				}
-			}
-		}
-		// Make sure that it custom methods and statics does not create conflict with internal ones.
-		var confMethods = util.isConflictExtend(BaseModel.prototype, schema.methods);
-		if (confMethods) throw new Error('`' + confMethods + '` method is not allowed.');
-		// Attach the options to model constructor.
-		Model.modelOptions = schema;
-		// Extend from base model prototype.
-		Model.prototype = _.create(BaseModel.prototype, _.assign(schema.methods || {}, {
-			constructor: Model,
-			options: schema,
-		}));
-		// Link model controller prototype.
-		Object.setPrototypeOf(Model, ModelConstructor.prototype);
-		// Attach statics for model.
-		if (!_.isEmpty(schema.statics)) {
-			var confStatics = util.isConflictExtend(Model, schema.statics);
-			if (confStatics) throw new Error('`' + confStatics + '` method is not allowed for statics.');
-			_.assign(Model, schema.statics);
-		}
-		// Return the model.
-		return Model;
+	    var oldObject;
+	    // Return back old md.
+	    exports.noConflict = function() {
+	        if (oldObject) {
+	            window.md = oldObject;
+	            oldObject = null;
+	        }
+	        return window.md;
+	    };
+	    // Export private objects for unit testing.
+	    if (window.__TEST__ && window.mocha && window.chai) {
+	        exports.__TEST__ = {
+	            config: config,
+	            BaseModel: BaseModel,
+	            ModelConstructor: ModelConstructor
+	        };
+	    }
+	    if (window.md)
+	        oldObject = window.md;
+	    window.md = exports;
 	}
-
-	function resolveSchemaOptions(options) {
-		options.defaults = options.defaults || {};
-		options.props = _.union(options.props || [], _.keys(options.defaults));
-		options.refs = options.refs || {};
-		options.parser = options.parser || function(data) {
-			return data;
-		};
-	}
-
-	/**
-	 * Exports
-	 */
-
-	// Return the current version.
-	exports.version = function() {
-		return 'v0.4.1'; //version
-	};
-
-	// Export class BaseModel
-	exports.BaseModel = BaseModel;
-
-	// Export class Collection.
-	exports.Collection = __webpack_require__(8);
-
-	// Export class State.
-	exports.State = __webpack_require__(9);
-
-	// Export our own store controller.
-	exports.store = __webpack_require__(5);
-
-	// Export Mithril's Stream
-	exports.stream = null;
-
-	// Helper to convert any value to stream
-	exports.toStream = function(value) {
-		return value.constructor === exports.stream ? value : exports.stream(value);
-	};
-
-	// Export model instantiator.
-	exports.model = function(schemaOptions, ctrlOptions) {
-		schemaOptions = schemaOptions || {};
-		ctrlOptions = ctrlOptions || {};
-		if (!schemaOptions.name)
-			throw new Error('Model name must be set.');
-		var modelConstructor = modelConstructors[schemaOptions.name] = createModelConstructor(schemaOptions);
-		modelConstructor.__init(ctrlOptions);
-		return modelConstructor;
-	};
-
-	// A way to get a constructor from this scope
-	exports.model.get = function(name) {
-		return modelConstructors[name];
-	};
-
-	// Export configurator
-	var defaultConfig = {};
-	exports.config = function(userConfig) {
-		// Configure prototypes.
-		if (userConfig.modelMethods)
-			util.strictExtend(BaseModel.prototype, userConfig.modelMethods);
-		if (userConfig.constructorMethods)
-			util.strictExtend(ModelConstructor.prototype, userConfig.constructorMethods);
-		if (userConfig.collectionMethods)
-			util.strictExtend(Collection.prototype, userConfig.collectionMethods);
-		if (userConfig.stream)
-			exports.stream = userConfig.stream;
-		// Clear
-		userConfig.modelMethods = null;
-		userConfig.constructorMethods = null;
-		userConfig.collectionMethods = null;
-		// Assign configuration.
-		_.assign(config, userConfig);
-	};
-
-	// Option to reset to first initial config.
-	exports.resetConfig = function() {
-		util.clearObject(config);
-		exports.config(defaultConfig);
-	};
-
-	// Add config to default config. Does not overwrite the old config.
-	exports.defaultConfig = function(defaults, silent) {
-		_.assign(defaultConfig, defaults);
-		if (!silent)
-			exports.resetConfig();
-	};
-
-	// Set config defaults.
-	exports.defaultConfig({
-		baseUrl: '',
-		keyId: 'id',
-		store: m.request,
-		stream: __webpack_require__(11),
-		redraw: false,
-		storeBackground: false,
-		cache: false,
-		cacheLimit: 100,
-		placeholder: null
-	});
-
-	// Export for AMD & browser's global.
-	if (true) {
-		!(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
-			return exports;
-		}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-	}
-
-	// Export for browser's global.
-	if (typeof window !== 'undefined') {
-		var oldObject;
-		// Return back old md.
-		exports.noConflict = function() {
-			if (oldObject) {
-				window.md = oldObject;
-				oldObject = null;
-			}
-			return window.md;
-		};
-		// Export private objects for unit testing.
-		if (window.__TEST__ && window.mocha && window.chai) {
-			exports.__TEST__ = {
-				config: config,
-				BaseModel: BaseModel,
-				ModelConstructor: ModelConstructor
-			};
-		}
-		if (window.md)
-			oldObject = window.md;
-		window.md = exports;
->>>>>>> devel
-	}
-
 
 /***/ },
 /* 1 */
@@ -1109,74 +905,8 @@
 /***/ function(module, exports) {
 
 	// shim for using process in browser
+
 	var process = module.exports = {};
-
-	// cached from whatever global is present so that test runners that stub it
-	// don't break things.  But we need to wrap it in a try catch in case it is
-	// wrapped in strict mode code which doesn't define any globals.  It's inside a
-	// function because try/catches deoptimize in certain engines.
-
-	var cachedSetTimeout;
-	var cachedClearTimeout;
-
-	(function () {
-	    try {
-	        cachedSetTimeout = setTimeout;
-	    } catch (e) {
-	        cachedSetTimeout = function () {
-	            throw new Error('setTimeout is not defined');
-	        }
-	    }
-	    try {
-	        cachedClearTimeout = clearTimeout;
-	    } catch (e) {
-	        cachedClearTimeout = function () {
-	            throw new Error('clearTimeout is not defined');
-	        }
-	    }
-	} ())
-	function runTimeout(fun) {
-	    if (cachedSetTimeout === setTimeout) {
-	        //normal enviroments in sane situations
-	        return setTimeout(fun, 0);
-	    }
-	    try {
-	        // when when somebody has screwed with setTimeout but no I.E. maddness
-	        return cachedSetTimeout(fun, 0);
-	    } catch(e){
-	        try {
-	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-	            return cachedSetTimeout.call(null, fun, 0);
-	        } catch(e){
-	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-	            return cachedSetTimeout.call(this, fun, 0);
-	        }
-	    }
-
-
-	}
-	function runClearTimeout(marker) {
-	    if (cachedClearTimeout === clearTimeout) {
-	        //normal enviroments in sane situations
-	        return clearTimeout(marker);
-	    }
-	    try {
-	        // when when somebody has screwed with setTimeout but no I.E. maddness
-	        return cachedClearTimeout(marker);
-	    } catch (e){
-	        try {
-	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-	            return cachedClearTimeout.call(null, marker);
-	        } catch (e){
-	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-	            return cachedClearTimeout.call(this, marker);
-	        }
-	    }
-
-
-
-	}
 	var queue = [];
 	var draining = false;
 	var currentQueue;
@@ -1201,7 +931,7 @@
 	    if (draining) {
 	        return;
 	    }
-	    var timeout = runTimeout(cleanUpNextTick);
+	    var timeout = setTimeout(cleanUpNextTick);
 	    draining = true;
 
 	    var len = queue.length;
@@ -1218,7 +948,7 @@
 	    }
 	    currentQueue = null;
 	    draining = false;
-	    runClearTimeout(timeout);
+	    clearTimeout(timeout);
 	}
 
 	process.nextTick = function (fun) {
@@ -1230,7 +960,7 @@
 	    }
 	    queue.push(new Item(fun, args));
 	    if (queue.length === 1 && !draining) {
-	        runTimeout(drainQueue);
+	        setTimeout(drainQueue, 0);
 	    }
 	};
 
@@ -1469,7 +1199,11 @@
 			return model;
 		},
 		clear: function(silent) {
-			return this.remove(this.toArray(), silent);
+			// return this.remove(this.toArray(), silent);
+			var i;
+			for (i = 0; i < mixed.length; i++) {
+
+			}
 		},
 		pluck: function(key) {
 			var plucked = [],
@@ -1628,6 +1362,7 @@
 		minBy: 1,
 		nth: 1,
 		orderBy: 2,
+		partition: 1,
 		reduce: -1,
 		reject: 1,
 		reverse: 0,
@@ -1645,7 +1380,6 @@
 
 	// Inject lodash method.
 	util.addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
-
 
 /***/ },
 /* 9 */

@@ -193,7 +193,11 @@ Collection.prototype = {
 		return model;
 	},
 	clear: function(silent) {
-		return this.remove(this.toArray(), silent);
+		// return this.remove(this.toArray(), silent);
+		var i;
+		for (i = 0; i < mixed.length; i++) {
+
+		}
 	},
 	pluck: function(key) {
 		var plucked = [],
@@ -352,6 +356,7 @@ var collectionMethods = {
 	minBy: 1,
 	nth: 1,
 	orderBy: 2,
+	partition: 1,
 	reduce: -1,
 	reject: 1,
 	reverse: 0,

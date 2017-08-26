@@ -118,4 +118,28 @@ describe('Collection.<lodash>', function() {
 		expect(result[1]).to.be.equal(userC);
 	});
 
+	it('partition', function() {
+		var col = new md.Collection();
+		var userA = new Model.User();
+		userA.name('Foo');
+		userA.active(true);
+		col.add(userA);
+		var userB = new Model.User();
+		userB.name('Bar');
+		userB.active(false);
+		col.add(userB);
+		var userC = new Model.User();
+		userC.name('Baz');
+		userC.active(true);
+		col.add(userC);
+
+		var result = col.partition('active');
+		expect(result).to.be.a('array');
+		expect(result.length).to.equal(2);
+		expect(result[0][0].__model).to.be.equal(userA);
+		expect(result[0][1].__model).to.be.equal(userC);
+		expect(result[1][0].__model).to.be.equal(userB);
+
+	});
+
 });
