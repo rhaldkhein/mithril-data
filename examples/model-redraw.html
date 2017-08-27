@@ -35,7 +35,7 @@
 						var NoteDemo = {
 
 							// Controller
-							controller: function() {
+							oninit: function() {
 								var self = this;
 
 								// Create user author for notes
@@ -47,7 +47,7 @@
 								this.seconds = 3;
 
 								// Initial redraw flag
-								this.redraw = m.prop();
+								this.redraw = md.stream();
 
 								// Create the collection
 								this.collection = new md.Collection({
@@ -82,19 +82,20 @@
 							},
 
 							// View
-							view: function(ctrl) {
+							view: function() {
+								var self = this;
 								return m('div', [
 
 									// Redraw checkbox
-									m('label', [m('input', {type:'checkbox', onchange: m.withAttr('checked', ctrl.chChanged), checked: ctrl.redraw()}), 'Auto Redraw ']),
+									m('label', [m('input', {type:'checkbox', onchange: m.withAttr('checked', this.chChanged), checked: this.redraw()}), 'Auto Redraw ']),
 
 									// Add button
-									m('button', {onclick: ctrl.add}, 'Add'),
+									m('button', {onclick: this.add}, 'Add'),
 
 									// Notes list
-									m('div', ctrl.collection.map(function(model, i) {
+									m('div', this.collection.map(function(model) {
 										return m('ul', [
-											m('li', ['Title: ' + model.title() + ' ', m('button', {onclick: ctrl.propChange.bind(ctrl, model)}, 'Change after ' + ctrl.seconds +' sec')]),
+											m('li', ['Title: ' + model.title() + ' ', m('button', {onclick: self.propChange.bind(self, model)}, 'Change after ' + self.seconds +' sec')]),
 											m('li', 'Body: ' + model.body()),
 											m('li', 'Author: ' + model.author().name()),
 											m('hr')

@@ -6,6 +6,11 @@ before(function(done) {
 		window.Model.User = md.model({
 			name: 'User',
 			props: ['name', 'profile', 'age', 'active'],
+			statics: {
+				hello: function() {
+					return 'Hello World';
+				}
+			}
 		});
 
 		window.Model.Folder = md.model({
@@ -131,10 +136,12 @@ describe('md', function() {
 		it('any value', function() {
 			var sInt = md.toStream(123);
 			var sString = md.toStream('Foo');
+			var sUndefined = md.toStream();
 			expect(sInt()).to.be.a('number');
 			expect(sInt()).to.be.equal(123);
 			expect(sString()).to.be.a('string');
 			expect(sString()).to.be.equal('Foo');
+			expect(sUndefined()).to.be.undefined;
 		});
 
 		it('stream value', function() {
