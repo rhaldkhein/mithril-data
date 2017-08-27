@@ -193,11 +193,18 @@ Collection.prototype = {
 		return model;
 	},
 	clear: function(silent) {
-		// return this.remove(this.toArray(), silent);
-		var i;
-		for (i = 0; i < mixed.length; i++) {
-
+		var i, item, items = this.toArray(),
+			len = items.length;
+		for (i = 0; i < len; i++) {
+			item = items[i];
+			item.detachCollection(this);
+			if (this.__state) this.__state.remove(item.lid());
 		}
+		if (len !== this.size()) {
+			if (!silent) this.__update();
+			return true;
+		}
+		return false;
 	},
 	pluck: function(key) {
 		var plucked = [],
