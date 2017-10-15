@@ -49,7 +49,7 @@
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
@@ -256,30 +256,30 @@
 	    window.md = exports;
 	}
 
-/***/ },
+/***/ }),
 /* 1 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = _;
 
-/***/ },
+/***/ }),
 /* 2 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = m;
 
-/***/ },
+/***/ }),
 /* 3 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	
 	exports.config = {};
 
 	exports.modelConstructors = {};
 
-/***/ },
+/***/ }),
 /* 4 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Base Model
@@ -291,21 +291,21 @@
 	var modelConstructors = __webpack_require__(3).modelConstructors;
 
 	function BaseModel(opts) {
-		this.__options = {
-			redraw: false,
-			parse: true
-		};
-		this.__collections = [];
-		this.__lid = _.uniqueId('model');
-		this.__saved = false;
-		this.__modified = false;
-		this.__fetching = false;
-		this.__json = {
-			__model: this
-		};
-		_.bindAll(this, _.union(modelBindMethods, config.modelBindMethods));
-		if (opts)
-			this.opt(opts);
+	    this.__options = {
+	        redraw: false,
+	        parse: true
+	    };
+	    this.__collections = [];
+	    this.__lid = _.uniqueId('model');
+	    this.__saved = false;
+	    this.__modified = false;
+	    this.__fetching = false;
+	    this.__json = {
+	        __model: this
+	    };
+	    _.bindAll(this, _.union(modelBindMethods, config.modelBindMethods));
+	    if (opts)
+	        this.opt(opts);
 	}
 
 	// Export class.
@@ -321,365 +321,364 @@
 
 	// Lodash methods to add.
 	var objectMethods = {
-		has: 1,
-		keys: 0,
-		values: 0,
-		pick: 1,
-		omit: 1
+	    has: 1,
+	    keys: 0,
+	    values: 0,
+	    pick: 1,
+	    omit: 1
 	};
 
 	// Prototype methods.
 	BaseModel.prototype = {
-		opt: function(key, value) {
-			if (_.isPlainObject(key))
-				_.assign(this.__options, key);
-			else
-				this.__options[key] = _.isUndefined(value) ? true : value;
-		},
-		// Get or set id of model.
-		id: function(id) {
-			return id ? this[config.keyId](id, true) : this[config.keyId]();
-		},
-		lid: function() {
-			return this.__lid;
-		},
-		// Get the full url for store.
-		url: function() {
-			return config.baseUrl + (this.options.url || '/' + this.options.name.toLowerCase());
-		},
-		// Add this model to collection.
-		attachCollection: function(collection) {
-			if (!(collection instanceof Collection))
-				throw new Error('Argument `collection` must be instance of Collection.');
-			var model = collection.get(this);
-			if (model && _.indexOf(this.__collections, collection) === -1) {
-				// This model exist in collection.
-				// Add collection to model's local reference.
-				this.__collections.push(collection);
-			} else {
-				collection.add(this);
-			}
-		},
-		// Remove this model from collection.
-		detachCollection: function(collection) {
-			if (!(collection instanceof Collection))
-				throw new Error('Argument `collection` must be instance of Collection.');
-			// Remove this model from collection first.
-			if (collection.get(this)) {
-				collection.remove(this);
-			}
-			// Remove that collection from model's collection.
-			if (_.indexOf(this.__collections, collection) > -1)
-				_.pull(this.__collections, collection);
-		},
-		// Sets all or a prop values from passed data.
-		set: function(key, value, silent, saved) {
-			if (_.isString(key)) {
-				this[key](value, silent);
-			} else {
-				this.setObject(key, silent, saved);
-			}
-		},
-		// Sets props by object.
-		setObject: function(obj, silent, saved) {
-			var isModel = obj instanceof BaseModel;
-			if (!isModel && !_.isPlainObject(obj))
-				throw new Error('Argument `obj` must be a model or plain object.');
-			var _obj = (!isModel && this.__options.parse) ? this.options.parser(obj) : obj;
-			var keys = _.keys(_obj);
-			for (var i = keys.length - 1, key, val; i >= 0; i--) {
-				key = keys[i];
-				val = _obj[key];
-				if (!this.__isProp(key) || !_.isFunction(this[key]))
-					continue;
-				if (isModel && _.isFunction(val)) {
-					this[key](val(), true, saved);
-				} else {
-					this[key](val, true, saved);
-				}
-			}
-			if (!silent) // silent
-				this.__update();
-		},
-		// Get all or a prop values in object format. Creates a copy.
-		get: function(key) {
-			if (key)
-				return this[key]();
-			else
-				return this.getCopy();
-		},
-		// Retrieve json representation. Including private properties.
-		getJson: function() {
-			return this.__json;
-		},
-		// Get a copy of json representation. Removing private properties.
-		getCopy: function(deep, depopulate) {
-			var copy = {};
-			var keys = _.keys(this.__json);
-			for (var i = 0, key, value; i < keys.length; i++) {
-				key = keys[i];
-				value = this.__json[key];
-				if (this.__isProp(key)) {
-					if (value && value.__model instanceof BaseModel)
-						copy[key] = depopulate ? value.__model.id() : value.__model.getCopy(deep, true);
-					else
-						copy[key] = value;
-				}
-			}
-			return deep ? _.cloneDeep(copy) : copy;
-		},
-		save: function(options, callback) {
-			if (_.isFunction(options)) {
-				callback = options;
-				options = undefined;
-			}
-			var self = this;
-			return new Promise(function(resolve, reject) {
-				var req = self.id() ? store.put : store.post;
-				req.call(store, self.url(), self, options).then(function(data) {
-					self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
-					self.__saved = !!self.id();
-					// Add to cache, if enabled
-					self.__addToCache();
-					resolve(self);
-					if (_.isFunction(callback)) callback(null, data, self);
-				}, function(err) {
-					reject(err);
-					if (_.isFunction(callback)) callback(err);
-				});
-			});
-		},
-		fetch: function(options, callback) {
-			if (_.isFunction(options)) {
-				callback = options;
-				options = undefined;
-			}
-			var self = this;
-			self.__fetching = true;
-			return new Promise(function(resolve, reject) {
-				var id = self.__getDataId();
-				if (id[config.keyId]) {
-					store.get(self.url(), id, options).then(function(data) {
-						self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
-						self.__saved = !!self.id();
-						self.__fetching = false;
-						self.__addToCache();
-						resolve(self);
-						if (_.isFunction(callback)) callback(null, data, self);
-					}, function(err) {
-						self.__fetching = false;
-						reject(err);
-						if (_.isFunction(callback)) callback(err);
-					});
-				} else {
-					self.__fetching = false;
-					reject(new Error('Model must have an id to fetch'));
-					if (_.isFunction(callback)) callback(true);
-				}
-			});
-		},
-		populate: function(options, callback) {
-			if (_.isFunction(options)) {
-				callback = options;
-				options = undefined;
-			}
-			var self = this;
-			return new Promise(function(resolve, reject) {
-				var refs = self.options.refs;
-				var error;
-				var countFetch = 0;
-				_.forEach(refs, function(refName, refKey) {
-					var value = self.__json[refKey];
-					if (_.isString(value) || _.isNumber(value)) {
-						var data = {};
-						data[config.keyId] = value;
-						var model = modelConstructors[refName].create(data);
-						if (model.isSaved()) {
-							// Ok to link reference
-							self[refKey](model);
-						} else {
-							// Fetch and link
-							countFetch++;
-							model.fetch(
-								(options && options.fetchOptions && options.fetchOptions[refKey] ? options.fetchOptions[refKey] : null),
-								function(err, data, mdl) {
-									countFetch--;
-									if (err) {
-										error = err;
-									} else {
-										self[refKey](mdl);
-									}
-									if (!countFetch) {
-										if (error) {
-											reject(error);
-											if (_.isFunction(callback)) callback(null, error);
-										} else {
-											// All fetched
-											resolve(self);
-											if (_.isFunction(callback)) callback(null, self);
-										}
-									}
-								}
-							);
-						}
-					}
-				});
-				if (!countFetch) {
-					resolve(self);
-					if (_.isFunction(callback)) callback(null, self);
-				}
-			});
-		},
-		destroy: function(options, callback) {
-			if (_.isFunction(options)) {
-				callback = options;
-				options = undefined;
-			}
-			// Destroy the model. Will sync to store.
-			var self = this;
-			return new Promise(function(resolve, reject) {
-				var id = self.__getDataId();
-				if (id[config.keyId]) {
-					store.destroy(self.url(), id, options).then(function() {
-						self.detach();
-						resolve();
-						if (_.isFunction(callback)) callback(null);
-						self.dispose();
-					}, function(err) {
-						reject(err);
-						if (_.isFunction(callback)) callback(err);
-					});
-				} else {
-					reject(new Error('Model must have an id to destroy'));
-					if (_.isFunction(callback)) callback(true);
-				}
-			});
-		},
-		remove: function() {
-			this.detach();
-			this.dispose();
-		},
-		detach: function() {
-			// Detach this model to all collection.
-			var clonedCollections = _.clone(this.__collections);
-			for (var i = 0; i < clonedCollections.length; i++) {
-				clonedCollections[i].remove(this);
-				clonedCollections[i] = null;
-			}
-		},
-		dispose: function() {
-			var keys = _.keys(this);
-			var props = this.options.props;
-			var i;
-			this.__json.__model = null;
-			for (i = 0; i < props.length; i++) {
-				this[props[i]](null);
-			}
-			for (i = 0; i < keys.length; i++) {
-				this[keys[i]] = null;
-			}
-		},
-		isSaved: function() {
-			// Fresh from store
-			return this.__saved;
-		},
-		isNew: function() {
-			return !this.__saved;
-		},
-		isModified: function() {
-			// When a prop is modified
-			return this.__modified;
-		},
-		isDirty: function() {
-			return !this.isSaved() || this.isModified();
-		},
-		isFetching: function() {
-			return this.__fetching;
-		},
-		__update: function() {
-			var redraw;
-			// Propagate change to model's collections.
-			for (var i = 0; i < this.__collections.length; i++) {
-				if (this.__collections[i].__update(true)) {
-					redraw = true;
-				}
-			}
-			// Levels: instance || schema || global
-			if (redraw || this.__options.redraw || this.options.redraw || config.redraw) {
-				// console.log('Redraw', 'Model');
-				m.redraw();
-			}
-		},
-		__isProp: function(key) {
-			return _.indexOf(this.options.props, key) > -1;
-		},
-		__getDataId: function() {
-			var dataId = {};
-			dataId[config.keyId] = this.id();
-			return dataId;
-		},
-		__addToCache: function() {
-			if (this.constructor.__options.cache && !this.constructor.__cacheCollection.contains(this) && this.__saved) {
-				this.constructor.__cacheCollection.add(this);
-			}
-		},
-		__gettersetter: function(initial, key) {
-			var _stream = config.stream();
-			var self = this;
-			// Wrapper
-			function prop() {
-				var value;
-				// arguments[0] is value
-				// arguments[1] is silent
-				// arguments[2] is saved (from store)
-				// arguments[3] is isinitial
-				if (arguments.length) {
-					// Write
-					value = arguments[0];
-					var ref = self.options.refs[key];
-					if (ref) {
-						var refConstructor = modelConstructors[ref];
-						if (_.isPlainObject(value)) {
-							value = refConstructor.create(value);
-						} else if ((_.isString(value) || _.isNumber(value)) && refConstructor.__cacheCollection) {
-							// Try to find the model in the cache
-							value = refConstructor.__cacheCollection.get(value) || value;
-						}
-					}
-					if (value instanceof BaseModel) {
-						value.__saved = value.__saved || !!(arguments[2] && value.id());
-						value = value.getJson();
-					}
-					_stream(value);
-					self.__modified = arguments[2] ? false : !arguments[3] && self.__json[key] !== _stream._state.value;
-					self.__json[key] = _stream._state.value;
-					if (!arguments[1])
-						self.__update(key);
-					return value;
-				}
-				value = _stream();
-				if (value && value.__model instanceof BaseModel) {
-					value = value.__model;
-				} else if (_.isNil(value) && self.options && !_.isNil(self.options.defaults[key])) {
-					// If value is null or undefined and a default value exist.
-					// Return that default value which was set in schema.
-					value = self.options.defaults[key];
-				}
-				return (config.placeholder && self.__fetching && key !== config.keyId && _.isString(value) ? config.placeholder : value);
-			}
-			prop.stream = _stream;
-			prop.call(this, initial, true, undefined, true);
-			return prop;
-		}
+	    opt: function(key, value) {
+	        if (_.isPlainObject(key))
+	            _.assign(this.__options, key);
+	        else
+	            this.__options[key] = _.isUndefined(value) ? true : value;
+	    },
+	    // Get or set id of model.
+	    id: function(id) {
+	        return id ? this[config.keyId](id, true) : this[config.keyId]();
+	    },
+	    lid: function() {
+	        return this.__lid;
+	    },
+	    // Get the full url for store.
+	    url: function() {
+	        return config.baseUrl + (this.options.url || '/' + this.options.name.toLowerCase());
+	    },
+	    // Add this model to collection.
+	    attachCollection: function(collection) {
+	        if (!(collection instanceof Collection))
+	            throw new Error('Argument `collection` must be instance of Collection.');
+	        var model = collection.get(this);
+	        if (model && _.indexOf(this.__collections, collection) === -1) {
+	            // This model exist in collection.
+	            // Add collection to model's local reference.
+	            this.__collections.push(collection);
+	        } else {
+	            collection.add(this);
+	        }
+	    },
+	    // Remove this model from collection.
+	    detachCollection: function(collection) {
+	        if (!(collection instanceof Collection))
+	            throw new Error('Argument `collection` must be instance of Collection.');
+	        // Remove this model from collection first.
+	        if (collection.get(this)) {
+	            collection.remove(this);
+	        }
+	        // Remove that collection from model's collection.
+	        if (_.indexOf(this.__collections, collection) > -1)
+	            _.pull(this.__collections, collection);
+	    },
+	    // Sets all or a prop values from passed data.
+	    set: function(key, value, silent, saved) {
+	        if (_.isString(key)) {
+	            this[key](value, silent);
+	        } else {
+	            this.setObject(key, silent, saved);
+	        }
+	    },
+	    // Sets props by object.
+	    setObject: function(obj, silent, saved) {
+	        var isModel = obj instanceof BaseModel;
+	        if (!isModel && !_.isPlainObject(obj))
+	            throw new Error('Argument `obj` must be a model or plain object.');
+	        var _obj = (!isModel && this.__options.parse) ? this.options.parser(obj) : obj;
+	        var keys = _.keys(_obj);
+	        for (var i = keys.length - 1, key, val; i >= 0; i--) {
+	            key = keys[i];
+	            val = _obj[key];
+	            if (!this.__isProp(key) || !_.isFunction(this[key]))
+	                continue;
+	            if (isModel && _.isFunction(val)) {
+	                this[key](val(), true, saved);
+	            } else {
+	                this[key](val, true, saved);
+	            }
+	        }
+	        if (!silent) // silent
+	            this.__update();
+	    },
+	    // Get all or a prop values in object format. Creates a copy.
+	    get: function(key) {
+	        if (key)
+	            return this[key]();
+	        else
+	            return this.getCopy();
+	    },
+	    // Retrieve json representation. Including private properties.
+	    getJson: function() {
+	        return this.__json;
+	    },
+	    // Get a copy of json representation. Removing private properties.
+	    getCopy: function(deep, depopulate) {
+	        var copy = {};
+	        var keys = _.keys(this.__json);
+	        for (var i = 0, key, value; i < keys.length; i++) {
+	            key = keys[i];
+	            value = this.__json[key];
+	            if (this.__isProp(key)) {
+	                if (value && value.__model instanceof BaseModel)
+	                    copy[key] = depopulate ? value.__model.id() : value.__model.getCopy(deep, true);
+	                else
+	                    copy[key] = value;
+	            }
+	        }
+	        return deep ? _.cloneDeep(copy) : copy;
+	    },
+	    save: function(options, callback) {
+	        if (_.isFunction(options)) {
+	            callback = options;
+	            options = undefined;
+	        }
+	        var self = this;
+	        return new Promise(function(resolve, reject) {
+	            var req = self.id() ? store.put : store.post;
+	            req.call(store, self.url(), self, options).then(function(data) {
+	                self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
+	                self.__saved = !!self.id();
+	                // Add to cache, if enabled
+	                self.__addToCache();
+	                resolve(self);
+	                if (_.isFunction(callback)) callback(null, data, self);
+	            }, function(err) {
+	                reject(err);
+	                if (_.isFunction(callback)) callback(err);
+	            });
+	        });
+	    },
+	    fetch: function(options, callback) {
+	        if (_.isFunction(options)) {
+	            callback = options;
+	            options = undefined;
+	        }
+	        var self = this;
+	        self.__fetching = true;
+	        return new Promise(function(resolve, reject) {
+	            var id = self.__getDataId();
+	            if (id[config.keyId]) {
+	                store.get(self.url(), id, options).then(function(data) {
+	                    if (data) self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
+	                    self.__saved = !!self.id();
+	                    self.__fetching = false;
+	                    self.__addToCache();
+	                    resolve(self);
+	                    if (_.isFunction(callback)) callback(null, data, self);
+	                }, function(err) {
+	                    self.__fetching = false;
+	                    reject(err);
+	                    if (_.isFunction(callback)) callback(err);
+	                });
+	            } else {
+	                self.__fetching = false;
+	                reject(new Error('Model must have an id to fetch'));
+	                if (_.isFunction(callback)) callback(true);
+	            }
+	        });
+	    },
+	    populate: function(options, callback) {
+	        if (_.isFunction(options)) {
+	            callback = options;
+	            options = undefined;
+	        }
+	        var self = this;
+	        return new Promise(function(resolve, reject) {
+	            var refs = self.options.refs;
+	            var error;
+	            var countFetch = 0;
+	            _.forEach(refs, function(refName, refKey) {
+	                var value = self.__json[refKey];
+	                if (_.isString(value) || _.isNumber(value)) {
+	                    var data = {};
+	                    data[config.keyId] = value;
+	                    var model = modelConstructors[refName].create(data);
+	                    if (model.isSaved()) {
+	                        // Ok to link reference
+	                        self[refKey](model);
+	                    } else {
+	                        // Fetch and link
+	                        countFetch++;
+	                        model.fetch(
+	                            (options && options.fetchOptions && options.fetchOptions[refKey] ? options.fetchOptions[refKey] : null),
+	                            function(err, data, mdl) {
+	                                countFetch--;
+	                                if (err) {
+	                                    error = err;
+	                                } else {
+	                                    self[refKey](mdl);
+	                                }
+	                                if (!countFetch) {
+	                                    if (error) {
+	                                        reject(error);
+	                                        if (_.isFunction(callback)) callback(null, error);
+	                                    } else {
+	                                        // All fetched
+	                                        resolve(self);
+	                                        if (_.isFunction(callback)) callback(null, self);
+	                                    }
+	                                }
+	                            }
+	                        );
+	                    }
+	                }
+	            });
+	            if (!countFetch) {
+	                resolve(self);
+	                if (_.isFunction(callback)) callback(null, self);
+	            }
+	        });
+	    },
+	    destroy: function(options, callback) {
+	        if (_.isFunction(options)) {
+	            callback = options;
+	            options = undefined;
+	        }
+	        // Destroy the model. Will sync to store.
+	        var self = this;
+	        return new Promise(function(resolve, reject) {
+	            var id = self.__getDataId();
+	            if (id[config.keyId]) {
+	                store.destroy(self.url(), id, options).then(function() {
+	                    self.detach();
+	                    resolve();
+	                    if (_.isFunction(callback)) callback(null);
+	                    self.dispose();
+	                }, function(err) {
+	                    reject(err);
+	                    if (_.isFunction(callback)) callback(err);
+	                });
+	            } else {
+	                reject(new Error('Model must have an id to destroy'));
+	                if (_.isFunction(callback)) callback(true);
+	            }
+	        });
+	    },
+	    remove: function() {
+	        this.detach();
+	        this.dispose();
+	    },
+	    detach: function() {
+	        // Detach this model to all collection.
+	        var clonedCollections = _.clone(this.__collections);
+	        for (var i = 0; i < clonedCollections.length; i++) {
+	            clonedCollections[i].remove(this);
+	            clonedCollections[i] = null;
+	        }
+	    },
+	    dispose: function() {
+	        var keys = _.keys(this);
+	        var props = this.options.props;
+	        var i;
+	        this.__json.__model = null;
+	        for (i = 0; i < props.length; i++) {
+	            this[props[i]](null);
+	        }
+	        for (i = 0; i < keys.length; i++) {
+	            this[keys[i]] = null;
+	        }
+	    },
+	    isSaved: function() {
+	        // Fresh from store
+	        return this.__saved;
+	    },
+	    isNew: function() {
+	        return !this.__saved;
+	    },
+	    isModified: function() {
+	        // When a prop is modified
+	        return this.__modified;
+	    },
+	    isDirty: function() {
+	        return !this.isSaved() || this.isModified();
+	    },
+	    isFetching: function() {
+	        return this.__fetching;
+	    },
+	    __update: function() {
+	        var redraw;
+	        // Propagate change to model's collections.
+	        for (var i = 0; i < this.__collections.length; i++) {
+	            if (this.__collections[i].__update(true)) {
+	                redraw = true;
+	            }
+	        }
+	        // Levels: instance || schema || global
+	        if (redraw || this.__options.redraw || this.options.redraw || config.redraw) {
+	            // console.log('Redraw', 'Model');
+	            m.redraw();
+	        }
+	    },
+	    __isProp: function(key) {
+	        return _.indexOf(this.options.props, key) > -1;
+	    },
+	    __getDataId: function() {
+	        var dataId = {};
+	        dataId[config.keyId] = this.id();
+	        return dataId;
+	    },
+	    __addToCache: function() {
+	        if (this.constructor.__options.cache && !this.constructor.__cacheCollection.contains(this) && this.__saved) {
+	            this.constructor.__cacheCollection.add(this);
+	        }
+	    },
+	    __gettersetter: function(initial, key) {
+	        var _stream = config.stream();
+	        var self = this;
+	        // Wrapper
+	        function prop() {
+	            var value;
+	            // arguments[0] is value
+	            // arguments[1] is silent
+	            // arguments[2] is saved (from store)
+	            // arguments[3] is isinitial
+	            if (arguments.length) {
+	                // Write
+	                value = arguments[0];
+	                var ref = self.options.refs[key];
+	                if (ref) {
+	                    var refConstructor = modelConstructors[ref];
+	                    if (_.isPlainObject(value)) {
+	                        value = refConstructor.create(value);
+	                    } else if ((_.isString(value) || _.isNumber(value)) && refConstructor.__cacheCollection) {
+	                        // Try to find the model in the cache
+	                        value = refConstructor.__cacheCollection.get(value) || value;
+	                    }
+	                }
+	                if (value instanceof BaseModel) {
+	                    value.__saved = value.__saved || !!(arguments[2] && value.id());
+	                    value = value.getJson();
+	                }
+	                _stream(value);
+	                self.__modified = arguments[2] ? false : !arguments[3] && self.__json[key] !== _stream._state.value;
+	                self.__json[key] = _stream._state.value;
+	                if (!arguments[1])
+	                    self.__update(key);
+	                return value;
+	            }
+	            value = _stream();
+	            if (value && value.__model instanceof BaseModel) {
+	                value = value.__model;
+	            } else if (_.isNil(value) && self.options && !_.isNil(self.options.defaults[key])) {
+	                // If value is null or undefined and a default value exist.
+	                // Return that default value which was set in schema.
+	                value = self.options.defaults[key];
+	            }
+	            return (config.placeholder && self.__fetching && key !== config.keyId && _.isString(value) ? config.placeholder : value);
+	        }
+	        prop.stream = _stream;
+	        prop.call(this, initial, true, undefined, true);
+	        return prop;
+	    }
 	};
 
 	// Inject lodash methods.
 	util.addMethods(BaseModel.prototype, _, objectMethods, '__json');
 
-
-/***/ },
+/***/ }),
 /* 5 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	var _ = __webpack_require__(1);
 	var config = __webpack_require__(3).config;
@@ -763,9 +762,9 @@
 	});
 
 
-/***/ },
+/***/ }),
 /* 6 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {var _ = __webpack_require__(1);
 	var slice = Array.prototype.slice;
@@ -900,13 +899,99 @@
 
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7)))
 
-/***/ },
+/***/ }),
 /* 7 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	// shim for using process in browser
-
 	var process = module.exports = {};
+
+	// cached from whatever global is present so that test runners that stub it
+	// don't break things.  But we need to wrap it in a try catch in case it is
+	// wrapped in strict mode code which doesn't define any globals.  It's inside a
+	// function because try/catches deoptimize in certain engines.
+
+	var cachedSetTimeout;
+	var cachedClearTimeout;
+
+	function defaultSetTimout() {
+	    throw new Error('setTimeout has not been defined');
+	}
+	function defaultClearTimeout () {
+	    throw new Error('clearTimeout has not been defined');
+	}
+	(function () {
+	    try {
+	        if (typeof setTimeout === 'function') {
+	            cachedSetTimeout = setTimeout;
+	        } else {
+	            cachedSetTimeout = defaultSetTimout;
+	        }
+	    } catch (e) {
+	        cachedSetTimeout = defaultSetTimout;
+	    }
+	    try {
+	        if (typeof clearTimeout === 'function') {
+	            cachedClearTimeout = clearTimeout;
+	        } else {
+	            cachedClearTimeout = defaultClearTimeout;
+	        }
+	    } catch (e) {
+	        cachedClearTimeout = defaultClearTimeout;
+	    }
+	} ())
+	function runTimeout(fun) {
+	    if (cachedSetTimeout === setTimeout) {
+	        //normal enviroments in sane situations
+	        return setTimeout(fun, 0);
+	    }
+	    // if setTimeout wasn't available but was latter defined
+	    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+	        cachedSetTimeout = setTimeout;
+	        return setTimeout(fun, 0);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedSetTimeout(fun, 0);
+	    } catch(e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+	            return cachedSetTimeout.call(null, fun, 0);
+	        } catch(e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+	            return cachedSetTimeout.call(this, fun, 0);
+	        }
+	    }
+
+
+	}
+	function runClearTimeout(marker) {
+	    if (cachedClearTimeout === clearTimeout) {
+	        //normal enviroments in sane situations
+	        return clearTimeout(marker);
+	    }
+	    // if clearTimeout wasn't available but was latter defined
+	    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+	        cachedClearTimeout = clearTimeout;
+	        return clearTimeout(marker);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedClearTimeout(marker);
+	    } catch (e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+	            return cachedClearTimeout.call(null, marker);
+	        } catch (e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+	            return cachedClearTimeout.call(this, marker);
+	        }
+	    }
+
+
+
+	}
 	var queue = [];
 	var draining = false;
 	var currentQueue;
@@ -931,7 +1016,7 @@
 	    if (draining) {
 	        return;
 	    }
-	    var timeout = setTimeout(cleanUpNextTick);
+	    var timeout = runTimeout(cleanUpNextTick);
 	    draining = true;
 
 	    var len = queue.length;
@@ -948,7 +1033,7 @@
 	    }
 	    currentQueue = null;
 	    draining = false;
-	    clearTimeout(timeout);
+	    runClearTimeout(timeout);
 	}
 
 	process.nextTick = function (fun) {
@@ -960,7 +1045,7 @@
 	    }
 	    queue.push(new Item(fun, args));
 	    if (queue.length === 1 && !draining) {
-	        setTimeout(drainQueue, 0);
+	        runTimeout(drainQueue);
 	    }
 	};
 
@@ -988,6 +1073,10 @@
 	process.removeListener = noop;
 	process.removeAllListeners = noop;
 	process.emit = noop;
+	process.prependListener = noop;
+	process.prependOnceListener = noop;
+
+	process.listeners = function (name) { return [] }
 
 	process.binding = function (name) {
 	    throw new Error('process.binding is not supported');
@@ -1000,9 +1089,9 @@
 	process.umask = function() { return 0; };
 
 
-/***/ },
+/***/ }),
 /* 8 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Collection
@@ -1388,9 +1477,9 @@
 	// Inject lodash method.
 	util.addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
 
-/***/ },
+/***/ }),
 /* 9 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * State
@@ -1501,9 +1590,9 @@
 	};
 
 
-/***/ },
+/***/ }),
 /* 10 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Model Constructor
@@ -1621,17 +1710,23 @@
 		}
 	};
 
-/***/ },
+/***/ }),
 /* 11 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
+
+	"use strict"
 
 	module.exports = __webpack_require__(12)
 
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(module) {"use strict"
+/***/ }),
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(module) {/* eslint-disable */
+	;(function() {
+	"use strict"
+	/* eslint-enable */
 
 	var guid = 0, HALT = {}
 	function createStream() {
@@ -1647,7 +1742,7 @@
 	}
 	function initStream(stream) {
 		stream.constructor = createStream
-		stream._state = {id: guid++, value: undefined, state: 0, derive: undefined, recover: undefined, deps: {}, parents: [], endStream: undefined}
+		stream._state = {id: guid++, value: undefined, state: 0, derive: undefined, recover: undefined, deps: {}, parents: [], endStream: undefined, unregister: undefined}
 		stream.map = stream["fantasy-land/map"] = map, stream["fantasy-land/ap"] = ap, stream["fantasy-land/of"] = createStream
 		stream.valueOf = valueOf, stream.toJSON = toJSON, stream.toString = valueOf
 
@@ -1656,7 +1751,10 @@
 				if (!stream._state.endStream) {
 					var endStream = createStream()
 					endStream.map(function(value) {
-						if (value === true) unregisterStream(stream), unregisterStream(endStream)
+						if (value === true) {
+							unregisterStream(stream)
+							endStream._state.unregister = function(){unregisterStream(endStream)}
+						}
 						return value
 					})
 					stream._state.endStream = endStream
@@ -1668,6 +1766,7 @@
 	function updateStream(stream, value) {
 		updateState(stream, value)
 		for (var id in stream._state.deps) updateDependency(stream._state.deps[id], false)
+		if (stream._state.unregister != null) stream._state.unregister()
 		finalize(stream)
 	}
 	function updateState(stream, value) {
@@ -1689,7 +1788,7 @@
 	}
 
 	function combine(fn, streams) {
-		if (!streams.every(valid)) throw new Error("Ensure that each item passed to m.prop.combine/m.prop.merge is a stream")
+		if (!streams.every(valid)) throw new Error("Ensure that each item passed to stream.combine/stream.merge is a stream")
 		return initDependency(createStream(), streams, function() {
 			return fn.apply(this, streams.concat([streams.filter(changed)]))
 		})
@@ -1740,19 +1839,57 @@
 			return streams.map(function(s) {return s()})
 		}, streams)
 	}
+
+	function scan(reducer, seed, stream) {
+		var newStream = combine(function (s) {
+			return seed = reducer(seed, s._state.value)
+		}, [stream])
+
+		if (newStream._state.state === 0) newStream(seed)
+
+		return newStream
+	}
+
+	function scanMerge(tuples, seed) {
+		var streams = tuples.map(function(tuple) {
+			var stream = tuple[0]
+			if (stream._state.state === 0) stream(undefined)
+			return stream
+		})
+
+		var newStream = combine(function() {
+			var changed = arguments[arguments.length - 1]
+
+			streams.forEach(function(stream, idx) {
+				if (changed.indexOf(stream) > -1) {
+					seed = tuples[idx][1](seed, stream._state.value)
+				}
+			})
+
+			return seed
+		}, streams)
+
+		return newStream
+	}
+
 	createStream["fantasy-land/of"] = createStream
 	createStream.merge = merge
 	createStream.combine = combine
+	createStream.scan = scan
+	createStream.scanMerge = scanMerge
 	createStream.HALT = HALT
 
 	if (true) module["exports"] = createStream
-	else window.stream = createStream
+	else if (typeof window.m === "function" && !("stream" in window.m)) window.m.stream = createStream
+	else window.m = {stream : createStream}
+
+	}());
 
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(13)(module)))
 
-/***/ },
+/***/ }),
 /* 13 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = function(module) {
 		if(!module.webpackPolyfill) {
@@ -1766,5 +1903,5 @@
 	}
 
 
-/***/ }
+/***/ })
 /******/ ]);

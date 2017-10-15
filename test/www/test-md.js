@@ -49,6 +49,17 @@ before(function(done) {
 			}
 		});
 
+		// This model simulate undefined result
+		window.Model.Alarm = md.model({
+			name: 'Alarm',
+			url: '/undefined',
+			props: ['title', 'time'],
+			defaults: {
+				title: 'Default Alarm Title',
+				time: '8:00 AM'
+			}
+		});
+
 		expect(window.Model.User).to.exist;
 		expect(window.Model.Folder).to.exist;
 		expect(window.Model.Note).to.exist;

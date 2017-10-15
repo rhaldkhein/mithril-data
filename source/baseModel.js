@@ -177,7 +177,7 @@ BaseModel.prototype = {
 			var id = self.__getDataId();
 			if (id[config.keyId]) {
 				store.get(self.url(), id, options).then(function(data) {
-					self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
+					if (data) self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
 					self.__saved = !!self.id();
 					self.__fetching = false;
 					self.__addToCache();
