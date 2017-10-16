@@ -803,6 +803,7 @@ describe('Model.<methods>', function() {
             	// Values are default values from model
                 expect(mdl.title()).to.equal('Default Alarm Title');
                 expect(mdl.time()).to.equal('8:00 AM');
+                expect(mdl.isSaved()).to.be.false;
                 done();
             });
         });
