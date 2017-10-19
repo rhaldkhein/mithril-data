@@ -1215,10 +1215,11 @@
 			}
 			return false;
 		},
-		pluck: function(key) {
+		pluck: function(key, filter) {
 			var plucked = [],
 				isId = (key === 'id');
 			for (var i = 0, models = this.models; i < models.length; i++) {
+				if (filter && !filter(models[i].__model)) continue;
 				plucked.push(isId ? models[i].__model[key]() : models[i][key]);
 			}
 			return plucked;
