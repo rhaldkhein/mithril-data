@@ -460,8 +460,12 @@
 				var id = self.__getDataId();
 				if (id[config.keyId]) {
 					store.get(self.url(), id, options).then(function(data) {
-						self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
-						self.__saved = !!self.id();
+						if (data) {
+							self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
+							self.__saved = !!self.id();
+						} else {
+							self.__saved = false;
+						}
 						self.__fetching = false;
 						self.__addToCache();
 						resolve(self);
@@ -675,7 +679,6 @@
 
 	// Inject lodash methods.
 	util.addMethods(BaseModel.prototype, _, objectMethods, '__json');
-
 
 /***/ },
 /* 5 */
@@ -1212,10 +1215,11 @@
 			}
 			return false;
 		},
-		pluck: function(key) {
+		pluck: function(key, filter) {
 			var plucked = [],
 				isId = (key === 'id');
 			for (var i = 0, models = this.models; i < models.length; i++) {
+				if (filter && !filter(models[i].__model)) continue;
 				plucked.push(isId ? models[i].__model[key]() : models[i][key]);
 			}
 			return plucked;
