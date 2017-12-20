@@ -107,7 +107,7 @@ ModelConstructor.prototype = {
                 return models;
             }, function(err) {
                 if (_.isFunction(callback)) callback(err);
-                return err;
+                throw err;
             });
     }
 };
