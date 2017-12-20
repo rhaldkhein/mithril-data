@@ -161,7 +161,7 @@ BaseModel.prototype = {
             return self;
         }, function(err) {
             if (_.isFunction(callback)) callback(err);
-            return err;
+            throw err;
         });
     },
     fetch: function(options, callback) {
@@ -187,7 +187,7 @@ BaseModel.prototype = {
             }, function(err) {
                 self.__fetching = false;
                 if (_.isFunction(callback)) callback(err);
-                return err;
+                throw err;
             });
         } else {
             this.__fetching = false;
@@ -262,7 +262,7 @@ BaseModel.prototype = {
                 self.dispose();
             }, function(err) {
                 if (_.isFunction(callback)) callback(err);
-                return err;
+                throw err;
             });
         } else {
             if (_.isFunction(callback)) callback(true);

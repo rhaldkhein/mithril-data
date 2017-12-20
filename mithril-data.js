@@ -444,7 +444,7 @@
 	            return self;
 	        }, function(err) {
 	            if (_.isFunction(callback)) callback(err);
-	            return err;
+	            throw err;
 	        });
 	    },
 	    fetch: function(options, callback) {
@@ -470,7 +470,7 @@
 	            }, function(err) {
 	                self.__fetching = false;
 	                if (_.isFunction(callback)) callback(err);
-	                return err;
+	                throw err;
 	            });
 	        } else {
 	            this.__fetching = false;
@@ -545,7 +545,7 @@
 	                self.dispose();
 	            }, function(err) {
 	                if (_.isFunction(callback)) callback(err);
-	                return err;
+	                throw err;
 	            });
 	        } else {
 	            if (_.isFunction(callback)) callback(true);
@@ -1607,7 +1607,7 @@
 	                return models;
 	            }, function(err) {
 	                if (_.isFunction(callback)) callback(err);
-	                return err;
+	                throw err;
 	            });
 	    }
 	};
