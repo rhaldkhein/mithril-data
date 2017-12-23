@@ -21,8 +21,7 @@ function BaseModel(opts) {
         __model: this
     };
     _.bindAll(this, _.union(modelBindMethods, config.modelBindMethods));
-    if (opts)
-        this.opt(opts);
+    if (opts) this.opt(opts);
 }
 
 // Export class.
@@ -48,10 +47,8 @@ var objectMethods = {
 // Prototype methods.
 BaseModel.prototype = {
     opt: function(key, value) {
-        if (_.isPlainObject(key))
-            _.assign(this.__options, key);
-        else
-            this.__options[key] = _.isUndefined(value) ? true : value;
+        if (_.isPlainObject(key)) _.assign(this.__options, key);
+        else this.__options[key] = _.isUndefined(value) ? true : value;
     },
     // Get or set id of model.
     id: function(id) {
@@ -82,20 +79,15 @@ BaseModel.prototype = {
         if (!(collection instanceof Collection))
             throw new Error('Argument `collection` must be instance of Collection.');
         // Remove this model from collection first.
-        if (collection.get(this)) {
-            collection.remove(this);
-        }
+        if (collection.get(this)) collection.remove(this);
         // Remove that collection from model's collection.
         if (_.indexOf(this.__collections, collection) > -1)
             _.pull(this.__collections, collection);
     },
     // Sets all or a prop values from passed data.
     set: function(key, value, silent, saved) {
-        if (_.isString(key)) {
-            this[key](value, silent);
-        } else {
-            this.setObject(key, silent, saved);
-        }
+        if (_.isString(key)) this[key](value, silent);
+        else this.setObject(key, silent, saved);
     },
     // Sets props by object.
     setObject: function(obj, silent, saved) {
@@ -120,10 +112,7 @@ BaseModel.prototype = {
     },
     // Get all or a prop values in object format. Creates a copy.
     get: function(key) {
-        if (key)
-            return this[key]();
-        else
-            return this.getCopy();
+        return key ? this[key]() : this.getCopy();
     },
     // Retrieve json representation. Including private properties.
     getJson: function() {
@@ -169,11 +158,12 @@ BaseModel.prototype = {
             callback = options;
             options = undefined;
         }
-        var self = this;
         this.__fetching = true;
-        var id = this.__getDataId();
-        if (id[config.keyId]) {
-            return store.get(this.url(), id, options).then(function(data) {
+        var self = this,
+            data = this.__getDataId(),
+            id = _.trim(data[config.keyId]);
+        if (id && id != 'undefined' && id != 'null') {
+            return store.get(this.url(), data, options).then(function(data) {
                 if (data) {
                     self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
                     self.__saved = !!self.id();
@@ -191,8 +181,9 @@ BaseModel.prototype = {
             });
         } else {
             this.__fetching = false;
-            if (_.isFunction(callback)) callback(true);
-            return Promise.reject(new Error('Model must have an id to fetch'));
+            var err = new Error('Model must have an id to fetch')
+            if (_.isFunction(callback)) callback(err);
+            return Promise.reject(err);
         }
     },
     populate: function(options, callback) {
@@ -254,9 +245,10 @@ BaseModel.prototype = {
         }
         // Destroy the model. Will sync to store.
         var self = this;
-        var id = this.__getDataId();
-        if (id[config.keyId]) {
-            return store.destroy(this.url(), id, options).then(function() {
+        var data = this.__getDataId(),
+            id = _.trim(data[config.keyId]);
+        if (id && id != 'undefined' && id != 'null') {
+            return store.destroy(this.url(), data, options).then(function() {
                 self.detach();
                 if (_.isFunction(callback)) callback(null);
                 self.dispose();
@@ -265,8 +257,9 @@ BaseModel.prototype = {
                 throw err;
             });
         } else {
-            if (_.isFunction(callback)) callback(true);
-            return Promise.reject(new Error('Model must have an id to destroy'));
+            var err = new Error('Model must have an id to destroy');
+            if (_.isFunction(callback)) callback(err);
+            return Promise.reject(err);
         }
     },
     remove: function() {

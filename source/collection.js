@@ -309,8 +309,9 @@ Collection.prototype = {
             });
         } else {
             self.__fetching = false;
-            if (_.isFunction(callback)) callback(true);
-            return Promise.reject(new Error('Collection must have a model to perform fetch'))
+            var err = new Error('Collection must have a model to perform fetch');
+            if (_.isFunction(callback)) callback(err);
+            return Promise.reject(err);
         }
     },
     isFetching: function() {

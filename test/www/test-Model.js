@@ -800,12 +800,34 @@ describe('Model.<methods>', function() {
             var undefAlarm = new Model.Alarm();
             undefAlarm.id('123');
             undefAlarm.fetch().then(function(mdl) {
-            	// Values are default values from model
+                // Values are default values from model
                 expect(mdl.title()).to.equal('Default Alarm Title');
                 expect(mdl.time()).to.equal('8:00 AM');
                 expect(mdl.isSaved()).to.be.false;
                 done();
             });
+        });
+
+        it('falsy id (missing, string `undefined` and `null`', function(done) {
+            var falsyIdAlarm = new Model.Alarm();
+            // Fetching wihtout id should reject
+            falsyIdAlarm.fetch()
+                .then(function() { done('Must not fullfill'); })
+                .catch(function(err) {
+                    falsyIdAlarm.id('undefined');
+                    // Fetching with string id `undefined` should reject
+                    return falsyIdAlarm.fetch();
+                })
+                .then(function() { done('Must not fullfill'); })
+                .catch(function(err) {
+                    falsyIdAlarm.id('   null   ');
+                    // Fetching with string id `null` should reject. Including space padd
+                    return falsyIdAlarm.fetch();
+                })
+                .then(function() { done('Must not fullfill'); })
+                .catch(function(err) {
+                    done();
+                });
         });
 
     });
