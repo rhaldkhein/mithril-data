@@ -49,7 +49,7 @@
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;var _ = __webpack_require__(1);
 	var m = __webpack_require__(2);
@@ -256,30 +256,30 @@
 	    window.md = exports;
 	}
 
-/***/ },
+/***/ }),
 /* 1 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = _;
 
-/***/ },
+/***/ }),
 /* 2 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = m;
 
-/***/ },
+/***/ }),
 /* 3 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	
 	exports.config = {};
 
 	exports.modelConstructors = {};
 
-/***/ },
+/***/ }),
 /* 4 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Base Model
@@ -618,7 +618,7 @@
 	        var self = this;
 	        // Wrapper
 	        function prop() {
-	            var value;
+	            var value, defaultVal;
 	            // arguments[0] is value
 	            // arguments[1] is silent
 	            // arguments[2] is saved (from store)
@@ -647,13 +647,19 @@
 	                    self.__update(key);
 	                return value;
 	            }
+
 	            value = _stream();
-	            if (value && value.__model instanceof BaseModel) {
-	                value = value.__model;
-	            } else if (_.isNil(value) && self.options && !_.isNil(self.options.defaults[key])) {
-	                // If value is null or undefined and a default value exist.
-	                // Return that default value which was set in schema.
-	                value = self.options.defaults[key];
+	            defaultVal = self.options && self.options.defaults[key];
+	            if (_.isNil(value)) {
+	                if (!_.isNil(defaultVal)) value = defaultVal;
+	            } else {
+	                if (value.__model instanceof BaseModel) {
+	                    value = value.__model;
+	                } else if (_.isPlainObject(value) && defaultVal instanceof BaseModel) {
+	                    // Fix invalid value of stream, might be due deleted reference instance model
+	                    _stream(null);
+	                    value = defaultVal;
+	                }
 	            }
 	            return (config.placeholder && self.__fetching && key !== config.keyId && _.isString(value) ? config.placeholder : value);
 	        }
@@ -666,9 +672,9 @@
 	// Inject lodash methods.
 	util.addMethods(BaseModel.prototype, _, objectMethods, '__json');
 
-/***/ },
+/***/ }),
 /* 5 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	var _ = __webpack_require__(1);
 	var config = __webpack_require__(3).config;
@@ -752,9 +758,9 @@
 	});
 
 
-/***/ },
+/***/ }),
 /* 6 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {var _ = __webpack_require__(1);
 	var slice = Array.prototype.slice;
@@ -889,13 +895,99 @@
 
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7)))
 
-/***/ },
+/***/ }),
 /* 7 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	// shim for using process in browser
-
 	var process = module.exports = {};
+
+	// cached from whatever global is present so that test runners that stub it
+	// don't break things.  But we need to wrap it in a try catch in case it is
+	// wrapped in strict mode code which doesn't define any globals.  It's inside a
+	// function because try/catches deoptimize in certain engines.
+
+	var cachedSetTimeout;
+	var cachedClearTimeout;
+
+	function defaultSetTimout() {
+	    throw new Error('setTimeout has not been defined');
+	}
+	function defaultClearTimeout () {
+	    throw new Error('clearTimeout has not been defined');
+	}
+	(function () {
+	    try {
+	        if (typeof setTimeout === 'function') {
+	            cachedSetTimeout = setTimeout;
+	        } else {
+	            cachedSetTimeout = defaultSetTimout;
+	        }
+	    } catch (e) {
+	        cachedSetTimeout = defaultSetTimout;
+	    }
+	    try {
+	        if (typeof clearTimeout === 'function') {
+	            cachedClearTimeout = clearTimeout;
+	        } else {
+	            cachedClearTimeout = defaultClearTimeout;
+	        }
+	    } catch (e) {
+	        cachedClearTimeout = defaultClearTimeout;
+	    }
+	} ())
+	function runTimeout(fun) {
+	    if (cachedSetTimeout === setTimeout) {
+	        //normal enviroments in sane situations
+	        return setTimeout(fun, 0);
+	    }
+	    // if setTimeout wasn't available but was latter defined
+	    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+	        cachedSetTimeout = setTimeout;
+	        return setTimeout(fun, 0);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedSetTimeout(fun, 0);
+	    } catch(e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+	            return cachedSetTimeout.call(null, fun, 0);
+	        } catch(e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+	            return cachedSetTimeout.call(this, fun, 0);
+	        }
+	    }
+
+
+	}
+	function runClearTimeout(marker) {
+	    if (cachedClearTimeout === clearTimeout) {
+	        //normal enviroments in sane situations
+	        return clearTimeout(marker);
+	    }
+	    // if clearTimeout wasn't available but was latter defined
+	    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+	        cachedClearTimeout = clearTimeout;
+	        return clearTimeout(marker);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedClearTimeout(marker);
+	    } catch (e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+	            return cachedClearTimeout.call(null, marker);
+	        } catch (e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+	            return cachedClearTimeout.call(this, marker);
+	        }
+	    }
+
+
+
+	}
 	var queue = [];
 	var draining = false;
 	var currentQueue;
@@ -920,7 +1012,7 @@
 	    if (draining) {
 	        return;
 	    }
-	    var timeout = setTimeout(cleanUpNextTick);
+	    var timeout = runTimeout(cleanUpNextTick);
 	    draining = true;
 
 	    var len = queue.length;
@@ -937,7 +1029,7 @@
 	    }
 	    currentQueue = null;
 	    draining = false;
-	    clearTimeout(timeout);
+	    runClearTimeout(timeout);
 	}
 
 	process.nextTick = function (fun) {
@@ -949,7 +1041,7 @@
 	    }
 	    queue.push(new Item(fun, args));
 	    if (queue.length === 1 && !draining) {
-	        setTimeout(drainQueue, 0);
+	        runTimeout(drainQueue);
 	    }
 	};
 
@@ -977,6 +1069,10 @@
 	process.removeListener = noop;
 	process.removeAllListeners = noop;
 	process.emit = noop;
+	process.prependListener = noop;
+	process.prependOnceListener = noop;
+
+	process.listeners = function (name) { return [] }
 
 	process.binding = function (name) {
 	    throw new Error('process.binding is not supported');
@@ -989,9 +1085,9 @@
 	process.umask = function() { return 0; };
 
 
-/***/ },
+/***/ }),
 /* 8 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Collection
@@ -1375,9 +1471,9 @@
 	// Inject lodash method.
 	util.addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
 
-/***/ },
+/***/ }),
 /* 9 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * State
@@ -1488,9 +1584,9 @@
 	};
 
 
-/***/ },
+/***/ }),
 /* 10 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Model Constructor
@@ -1606,17 +1702,23 @@
 	    }
 	};
 
-/***/ },
+/***/ }),
 /* 11 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
+
+	"use strict"
 
 	module.exports = __webpack_require__(12)
 
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(module) {"use strict"
+/***/ }),
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(module) {/* eslint-disable */
+	;(function() {
+	"use strict"
+	/* eslint-enable */
 
 	var guid = 0, HALT = {}
 	function createStream() {
@@ -1632,7 +1734,7 @@
 	}
 	function initStream(stream) {
 		stream.constructor = createStream
-		stream._state = {id: guid++, value: undefined, state: 0, derive: undefined, recover: undefined, deps: {}, parents: [], endStream: undefined}
+		stream._state = {id: guid++, value: undefined, state: 0, derive: undefined, recover: undefined, deps: {}, parents: [], endStream: undefined, unregister: undefined}
 		stream.map = stream["fantasy-land/map"] = map, stream["fantasy-land/ap"] = ap, stream["fantasy-land/of"] = createStream
 		stream.valueOf = valueOf, stream.toJSON = toJSON, stream.toString = valueOf
 
@@ -1641,7 +1743,10 @@
 				if (!stream._state.endStream) {
 					var endStream = createStream()
 					endStream.map(function(value) {
-						if (value === true) unregisterStream(stream), unregisterStream(endStream)
+						if (value === true) {
+							unregisterStream(stream)
+							endStream._state.unregister = function(){unregisterStream(endStream)}
+						}
 						return value
 					})
 					stream._state.endStream = endStream
@@ -1653,6 +1758,7 @@
 	function updateStream(stream, value) {
 		updateState(stream, value)
 		for (var id in stream._state.deps) updateDependency(stream._state.deps[id], false)
+		if (stream._state.unregister != null) stream._state.unregister()
 		finalize(stream)
 	}
 	function updateState(stream, value) {
@@ -1674,7 +1780,7 @@
 	}
 
 	function combine(fn, streams) {
-		if (!streams.every(valid)) throw new Error("Ensure that each item passed to m.prop.combine/m.prop.merge is a stream")
+		if (!streams.every(valid)) throw new Error("Ensure that each item passed to stream.combine/stream.merge is a stream")
 		return initDependency(createStream(), streams, function() {
 			return fn.apply(this, streams.concat([streams.filter(changed)]))
 		})
@@ -1725,19 +1831,57 @@
 			return streams.map(function(s) {return s()})
 		}, streams)
 	}
+
+	function scan(reducer, seed, stream) {
+		var newStream = combine(function (s) {
+			return seed = reducer(seed, s._state.value)
+		}, [stream])
+
+		if (newStream._state.state === 0) newStream(seed)
+
+		return newStream
+	}
+
+	function scanMerge(tuples, seed) {
+		var streams = tuples.map(function(tuple) {
+			var stream = tuple[0]
+			if (stream._state.state === 0) stream(undefined)
+			return stream
+		})
+
+		var newStream = combine(function() {
+			var changed = arguments[arguments.length - 1]
+
+			streams.forEach(function(stream, idx) {
+				if (changed.indexOf(stream) > -1) {
+					seed = tuples[idx][1](seed, stream._state.value)
+				}
+			})
+
+			return seed
+		}, streams)
+
+		return newStream
+	}
+
 	createStream["fantasy-land/of"] = createStream
 	createStream.merge = merge
 	createStream.combine = combine
+	createStream.scan = scan
+	createStream.scanMerge = scanMerge
 	createStream.HALT = HALT
 
 	if (true) module["exports"] = createStream
-	else window.stream = createStream
+	else if (typeof window.m === "function" && !("stream" in window.m)) window.m.stream = createStream
+	else window.m = {stream : createStream}
+
+	}());
 
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(13)(module)))
 
-/***/ },
+/***/ }),
 /* 13 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = function(module) {
 		if(!module.webpackPolyfill) {
@@ -1751,5 +1895,5 @@
 	}
 
 
-/***/ }
+/***/ })
 /******/ ]);

@@ -335,7 +335,7 @@ BaseModel.prototype = {
         var self = this;
         // Wrapper
         function prop() {
-            var value;
+            var value, defaultVal;
             // arguments[0] is value
             // arguments[1] is silent
             // arguments[2] is saved (from store)
@@ -364,13 +364,19 @@ BaseModel.prototype = {
                     self.__update(key);
                 return value;
             }
+
             value = _stream();
-            if (value && value.__model instanceof BaseModel) {
-                value = value.__model;
-            } else if (_.isNil(value) && self.options && !_.isNil(self.options.defaults[key])) {
-                // If value is null or undefined and a default value exist.
-                // Return that default value which was set in schema.
-                value = self.options.defaults[key];
+            defaultVal = self.options && self.options.defaults[key];
+            if (_.isNil(value)) {
+                if (!_.isNil(defaultVal)) value = defaultVal;
+            } else {
+                if (value.__model instanceof BaseModel) {
+                    value = value.__model;
+                } else if (_.isPlainObject(value) && defaultVal instanceof BaseModel) {
+                    // Fix invalid value of stream, might be due deleted reference instance model
+                    _stream(null);
+                    value = defaultVal;
+                }
             }
             return (config.placeholder && self.__fetching && key !== config.keyId && _.isString(value) ? config.placeholder : value);
         }
