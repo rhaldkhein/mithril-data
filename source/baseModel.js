@@ -16,7 +16,7 @@ function BaseModel(opts) {
     this.__lid = _.uniqueId('model');
     this.__saved = false;
     this.__modified = false;
-    this.__fetching = false;
+    this.__working = 0; // 0:idle, 1: fetch, 2: save, 3: destroy
     this.__json = {
         __model: this
     };
@@ -141,14 +141,17 @@ BaseModel.prototype = {
         }
         var self = this;
         var req = this.id() ? store.put : store.post;
+        this.__working = 2;
         return req.call(store, this.url(), this, options).then(function(data) {
             self.set(options && options.path ? _.get(data, options.path) : data, null, null, true);
             self.__saved = !!self.id();
             // Add to cache, if enabled
             self.__addToCache();
+            self.__working = 0;
             if (_.isFunction(callback)) callback(null, data, self);
             return self;
         }, function(err) {
+            self.__working = 0;
             if (_.isFunction(callback)) callback(err);
             throw err;
         });
@@ -158,7 +161,7 @@ BaseModel.prototype = {
             callback = options;
             options = undefined;
         }
-        this.__fetching = true;
+        this.__working = 1;
         var self = this,
             data = this.__getDataId(),
             id = _.trim(data[config.keyId]);
@@ -170,17 +173,17 @@ BaseModel.prototype = {
                 } else {
                     self.__saved = false;
                 }
-                self.__fetching = false;
+                self.__working = 0;
                 self.__addToCache();
                 if (_.isFunction(callback)) callback(null, data, self);
                 return self;
             }, function(err) {
-                self.__fetching = false;
+                self.__working = 0;
                 if (_.isFunction(callback)) callback(err);
                 throw err;
             });
         } else {
-            this.__fetching = false;
+            this.__working = 0;
             var err = new Error('Model must have an id to fetch')
             if (_.isFunction(callback)) callback(err);
             return Promise.reject(err);
@@ -247,17 +250,21 @@ BaseModel.prototype = {
         var self = this;
         var data = this.__getDataId(),
             id = _.trim(data[config.keyId]);
+        this.__working = 3;
         if (id && id != 'undefined' && id != 'null') {
             return store.destroy(this.url(), data, options).then(function() {
                 self.detach();
+                self.__working = 0;
                 if (_.isFunction(callback)) callback(null);
                 self.dispose();
             }, function(err) {
+                self.__working = 0;
                 if (_.isFunction(callback)) callback(err);
                 throw err;
             });
         } else {
             var err = new Error('Model must have an id to destroy');
+            this.__working = 0;
             if (_.isFunction(callback)) callback(err);
             return Promise.reject(err);
         }
@@ -300,8 +307,17 @@ BaseModel.prototype = {
     isDirty: function() {
         return !this.isSaved() || this.isModified();
     },
+    isWorking: function() {
+        return this.__working > 0;
+    },
     isFetching: function() {
-        return this.__fetching;
+        return this.__working === 1;
+    },
+    isSaving: function() {
+        return this.__working === 2;
+    },
+    isDestroying: function() {
+        return this.__working === 3;
     },
     __update: function() {
         var redraw;
@@ -378,7 +394,11 @@ BaseModel.prototype = {
                     value = defaultVal;
                 }
             }
-            return (config.placeholder && self.__fetching && key !== config.keyId && _.isString(value) ? config.placeholder : value);
+            return (config.placeholder &&
+                self.isFetching() &&
+                key !== config.keyId &&
+                _.indexOf(self.options.placehold, key) > -1 ?
+                config.placeholder : value);
         }
         prop.stream = _stream;
         prop.call(this, initial, true, undefined, true);
