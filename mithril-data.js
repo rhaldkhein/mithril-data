@@ -1,8 +1,8 @@
 /*!
- * mithril-data v0.4.7
+ * mithril-data v0.4.8
  * A rich data model library for Mithril javascript framework.
  * https://github.com/rhaldkhein/mithril-data
- * (c) 2017 Kevin Villanueva
+ * (c) 2018 Kevin Villanueva
  * License: MIT
  */
 /******/ (function(modules) { // webpackBootstrap
@@ -142,11 +142,7 @@
 
 	// Return the current version.
 	exports.version = function() {
-<<<<<<< HEAD
-	    return 'v0.4.7';//version
-=======
-	    return 'v0.4.6'; //version
->>>>>>> devel
+	    return 'v0.4.8';//version
 	};
 
 	// Export class BaseModel
