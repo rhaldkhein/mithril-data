@@ -25,7 +25,7 @@ function Collection(options) {
         this.__state = state;
     }
     _.bindAll(this, _.union(collectionBindMethods, config.collectionBindMethods));
-    this.__fetching = false;
+    this.__working = false;
 }
 
 // Export class.
@@ -293,11 +293,11 @@ Collection.prototype = {
             options = undefined;
         }
         var self = this;
-        self.__fetching = true;
+        self.__working = true;
         if (self.hasModel()) {
             options = options || {};
             return self.model().pull(self.url(), query, options, function(err, response, models) {
-                self.__fetching = false;
+                self.__working = false;
                 if (err) {
                     if (_.isFunction(callback)) callback(err);
                 } else {
@@ -308,14 +308,17 @@ Collection.prototype = {
                 }
             });
         } else {
-            self.__fetching = false;
+            self.__working = false;
             var err = new Error('Collection must have a model to perform fetch');
             if (_.isFunction(callback)) callback(err);
             return Promise.reject(err);
         }
     },
+    isWorking: function() {
+        return this.__working;
+    },
     isFetching: function() {
-        return this.__fetching;
+        return this.isWorking();
     },
     __replaceModels: function(models) {
         for (var i = models.length - 1; i >= 0; i--) {

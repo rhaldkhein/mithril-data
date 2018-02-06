@@ -72,13 +72,15 @@ function createModelConstructor(schema) {
     return Model;
 }
 
+// Default parser, if user did not specify
+function defaultParser(data) { return data; }
+
+// Make sure options got correct properties
 function resolveSchemaOptions(options) {
     options.defaults = options.defaults || {};
     options.props = _.union(options.props || [], _.keys(options.defaults));
     options.refs = options.refs || {};
-    options.parser = options.parser || function(data) {
-        return data;
-    };
+    options.parser = options.parser || defaultParser;
 }
 
 /**
@@ -87,7 +89,7 @@ function resolveSchemaOptions(options) {
 
 // Return the current version.
 exports.version = function() {
-    return 'v0.4.7';//version
+    return 'v0.4.6'; //version
 };
 
 // Export class BaseModel
