@@ -49,6 +49,7 @@
 /************************************************************************/
 /******/ ([
 /* 0 */
+<<<<<<< HEAD
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;var _ = __webpack_require__(1);
@@ -256,32 +257,241 @@
 	    if (window.md)
 	        oldObject = window.md;
 	    window.md = exports;
+=======
+/***/ (function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;var _ = __webpack_require__(1);
+	var m = __webpack_require__(2);
+	var config = __webpack_require__(3).config;
+	var modelConstructors = __webpack_require__(3).modelConstructors;
+	var BaseModel = __webpack_require__(4);
+	var ModelConstructor = __webpack_require__(10);
+	var util = __webpack_require__(6);
+	var Collection = __webpack_require__(8);
+
+	Object.setPrototypeOf = Object.setPrototypeOf || function(obj, proto) {
+	    obj.__proto__ = proto;
+	    return obj;
+	};
+
+	/**
+	 * `this.__options` is instance options, registered in `new Model(<values>, <__options>)`.
+	 * `this.options` is schema options, registered in `m.model(schema)`.
+	 */
+
+	function createModelConstructor(schema) {
+	    // Resolve model options. Mutates the object.
+	    resolveSchemaOptions(schema);
+	    // The model constructor.
+	    function Model(vals, opts) {
+	        // Calling parent class.
+	        BaseModel.call(this, opts);
+	        // Local variables.
+	        var data = (this.__options.parse ? this.options.parser(vals) : vals) || {};
+	        var props = schema.props;
+	        // var initial;
+	        // Make user id is in prop;
+	        if (_.indexOf(props, config.keyId) === -1) {
+	            props.push(config.keyId);
+	        }
+	        // Adding props.
+	        for (var i = 0, value; i < props.length; i++) {
+	            value = props[i];
+	            // 1. Must not starts  with '__'.
+	            // 2. Omit id in data if you configure different id field.
+	            if (!this.__isProp(value) || (value === 'id' && value !== config.keyId))
+	                return;
+	            // Make sure that it does not create conflict with
+	            // internal reserved keywords.
+	            if (!_.hasIn(this, value) || value === 'id') {
+	                // Use default if data is not available. Only `undefined` should change to default.
+	                // In order to accept other falsy value. Like, `false` and `0`.
+	                this[value] = this.__gettersetter(_.isUndefined(data[value]) ? schema.defaults[value] : data[value], value);
+	            } else {
+	                throw new Error('`' + value + '` prop is not allowed.');
+	            }
+	        }
+	    }
+	    // Make sure that it custom methods and statics does not create conflict with internal ones.
+	    var confMethods = util.isConflictExtend(BaseModel.prototype, schema.methods);
+	    if (confMethods) throw new Error('`' + confMethods + '` method is not allowed.');
+	    // Attach the options to model constructor.
+	    Model.modelOptions = schema;
+	    // Extend from base model prototype.
+	    Model.prototype = _.create(BaseModel.prototype, _.assign(schema.methods || {}, {
+	        constructor: Model,
+	        options: schema,
+	    }));
+	    // Link model controller prototype.
+	    Object.setPrototypeOf(Model, ModelConstructor.prototype);
+	    // Attach statics for model.
+	    if (!_.isEmpty(schema.statics)) {
+	        var confStatics = util.isConflictExtend(Model, schema.statics);
+	        if (confStatics) throw new Error('`' + confStatics + '` method is not allowed for statics.');
+	        _.assign(Model, schema.statics);
+	    }
+	    // Return the model.
+	    return Model;
+>>>>>>> devel
 	}
 
-/***/ },
+	// Default parser, if user did not specify
+	function defaultParser(data) { return data; }
+
+	// Make sure options got correct properties
+	function resolveSchemaOptions(options) {
+	    options.defaults = options.defaults || {};
+	    options.props = _.union(options.props || [], _.keys(options.defaults));
+	    options.refs = options.refs || {};
+	    options.parser = options.parser || defaultParser;
+	}
+
+	/**
+	 * Exports
+	 */
+
+	// Return the current version.
+	exports.version = function() {
+	    return 'v0.4.6'; //version
+	};
+
+	// Export class BaseModel
+	exports.BaseModel = BaseModel;
+
+	// Export class Collection.
+	exports.Collection = __webpack_require__(8);
+
+	// Export class State.
+	exports.State = __webpack_require__(9);
+
+	// Export our own store controller.
+	exports.store = __webpack_require__(5);
+
+	// Export Mithril's Stream
+	exports.stream = null;
+
+	// Helper to convert any value to stream
+	exports.toStream = function(value) {
+	    return (value && value.constructor === exports.stream) ? value : exports.stream(value);
+	};
+
+	// Export model instantiator.
+	exports.model = function(schemaOptions, ctrlOptions) {
+	    schemaOptions = schemaOptions || {};
+	    ctrlOptions = ctrlOptions || {};
+	    if (!schemaOptions.name)
+	        throw new Error('Model name must be set.');
+	    var modelConstructor = modelConstructors[schemaOptions.name] = createModelConstructor(schemaOptions);
+	    modelConstructor.__init(ctrlOptions);
+	    return modelConstructor;
+	};
+
+	// A way to get a constructor from this scope
+	exports.model.get = function(name) {
+	    return modelConstructors[name];
+	};
+
+	// Export configurator
+	var defaultConfig = {};
+	exports.config = function(userConfig) {
+	    // Configure prototypes.
+	    if (userConfig.modelMethods)
+	        util.strictExtend(BaseModel.prototype, userConfig.modelMethods);
+	    if (userConfig.constructorMethods)
+	        util.strictExtend(ModelConstructor.prototype, userConfig.constructorMethods);
+	    if (userConfig.collectionMethods)
+	        util.strictExtend(Collection.prototype, userConfig.collectionMethods);
+	    if (userConfig.stream)
+	        exports.stream = userConfig.stream;
+	    // Clear
+	    userConfig.modelMethods = null;
+	    userConfig.constructorMethods = null;
+	    userConfig.collectionMethods = null;
+	    // Assign configuration.
+	    _.assign(config, userConfig);
+	};
+
+	// Option to reset to first initial config.
+	exports.resetConfig = function() {
+	    util.clearObject(config);
+	    exports.config(defaultConfig);
+	};
+
+	// Add config to default config. Does not overwrite the old config.
+	exports.defaultConfig = function(defaults, silent) {
+	    _.assign(defaultConfig, defaults);
+	    if (!silent)
+	        exports.resetConfig();
+	};
+
+	// Set config defaults.
+	exports.defaultConfig({
+	    baseUrl: '',
+	    keyId: 'id',
+	    store: m.request,
+	    stream: __webpack_require__(11),
+	    redraw: false,
+	    storeBackground: false,
+	    cache: false,
+	    cacheLimit: 100,
+	    placeholder: null
+	});
+
+	// Export for AMD & browser's global.
+	if (true) {
+	    !(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
+	        return exports;
+	    }.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	}
+
+	// Export for browser's global.
+	if (typeof window !== 'undefined') {
+	    var oldObject;
+	    // Return back old md.
+	    exports.noConflict = function() {
+	        if (oldObject) {
+	            window.md = oldObject;
+	            oldObject = null;
+	        }
+	        return window.md;
+	    };
+	    // Export private objects for unit testing.
+	    if (window.__TEST__ && window.mocha && window.chai) {
+	        exports.__TEST__ = {
+	            config: config,
+	            BaseModel: BaseModel,
+	            ModelConstructor: ModelConstructor
+	        };
+	    }
+	    if (window.md)
+	        oldObject = window.md;
+	    window.md = exports;
+	}
+
+/***/ }),
 /* 1 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = _;
 
-/***/ },
+/***/ }),
 /* 2 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = m;
 
-/***/ },
+/***/ }),
 /* 3 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	
 	exports.config = {};
 
 	exports.modelConstructors = {};
 
-/***/ },
+/***/ }),
 /* 4 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Base Model
@@ -694,9 +904,9 @@
 	// Inject lodash methods.
 	util.addMethods(BaseModel.prototype, _, objectMethods, '__json');
 
-/***/ },
+/***/ }),
 /* 5 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	var _ = __webpack_require__(1);
 	var config = __webpack_require__(3).config;
@@ -780,9 +990,9 @@
 	});
 
 
-/***/ },
+/***/ }),
 /* 6 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {var _ = __webpack_require__(1);
 	var slice = Array.prototype.slice;
@@ -917,13 +1127,99 @@
 
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7)))
 
-/***/ },
+/***/ }),
 /* 7 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	// shim for using process in browser
-
 	var process = module.exports = {};
+
+	// cached from whatever global is present so that test runners that stub it
+	// don't break things.  But we need to wrap it in a try catch in case it is
+	// wrapped in strict mode code which doesn't define any globals.  It's inside a
+	// function because try/catches deoptimize in certain engines.
+
+	var cachedSetTimeout;
+	var cachedClearTimeout;
+
+	function defaultSetTimout() {
+	    throw new Error('setTimeout has not been defined');
+	}
+	function defaultClearTimeout () {
+	    throw new Error('clearTimeout has not been defined');
+	}
+	(function () {
+	    try {
+	        if (typeof setTimeout === 'function') {
+	            cachedSetTimeout = setTimeout;
+	        } else {
+	            cachedSetTimeout = defaultSetTimout;
+	        }
+	    } catch (e) {
+	        cachedSetTimeout = defaultSetTimout;
+	    }
+	    try {
+	        if (typeof clearTimeout === 'function') {
+	            cachedClearTimeout = clearTimeout;
+	        } else {
+	            cachedClearTimeout = defaultClearTimeout;
+	        }
+	    } catch (e) {
+	        cachedClearTimeout = defaultClearTimeout;
+	    }
+	} ())
+	function runTimeout(fun) {
+	    if (cachedSetTimeout === setTimeout) {
+	        //normal enviroments in sane situations
+	        return setTimeout(fun, 0);
+	    }
+	    // if setTimeout wasn't available but was latter defined
+	    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+	        cachedSetTimeout = setTimeout;
+	        return setTimeout(fun, 0);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedSetTimeout(fun, 0);
+	    } catch(e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+	            return cachedSetTimeout.call(null, fun, 0);
+	        } catch(e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+	            return cachedSetTimeout.call(this, fun, 0);
+	        }
+	    }
+
+
+	}
+	function runClearTimeout(marker) {
+	    if (cachedClearTimeout === clearTimeout) {
+	        //normal enviroments in sane situations
+	        return clearTimeout(marker);
+	    }
+	    // if clearTimeout wasn't available but was latter defined
+	    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+	        cachedClearTimeout = clearTimeout;
+	        return clearTimeout(marker);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedClearTimeout(marker);
+	    } catch (e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+	            return cachedClearTimeout.call(null, marker);
+	        } catch (e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+	            return cachedClearTimeout.call(this, marker);
+	        }
+	    }
+
+
+
+	}
 	var queue = [];
 	var draining = false;
 	var currentQueue;
@@ -948,7 +1244,7 @@
 	    if (draining) {
 	        return;
 	    }
-	    var timeout = setTimeout(cleanUpNextTick);
+	    var timeout = runTimeout(cleanUpNextTick);
 	    draining = true;
 
 	    var len = queue.length;
@@ -965,7 +1261,7 @@
 	    }
 	    currentQueue = null;
 	    draining = false;
-	    clearTimeout(timeout);
+	    runClearTimeout(timeout);
 	}
 
 	process.nextTick = function (fun) {
@@ -977,7 +1273,7 @@
 	    }
 	    queue.push(new Item(fun, args));
 	    if (queue.length === 1 && !draining) {
-	        setTimeout(drainQueue, 0);
+	        runTimeout(drainQueue);
 	    }
 	};
 
@@ -1005,6 +1301,10 @@
 	process.removeListener = noop;
 	process.removeAllListeners = noop;
 	process.emit = noop;
+	process.prependListener = noop;
+	process.prependOnceListener = noop;
+
+	process.listeners = function (name) { return [] }
 
 	process.binding = function (name) {
 	    throw new Error('process.binding is not supported');
@@ -1017,9 +1317,9 @@
 	process.umask = function() { return 0; };
 
 
-/***/ },
+/***/ }),
 /* 8 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Collection
@@ -1033,22 +1333,22 @@
 	var State = __webpack_require__(9);
 
 	function Collection(options) {
-	    this.models = [];
-	    this.__options = {
-	        redraw: false,
-	        _cache: false
-	    };
-	    if (options)
-	        this.opt(options);
-	    var state = this.__options.state;
-	    if (state) {
-	        if (!(state instanceof State)) {
-	            state = new State(state);
-	        }
-	        this.__state = state;
+	  this.models = [];
+	  this.__options = {
+	    redraw: false,
+	    _cache: false
+	  };
+	  if (options)
+	    this.opt(options);
+	  var state = this.__options.state;
+	  if (state) {
+	    if (!(state instanceof State)) {
+	      state = new State(state);
 	    }
-	    _.bindAll(this, _.union(collectionBindMethods, config.collectionBindMethods));
-	    this.__working = false;
+	    this.__state = state;
+	  }
+	  _.bindAll(this, _.union(collectionBindMethods, config.collectionBindMethods));
+	  this.__working = false;
 	}
 
 	// Export class.
@@ -1056,310 +1356,310 @@
 
 	// Prototype methods.
 	Collection.prototype = {
-	    opt: function(key, value) {
-	        if (_.isPlainObject(key))
-	            _.assign(this.__options, key);
-	        else
-	            this.__options[key] = _.isUndefined(value) ? true : value;
-	    },
-	    add: function(model, unshift, silent) {
-	        if (!(model instanceof BaseModel) || (this.__options.model && !(model instanceof this.__options.model)))
-	            throw new Error('Must be a model or an instance of set model');
-	        var existingModel = this.get(model);
-	        var added = false;
-	        if (existingModel) {
-	            existingModel.set(model);
-	        } else {
-	            if (unshift)
-	                this.models.unshift(model.getJson());
-	            else
-	                this.models.push(model.getJson());
-	            model.attachCollection(this);
-	            if (this.__state)
-	                this.__state.set(model.lid());
-	            added = true;
-	        }
-	        if (added && !silent)
-	            this.__update();
-	        return added;
-	    },
-	    addAll: function(models, unshift, silent) {
-	        if (!_.isArray(models))
-	            models = [models];
-	        var added = false;
-	        var i = 0;
-	        for (; i < models.length; i++) {
-	            if (this.add(models[i], unshift, true))
-	                added = true;
-	        }
-	        if (added && !silent)
-	            this.__update();
-	        return added;
-	    },
-	    create: function(data, opts) {
-	        if (!_.isArray(data))
-	            data = [data];
-	        var newModels = [];
-	        var existingModel;
-	        var modelData;
-	        var i = 0;
-	        for (; i < data.length; i++) {
-	            modelData = data[i];
-	            if (!_.isPlainObject(modelData))
-	                throw new Error('Plain object required');
-	            existingModel = this.get(modelData);
-	            if (existingModel) {
-	                existingModel.set(modelData, true);
-	            } else {
-	                // TODO: Check to use cache
-	                if (this.__options.model)
-	                    newModels.push(this.__options.model.create(modelData, opts));
-	                // newModels.push(new this.__options.model(modelData));
-	            }
-	        }
-	        this.addAll(newModels);
-	        return newModels;
-	    },
-	    get: function(mixed) {
-	        // mixed can be id-number, id-string, plain-object or model.
-	        // NOTE: check if model/object contains id and use it instead.
-	        // returns a model.
-	        var jsonModel;
-	        if (mixed instanceof BaseModel) {
-	            // mixed is a model and is in this collection.
-	            return this.contains(mixed) ? mixed : undefined;
-	        } else if (_.isObject(mixed)) {
-	            // Use `isObject` to include functions.
-	            if (mixed[config.keyId])
-	                mixed = mixed[config.keyId];
-	            else
-	                return this.find(mixed) || undefined;
-	        }
-	        jsonModel = this.find([config.keyId, mixed]);
-	        return jsonModel || undefined;
-	    },
-	    getAll: function(mixed, falsy) {
-	        // Note that this will not get all matched.
-	        // Will only get the first match of each array item.
-	        if (!_.isArray(mixed))
-	            mixed = [mixed];
-	        var models = [];
-	        var i = 0;
-	        var exist;
-	        for (; i < mixed.length; i++) {
-	            exist = this.get(mixed[i]);
-	            if (exist || falsy) {
-	                models.push(exist);
-	            }
-	        }
-	        return models;
-	    },
-	    remove: function(mixed, silent) {
-	        // mixed can be array of id-number, id-string, plain-object or model.
-	        if (!_.isArray(mixed))
-	            mixed = [mixed];
-	        var lastLength = this.size();
-	        var removedModels = [];
-	        var matchMix;
-	        var mix;
-	        var i;
-	        if (!lastLength)
-	            return;
-	        for (i = 0; i < mixed.length; i++) {
-	            mix = mixed[i];
-	            if (!mix)
-	                throw new Error('Can\'t remove from collection. Argument must be set.');
-	            if (mix instanceof BaseModel) {
-	                removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
-	                    return _.eq(value, mix.getJson());
-	                }));
-	            } else if (_.isObjectLike(mix)) {
-	                removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
-	                    return _.isMatch(value, mix);
-	                }));
-	            } else {
-	                removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
-	                    matchMix = {};
-	                    matchMix[config.keyId] = mix;
-	                    return _.isMatch(value, matchMix);
-	                }));
-	            }
-	        }
-	        var model;
-	        for (i = 0; i < removedModels.length; i++) {
-	            model = removedModels[i].__model;
-	            model.detachCollection(this);
-	            if (this.__state)
-	                this.__state.remove(model.lid());
-	        }
-	        if (lastLength !== this.size()) {
-	            if (!silent)
-	                this.__update();
-	            return true;
-	        }
-	        return false;
-	    },
-	    push: function(models, silent) {
-	        return this.addAll(models, silent);
-	    },
-	    unshift: function(models, silent) {
-	        return this.addAll(models, true, silent);
-	    },
-	    shift: function(silent) {
-	        var model = this.first();
-	        this.remove(model, silent);
-	        return model;
-	    },
-	    pop: function(silent) {
-	        var model = this.last();
-	        this.remove(model, silent);
-	        return model;
-	    },
-	    clear: function(silent) {
-	        var i, item, items = this.toArray(),
-	            len = items.length;
-	        for (i = 0; i < len; i++) {
-	            item = items[i];
-	            item.detachCollection(this);
-	            if (this.__state) this.__state.remove(item.lid());
-	        }
-	        if (len !== this.size()) {
-	            if (!silent) this.__update();
-	            return true;
-	        }
-	        return false;
-	    },
-	    pluck: function(key, filter) {
-	        var plucked = [],
-	            isId = (key === 'id');
-	        for (var i = 0, models = this.models; i < models.length; i++) {
-	            if (filter && !filter(models[i].__model)) continue;
-	            plucked.push(isId ? models[i].__model[key]() : models[i][key]);
-	        }
-	        return plucked;
-	    },
-	    dispose: function() {
-	        var keys = _.keys(this);
-	        var i = 0;
-	        if (this.__options.model)
-	            this.__options.model = null;
-	        if (this.__state)
-	            this.__state.dispose();
-	        for (; i < keys.length; i++) {
-	            this[keys[i]] = null;
-	        }
-	    },
-	    destroy: function() {
-	        this.clear(true);
-	        this.dispose();
-	    },
-	    stateOf: function(mixed) {
-	        if (this.__state) {
-	            var model = this.get(mixed);
-	            if (model)
-	                return this.__state.get(model.lid());
-	        }
-	    },
-	    contains: function(mixed) {
-	        if (mixed instanceof BaseModel) {
-	            // mixed is a model and is in this collection.
-	            return this.indexOf(mixed.getJson()) > -1;
-	        } else if (_.isObject(mixed)) {
-	            // Use `isObject` to include functions.
-	            // If mixed contains `keyId` then search by id
-	            if (mixed[config.keyId])
-	                mixed = mixed[config.keyId];
-	            else
-	                return this.findIndex(mixed) > -1;
-	        }
-	        return this.findIndex([config.keyId, mixed]) > -1;
-	    },
-	    sort: function(fields, orders) {
-	        if (!_.isArray(fields))
-	            fields = [fields];
-	        var sorted;
-	        if (orders) {
-	            if (!_.isArray(orders))
-	                orders = [orders];
-	            sorted = this.orderBy(fields, orders);
-	        } else {
-	            sorted = this.orderBy(fields);
-	        }
-	        this.__replaceModels(sorted);
-	    },
-	    sortByOrder: function(order, path) {
-	        if (!path) path = config.keyId;
-	        this.__replaceModels(this.sortBy([function(item) {
-	            return order.indexOf(_.get(item, path));
-	        }]));
-	    },
-	    randomize: function() {
-	        this.__replaceModels(this.shuffle());
-	    },
-	    hasModel: function() {
-	        return !!this.__options.model;
-	    },
-	    model: function() {
-	        return this.__options.model;
-	    },
-	    url: function(noBase) {
-	        var url = noBase ? '' : config.baseUrl;
-	        if (this.__options.url)
-	            url += this.__options.url;
-	        else if (this.hasModel())
-	            url += this.model().modelOptions.url || '/' + this.model().modelOptions.name.toLowerCase();
-	        return url;
-	    },
-	    fetch: function(query, options, callback) {
-	        if (_.isFunction(options)) {
-	            callback = options;
-	            options = undefined;
-	        }
-	        var self = this;
-	        self.__working = true;
-	        if (self.hasModel()) {
-	            options = options || {};
-	            return self.model().pull(self.url(), query, options, function(err, response, models) {
-	                self.__working = false;
-	                if (err) {
-	                    if (_.isFunction(callback)) callback(err);
-	                } else {
-	                    if (options.clear)
-	                        self.clear(true);
-	                    self.addAll(models);
-	                    if (_.isFunction(callback)) callback(null, response, models);
-	                }
-	            });
-	        } else {
-	            self.__working = false;
-	            var err = new Error('Collection must have a model to perform fetch');
-	            if (_.isFunction(callback)) callback(err);
-	            return Promise.reject(err);
-	        }
-	    },
-	    isWorking: function() {
-	        return this.__working;
-	    },
-	    isFetching: function() {
-	        return this.isWorking();
-	    },
-	    __replaceModels: function(models) {
-	        for (var i = models.length - 1; i >= 0; i--) {
-	            this.models[i] = models[i].__json;
-	        }
-	    },
-	    __update: function(fromModel) {
-	        // Levels: instance || global
-	        if (!this.__options._cache && (this.__options.redraw || config.redraw)) {
-	            // If `fromModel` is specified, means triggered by contained model.
-	            // Otherwise, triggered by collection itself.
-	            if (!fromModel) {
-	                // console.log('Redraw', 'Collection');
-	                m.redraw();
-	            }
-	            return true;
-	        }
+	  opt: function(key, value) {
+	    if (_.isPlainObject(key))
+	      _.assign(this.__options, key);
+	    else
+	      this.__options[key] = _.isUndefined(value) ? true : value;
+	  },
+	  add: function(model, unshift, silent) {
+	    if (!(model instanceof BaseModel) || (this.__options.model && !(model instanceof this.__options.model)))
+	      throw new Error('Must be a model or an instance of set model');
+	    var existingModel = this.get(model);
+	    var added = false;
+	    if (existingModel) {
+	      existingModel.set(model);
+	    } else {
+	      if (unshift)
+	        this.models.unshift(model.getJson());
+	      else
+	        this.models.push(model.getJson());
+	      model.attachCollection(this);
+	      if (this.__state)
+	        this.__state.set(model.lid());
+	      added = true;
 	    }
+	    if (added && !silent)
+	      this.__update();
+	    return added;
+	  },
+	  addAll: function(models, unshift, silent) {
+	    if (!_.isArray(models))
+	      models = [models];
+	    var added = false;
+	    var i = 0;
+	    for (; i < models.length; i++) {
+	      if (this.add(models[i], unshift, true))
+	        added = true;
+	    }
+	    if (added && !silent)
+	      this.__update();
+	    return added;
+	  },
+	  create: function(data, opts) {
+	    if (!_.isArray(data))
+	      data = [data];
+	    var newModels = [];
+	    var existingModel;
+	    var modelData;
+	    var i = 0;
+	    for (; i < data.length; i++) {
+	      modelData = data[i];
+	      if (!_.isPlainObject(modelData))
+	        throw new Error('Plain object required');
+	      existingModel = this.get(modelData);
+	      if (existingModel) {
+	        existingModel.set(modelData, true);
+	      } else {
+	        // TODO: Check to use cache
+	        if (this.__options.model)
+	          newModels.push(this.__options.model.create(modelData, opts));
+	        // newModels.push(new this.__options.model(modelData));
+	      }
+	    }
+	    this.addAll(newModels);
+	    return newModels;
+	  },
+	  get: function(mixed) {
+	    // mixed can be id-number, id-string, plain-object or model.
+	    // NOTE: check if model/object contains id and use it instead.
+	    // returns a model.
+	    var jsonModel;
+	    if (mixed instanceof BaseModel) {
+	      // mixed is a model and is in this collection.
+	      return this.contains(mixed) ? mixed : undefined;
+	    } else if (_.isObject(mixed)) {
+	      // Use `isObject` to include functions.
+	      if (mixed[config.keyId])
+	        mixed = mixed[config.keyId];
+	      else
+	        return this.find(mixed) || undefined;
+	    }
+	    jsonModel = this.find([config.keyId, mixed]);
+	    return jsonModel || undefined;
+	  },
+	  getAll: function(mixed, falsy) {
+	    // Note that this will not get all matched.
+	    // Will only get the first match of each array item.
+	    if (!_.isArray(mixed))
+	      mixed = [mixed];
+	    var models = [];
+	    var i = 0;
+	    var exist;
+	    for (; i < mixed.length; i++) {
+	      exist = this.get(mixed[i]);
+	      if (exist || falsy) {
+	        models.push(exist);
+	      }
+	    }
+	    return models;
+	  },
+	  remove: function(mixed, silent) {
+	    // mixed can be array of id-number, id-string, plain-object or model.
+	    if (!_.isArray(mixed))
+	      mixed = [mixed];
+	    var lastLength = this.size();
+	    var removedModels = [];
+	    var matchMix;
+	    var mix;
+	    var i;
+	    if (!lastLength)
+	      return;
+	    for (i = 0; i < mixed.length; i++) {
+	      mix = mixed[i];
+	      if (!mix)
+	        throw new Error('Can\'t remove from collection. Argument must be set.');
+	      if (mix instanceof BaseModel) {
+	        removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
+	          return _.eq(value, mix.getJson());
+	        }));
+	      } else if (_.isObjectLike(mix)) {
+	        removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
+	          return _.isMatch(value, mix);
+	        }));
+	      } else {
+	        removedModels.push.apply(removedModels, _.remove(this.models, function(value) {
+	          matchMix = {};
+	          matchMix[config.keyId] = mix;
+	          return _.isMatch(value, matchMix);
+	        }));
+	      }
+	    }
+	    var model;
+	    for (i = 0; i < removedModels.length; i++) {
+	      model = removedModels[i].__model;
+	      model.detachCollection(this);
+	      if (this.__state)
+	        this.__state.remove(model.lid());
+	    }
+	    if (lastLength !== this.size()) {
+	      if (!silent)
+	        this.__update();
+	      return true;
+	    }
+	    return false;
+	  },
+	  push: function(models, silent) {
+	    return this.addAll(models, silent);
+	  },
+	  unshift: function(models, silent) {
+	    return this.addAll(models, true, silent);
+	  },
+	  shift: function(silent) {
+	    var model = this.first();
+	    this.remove(model, silent);
+	    return model;
+	  },
+	  pop: function(silent) {
+	    var model = this.last();
+	    this.remove(model, silent);
+	    return model;
+	  },
+	  clear: function(silent) {
+	    var i, item, items = this.toArray(),
+	      len = items.length;
+	    for (i = 0; i < len; i++) {
+	      item = items[i];
+	      item.detachCollection(this);
+	      if (this.__state) this.__state.remove(item.lid());
+	    }
+	    if (len !== this.size()) {
+	      if (!silent) this.__update();
+	      return true;
+	    }
+	    return false;
+	  },
+	  pluck: function(key, filter) {
+	    var plucked = [],
+	      isId = (key === 'id');
+	    for (var i = 0, models = this.models; i < models.length; i++) {
+	      if (filter && !filter(models[i].__model)) continue;
+	      plucked.push(isId ? models[i].__model[key]() : models[i][key]);
+	    }
+	    return plucked;
+	  },
+	  dispose: function() {
+	    var keys = _.keys(this);
+	    var i = 0;
+	    if (this.__options.model)
+	      this.__options.model = null;
+	    if (this.__state)
+	      this.__state.dispose();
+	    for (; i < keys.length; i++) {
+	      this[keys[i]] = null;
+	    }
+	  },
+	  destroy: function() {
+	    this.clear(true);
+	    this.dispose();
+	  },
+	  stateOf: function(mixed) {
+	    if (this.__state) {
+	      var model = this.get(mixed);
+	      if (model)
+	        return this.__state.get(model.lid());
+	    }
+	  },
+	  contains: function(mixed) {
+	    if (mixed instanceof BaseModel) {
+	      // mixed is a model and is in this collection.
+	      return this.indexOf(mixed.getJson()) > -1;
+	    } else if (_.isObject(mixed)) {
+	      // Use `isObject` to include functions.
+	      // If mixed contains `keyId` then search by id
+	      if (mixed[config.keyId])
+	        mixed = mixed[config.keyId];
+	      else
+	        return this.findIndex(mixed) > -1;
+	    }
+	    return this.findIndex([config.keyId, mixed]) > -1;
+	  },
+	  sort: function(fields, orders) {
+	    if (!_.isArray(fields))
+	      fields = [fields];
+	    var sorted;
+	    if (orders) {
+	      if (!_.isArray(orders))
+	        orders = [orders];
+	      sorted = this.orderBy(fields, orders);
+	    } else {
+	      sorted = this.orderBy(fields);
+	    }
+	    this.__replaceModels(sorted);
+	  },
+	  sortByOrder: function(order, path) {
+	    if (!path) path = config.keyId;
+	    this.__replaceModels(this.sortBy([function(item) {
+	      return order.indexOf(_.get(item, path));
+	    }]));
+	  },
+	  randomize: function() {
+	    this.__replaceModels(this.shuffle());
+	  },
+	  hasModel: function() {
+	    return !!this.__options.model;
+	  },
+	  model: function() {
+	    return this.__options.model;
+	  },
+	  url: function(noBase) {
+	    var url = noBase ? '' : config.baseUrl;
+	    if (this.__options.url)
+	      url += this.__options.url;
+	    else if (this.hasModel())
+	      url += this.model().modelOptions.url || '/' + this.model().modelOptions.name.toLowerCase();
+	    return url;
+	  },
+	  fetch: function(query, options, callback) {
+	    if (_.isFunction(options)) {
+	      callback = options;
+	      options = undefined;
+	    }
+	    var self = this;
+	    self.__working = true;
+	    if (self.hasModel()) {
+	      options = options || {};
+	      return self.model().pull(self.url(), query, options, function(err, response, models) {
+	        self.__working = false;
+	        if (err) {
+	          if (_.isFunction(callback)) callback(err);
+	        } else {
+	          if (options.clear)
+	            self.clear(true);
+	          self.addAll(models);
+	          if (_.isFunction(callback)) callback(null, response, models);
+	        }
+	      });
+	    } else {
+	      self.__working = false;
+	      var err = new Error('Collection must have a model to perform fetch');
+	      if (_.isFunction(callback)) callback(err);
+	      return Promise.reject(err);
+	    }
+	  },
+	  isWorking: function() {
+	    return this.__working;
+	  },
+	  isFetching: function() {
+	    return this.isWorking();
+	  },
+	  __replaceModels: function(models) {
+	    for (var i = models.length - 1; i >= 0; i--) {
+	      this.models[i] = models[i].__json;
+	    }
+	  },
+	  __update: function(fromModel) {
+	    // Levels: instance || global
+	    if (!this.__options._cache && (this.__options.redraw || config.redraw)) {
+	      // If `fromModel` is specified, means triggered by contained model.
+	      // Otherwise, triggered by collection itself.
+	      if (!fromModel) {
+	        // console.log('Redraw', 'Collection');
+	        m.redraw();
+	      }
+	      return true;
+	    }
+	  }
 	};
 
 
@@ -1368,47 +1668,47 @@
 
 	// Lodash methods to add.
 	var collectionMethods = {
-	    difference: 1,
-	    every: 1,
-	    find: 1,
-	    findIndex: 1,
-	    findLastIndex: 1,
-	    filter: 1,
-	    first: 0,
-	    forEach: 1,
-	    indexOf: 2,
-	    initial: 0,
-	    invoke: 3,
-	    groupBy: 1,
-	    last: 0,
-	    lastIndexOf: 2,
-	    map: 1,
-	    maxBy: 1,
-	    minBy: 1,
-	    nth: 1,
-	    orderBy: 2,
-	    partition: 1,
-	    reduce: -1,
-	    reject: 1,
-	    reverse: 0,
-	    sample: 0,
-	    shuffle: 0,
-	    size: 0,
-	    slice: 1,
-	    sortBy: 1,
-	    some: 1,
-	    transform: 2,
-	    toArray: 0,
-	    without: 1
+	  difference: 1,
+	  every: 1,
+	  find: 1,
+	  findIndex: 1,
+	  findLastIndex: 1,
+	  filter: 1,
+	  first: 0,
+	  forEach: 1,
+	  indexOf: 2,
+	  initial: 0,
+	  invoke: 3,
+	  groupBy: 1,
+	  last: 0,
+	  lastIndexOf: 2,
+	  map: 1,
+	  maxBy: 1,
+	  minBy: 1,
+	  nth: 1,
+	  orderBy: 2,
+	  partition: 1,
+	  reduce: -1,
+	  reject: 1,
+	  reverse: 0,
+	  sample: 0,
+	  shuffle: 0,
+	  size: 0,
+	  slice: 2,
+	  sortBy: 1,
+	  some: 1,
+	  transform: 2,
+	  toArray: 0,
+	  without: 1
 	};
 
 
 	// Inject lodash method.
 	util.addMethods(Collection.prototype, _, collectionMethods, 'models', '__model');
 
-/***/ },
+/***/ }),
 /* 9 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * State
@@ -1519,9 +1819,9 @@
 	};
 
 
-/***/ },
+/***/ }),
 /* 10 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
 
 	/**
 	 * Model Constructor
@@ -1637,17 +1937,23 @@
 	    }
 	};
 
-/***/ },
+/***/ }),
 /* 11 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ (function(module, exports, __webpack_require__) {
+
+	"use strict"
 
 	module.exports = __webpack_require__(12)
 
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(module) {"use strict"
+/***/ }),
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(module) {/* eslint-disable */
+	;(function() {
+	"use strict"
+	/* eslint-enable */
 
 	var guid = 0, HALT = {}
 	function createStream() {
@@ -1663,7 +1969,7 @@
 	}
 	function initStream(stream) {
 		stream.constructor = createStream
-		stream._state = {id: guid++, value: undefined, state: 0, derive: undefined, recover: undefined, deps: {}, parents: [], endStream: undefined}
+		stream._state = {id: guid++, value: undefined, state: 0, derive: undefined, recover: undefined, deps: {}, parents: [], endStream: undefined, unregister: undefined}
 		stream.map = stream["fantasy-land/map"] = map, stream["fantasy-land/ap"] = ap, stream["fantasy-land/of"] = createStream
 		stream.valueOf = valueOf, stream.toJSON = toJSON, stream.toString = valueOf
 
@@ -1672,7 +1978,10 @@
 				if (!stream._state.endStream) {
 					var endStream = createStream()
 					endStream.map(function(value) {
-						if (value === true) unregisterStream(stream), unregisterStream(endStream)
+						if (value === true) {
+							unregisterStream(stream)
+							endStream._state.unregister = function(){unregisterStream(endStream)}
+						}
 						return value
 					})
 					stream._state.endStream = endStream
@@ -1684,6 +1993,7 @@
 	function updateStream(stream, value) {
 		updateState(stream, value)
 		for (var id in stream._state.deps) updateDependency(stream._state.deps[id], false)
+		if (stream._state.unregister != null) stream._state.unregister()
 		finalize(stream)
 	}
 	function updateState(stream, value) {
@@ -1705,7 +2015,7 @@
 	}
 
 	function combine(fn, streams) {
-		if (!streams.every(valid)) throw new Error("Ensure that each item passed to m.prop.combine/m.prop.merge is a stream")
+		if (!streams.every(valid)) throw new Error("Ensure that each item passed to stream.combine/stream.merge is a stream")
 		return initDependency(createStream(), streams, function() {
 			return fn.apply(this, streams.concat([streams.filter(changed)]))
 		})
@@ -1756,19 +2066,57 @@
 			return streams.map(function(s) {return s()})
 		}, streams)
 	}
+
+	function scan(reducer, seed, stream) {
+		var newStream = combine(function (s) {
+			return seed = reducer(seed, s._state.value)
+		}, [stream])
+
+		if (newStream._state.state === 0) newStream(seed)
+
+		return newStream
+	}
+
+	function scanMerge(tuples, seed) {
+		var streams = tuples.map(function(tuple) {
+			var stream = tuple[0]
+			if (stream._state.state === 0) stream(undefined)
+			return stream
+		})
+
+		var newStream = combine(function() {
+			var changed = arguments[arguments.length - 1]
+
+			streams.forEach(function(stream, idx) {
+				if (changed.indexOf(stream) > -1) {
+					seed = tuples[idx][1](seed, stream._state.value)
+				}
+			})
+
+			return seed
+		}, streams)
+
+		return newStream
+	}
+
 	createStream["fantasy-land/of"] = createStream
 	createStream.merge = merge
 	createStream.combine = combine
+	createStream.scan = scan
+	createStream.scanMerge = scanMerge
 	createStream.HALT = HALT
 
 	if (true) module["exports"] = createStream
-	else window.stream = createStream
+	else if (typeof window.m === "function" && !("stream" in window.m)) window.m.stream = createStream
+	else window.m = {stream : createStream}
+
+	}());
 
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(13)(module)))
 
-/***/ },
+/***/ }),
 /* 13 */
-/***/ function(module, exports) {
+/***/ (function(module, exports) {
 
 	module.exports = function(module) {
 		if(!module.webpackPolyfill) {
@@ -1782,5 +2130,5 @@
 	}
 
 
-/***/ }
+/***/ })
 /******/ ]);

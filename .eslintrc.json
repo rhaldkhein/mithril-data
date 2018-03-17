@@ -6,10 +6,7 @@
     },
     "extends": "eslint:recommended",
     "rules": {
-        "indent": [
-            "error",
-            "tab"
-        ],
+        "indent": 0,
         "linebreak-style": [
             "error",
             "unix"
