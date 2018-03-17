@@ -89,7 +89,7 @@ function resolveSchemaOptions(options) {
 
 // Return the current version.
 exports.version = function() {
-    return 'v0.4.8';//version
+    return 'v0.4.9';//version
 };
 
 // Export class BaseModel
